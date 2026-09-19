@@ -22,6 +22,38 @@ artifacts:
   verification: docs/baseline/verification.md
   adr_dir: docs/baseline/adr/
 
+amendments:
+  # Additive-only changes to a frozen artifact, recorded here instead of
+  # incrementing baseline_id.
+  #
+  # Why this is NOT a baseline revision (protocol §A.5): that workflow is
+  # triggered by "a genuine product or architecture change" and every step of it
+  # operates on prd.md / architecture.md. This amendment changes no FR, no AD, no
+  # acceptance criterion and no NFR. Constitution §V designs the opposite path on
+  # purpose — "cần một thuật ngữ chưa có trong glossary → DỪNG và hỏi người" —
+  # and that path would be unusable if every new term forced a re-freeze and a
+  # re-run of /speckit-plan for every in-flight feature.
+  #
+  # The limit of this mechanism: additive glossary terms only. Changing an
+  # existing term's definition, or touching prd.md / architecture.md / ux-spec.md
+  # / feature-map.md, increments baseline_id and follows §A.5 in full.
+  - date: 2026-09-19
+    approved_by: Tuan Nguyen
+    artifact: docs/baseline/glossary.md
+    change: >
+      Added canonical term `Stock status` (Tình trạng tồn kho) — two values,
+      in_stock / out_of_stock.
+    reason: >
+      /speckit-plan for feature 000-walking-skeleton needed a name for the
+      còn/hết field in the HTTP contract. glossary.md had `Stock` but no name for
+      the derived status. Constitution §V forbids inventing a synonym, so the
+      question went to the decision-maker, who approved the term on 2026-09-19
+      (recorded in specs/000-walking-skeleton/plan.md §Quyết định đã chốt (B)).
+      This entry is that approval landing in the baseline where it belongs.
+    scope: additive
+    affects_frs: []
+    affects_ads: []
+
 notes: >
   Freeze is a human act with a human name on it. Setup guide Appendix B #2:
   an unfrozen baseline means one agent reads a draft while another edits it,
