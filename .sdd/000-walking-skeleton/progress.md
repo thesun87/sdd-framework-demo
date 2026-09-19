@@ -132,3 +132,9 @@ thừa kỷ luật, không thiếu.
 
 ## Tiến độ
 
+Ruling: R11 — `lint` của mỗi workspace sản phẩm là `tsc --noEmit` (typescript 5.9.3 đã pin),
+**không** dựng ESLint. — Vì baseline không pin linter nào và Constitution §VI cấm kéo vào một
+stack không pin; `npm run lint` vẫn phải có nghĩa, và typecheck là kiểm tra tĩnh mạnh nhất
+sẵn có mà không thêm phụ thuộc. — Nếu sai: thêm ESLint sau là một task riêng, không đụng mã
+sản phẩm.
+
