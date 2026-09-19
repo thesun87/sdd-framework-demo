@@ -6,10 +6,10 @@
 #
 # Do not set status to `frozen` until a named human has actually read and
 # accepted every artifact listed under `artifacts`.
-baseline_id: TODO-baseline-0001
-status: draft          # draft | frozen | superseded
-frozen_at: null
-frozen_by: null        # a real human name — not "the team", not an agent
+baseline_id: baseline-0001-ecommerce
+status: frozen          # draft | frozen | superseded
+frozen_at: 2026-09-19 16:04:00
+frozen_by: Tuan Nguyen # a real human name — not "the team", not an agent
 supersedes: null
 
 artifacts:
