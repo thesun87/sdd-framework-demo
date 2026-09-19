@@ -132,10 +132,17 @@ phương. Trạng thái đơn đúng năm giá trị của glossary; phương th
 bằng schema trong `packages/shared`; cấm rải `process.env` khắp code. Cấu hình do chủ shop sửa
 (thông tin ngân hàng, FR-23) nằm trong bảng của `settings`, **không bao giờ** trong biến môi trường.
 
-**Điều kiện tiên quyết đang hở.** Máy phát triển hiện chạy Node 24.13.0, **dưới sàn 24.15**
-(`docs/tooling-versions.md`). npm sẽ cảnh báo `EBADENGINE`. Nâng Node là điều kiện tiên quyết
-của feature `000-walking-skeleton`, không phải của freeze — nhưng feature 000 **không được
-bắt đầu** trước khi nó được đóng.
+**Điều kiện tiên quyết — đã đóng ngày 2026-09-19.** Bản 1.0.0 của file này ghi máy phát
+triển chạy Node 24.13.0, dưới sàn 24.15, và chặn feature `000-walking-skeleton` cho tới khi
+điều đó được đóng. Máy đã ở **24.21.0** (commit `93d0844`) và Docker đã dùng được
+(`docs/tooling-versions.md`, đo lại 2026-09-19), nên **cả hai điều kiện tiên quyết đều đã
+đạt** và câu chặn không còn hiệu lực.
+
+Luật đằng sau nó **không đổi** và vẫn áp cho mọi feature sau: sàn Node ≥ 24.15 là do
+`@nestjs/schematics` đặt cho việc **scaffold**, không phải runtime; agent có scaffold nên sàn
+cao hơn thắng. Một máy dưới sàn vẫn là điều kiện tiên quyết chưa đóng, và feature vẫn không
+được bắt đầu. Thứ hết hạn ở đây là **quan sát về một máy cụ thể tại một thời điểm**, không
+phải quy tắc. Con số đo được thuộc về `docs/tooling-versions.md`; file này chỉ nên nói luật.
 
 ## Quy trình phát triển và cổng chất lượng
 
@@ -220,4 +227,4 @@ vượt mức phải được biện minh tại chỗ trong `plan.md`, nêu rõ 
 và vì sao. Hướng dẫn vận hành lúc chạy nằm ở `CLAUDE.md`; nó diễn giải file này và không được
 mâu thuẫn với nó.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-19 | **Last Amended**: 2026-09-19
+**Version**: 1.0.1 | **Ratified**: 2026-09-19 | **Last Amended**: 2026-09-19
