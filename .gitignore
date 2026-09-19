@@ -26,3 +26,9 @@ __pycache__/
 
 # Claude Code worktrees (machine-local, never committed)
 .claude/worktrees/
+
+# ── Sản phẩm: phụ thuộc và kết quả build, không bao giờ commit ─────
+node_modules/
+dist/
+e2e/test-results/
+e2e/playwright-report/

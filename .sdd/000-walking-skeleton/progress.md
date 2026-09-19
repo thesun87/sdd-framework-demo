@@ -138,3 +138,19 @@ stack không pin; `npm run lint` vẫn phải có nghĩa, và typecheck là ki�
 sẵn có mà không thêm phụ thuộc. — Nếu sai: thêm ESLint sau là một task riêng, không đụng mã
 sản phẩm.
 
+Ruling: R12 — `node_modules/`, `dist/`, `e2e/test-results/`, `e2e/playwright-report/` vào
+`.gitignore` do **controller** làm, không phải một task. — Vì T001 báo đúng rằng `.gitignore`
+nằm ngoài allowed scope của nó, nhưng để nguyên thì một `git add -A` của bất kỳ task nào sau
+đây cũng nuốt trọn `node_modules/`; đây là vệ sinh kho mã ở tầng glue, cùng loại với commit
+`.claude/worktrees/`. — Nếu sai: một mẫu ignore quá rộng che mất file thật; kiểm bằng
+`git status --short` sau mỗi task.
+
+## Tiến độ
+
+Task 1: complete (commits 2226156..7717e31, review clean — spec ✅, task quality Approved)
+Task 1: minor (deferred): `apps/api/tsconfig.json` khai `"types": ["node","jest"]` nhưng
+  không workspace nào khai `@types/node`; nó chạy được nhờ hoisting, không nhờ khai báo.
+Task 1: minor (deferred): `packages/shared/tsconfig.json` và `packages/ui/tsconfig.json` lặp
+  lại `module`/`moduleResolution` đã có trong `tsconfig.base.json`.
+Task 1: minor (deferred): `apps/storefront/tsconfig.json` và `e2e/tsconfig.json` kế thừa
+  `declaration`/`sourceMap` trong khi đặt `noEmit: true` — cấu hình chết, vô hại.
