@@ -221,13 +221,13 @@ function seedTrackABaseline(sb, prdFrs) {
 }
 
 /** Overwrite the seeded feature's spec with `requirements`, keeping it valid. */
-function seedTrackAFeature(sb, requirements, feature = "001-demo") {
+function seedTrackAFeature(sb, requirements, plan, feature = "001-demo") {
   const fdir = join(sb.dir, "specs", feature);
   mkdirSync(fdir, { recursive: true });
   writeFileSync(join(fdir, "spec.md"),
     "# Spec\n\n## Requirements\n\n### Functional Requirements\n\n" +
     requirements + "\n## Acceptance\n- AC-001 it can be read back.\n");
-  writeFileSync(join(fdir, "plan.md"),
+  writeFileSync(join(fdir, "plan.md"), plan ??
     "# Plan\n\nImplements FR-001 following the architecture baseline (ADR-0001).\n");
   writeFileSync(join(fdir, "tasks.md"),
     "# Tasks\n\n- T001 implement FR-001, satisfying AC-001.\n");
@@ -235,9 +235,9 @@ function seedTrackAFeature(sb, requirements, feature = "001-demo") {
 }
 
 /** Seed, commit, generate the Track A handoff, commit it, then validate. */
-function validateTrackA(sb, requirements, prdFrs) {
+function validateTrackA(sb, requirements, prdFrs, plan) {
   seedTrackABaseline(sb, prdFrs);
-  const { feature } = seedTrackAFeature(sb, requirements);
+  const { feature } = seedTrackAFeature(sb, requirements, plan);
   sb.git("add", "-A"); sb.git("commit", "-q", "-m", "track A inputs");
   handoffFor(sb, feature, "A");
   sb.git("add", "-A"); sb.git("commit", "-q", "-m", "handoff");
@@ -310,5 +310,24 @@ test("BV003 blocks a back-reference pointing at an FR absent from the PRD", () =
     assert.equal(r.status, 1,
       `a dangling trace must block:\n${r.stdout}${r.stderr}`);
     assert.match(r.stdout, /FAIL\s+BV003/);
+  } finally { sb.cleanup(); }
+});
+
+test("HV006 is not satisfied by a prose id colliding inside a longer id", () => {
+  const sb = makeSandbox();
+  try {
+    // HV006/HV007 test membership with plain substring containment, so a
+    // one-digit id is a substring of every longer id sharing its prefix:
+    // "FR-1" occurs inside "FR-14". The id floor exists to keep such ids out
+    // of the set those rules read. BV003 needs a one-digit floor for the PRD,
+    // and that must not leak here — SDD-003 review.
+    const r = validateTrackA(sb,
+      "- **FR-001** *(← PRD FR-12)*: System MUST store a record.\n\n" +
+      "## Out of scope\n\nBrowsing is FR-1 and belongs to another feature.\n",
+      ["FR-11", "FR-12", "FR-13"],
+      "# Plan\n\nOrdering is FR-14 and is out of scope here (ADR-0001).\n");
+    assert.match(r.stdout, /FAIL\s+HV006/,
+      `the plan cites no requirement of this spec, only FR-14, which "FR-1" ` +
+      `merely happens to be a prefix of:\n${r.stdout}${r.stderr}`);
   } finally { sb.cleanup(); }
 });

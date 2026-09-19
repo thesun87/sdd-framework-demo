@@ -92,14 +92,18 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
-def find_ids(text: str, prefix: str) -> set[str]:
+def find_ids(text: str, prefix: str, min_digits: int = 2) -> set[str]:
     """Extract requirement-style IDs, e.g. FR-001, NFR-012, AC-003, T005.
 
-    One digit is enough: a baseline PRD numbers its requirements FR-1 … FR-35,
-    and a two-digit floor made the first nine invisible to every rule that
-    reads them — SDD-003.
+    The digit floor belongs to the document being read, not to this helper.
+    A spec numbers its requirements FR-001 (spec-template.md), but a baseline
+    PRD numbers them FR-1 … FR-35, and the default floor of two makes that
+    first nine invisible — pass ``min_digits=1`` when reading a PRD.
+
+    Do not lower the floor for a spec: callers that test membership by plain
+    substring containment would then match "FR-1" inside "FR-14" — SDD-003.
     """
-    return set(re.findall(rf"\b{prefix}-?\d{{1,4}}\b", text))
+    return set(re.findall(rf"\b{prefix}-?\d{{{min_digits},4}}\b", text))
 
 
 # A spec declares its requirements as template bullets — "- **FR-001**: ..." —

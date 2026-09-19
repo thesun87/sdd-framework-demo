@@ -127,7 +127,7 @@ def validate(feature: str) -> Result:
 
         prd_txt = read(BASELINE / "prd.md") + "".join(
             read(p) for p in sorted((BASELINE / "prd").glob("*.md")))
-        prd_frs = find_ids(prd_txt, "FR")
+        prd_frs = find_ids(prd_txt, "FR", min_digits=1)
         # "Traces to", not "has the same id" (protocol §BV003). Spec ids are
         # local to the spec, so an id collision is not a trace and never was.
         untraced = sorted(f for f, origin in declared_requirements(spec_txt).items()
