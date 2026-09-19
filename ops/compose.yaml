@@ -77,8 +77,10 @@ services:
       - "80:80"
     volumes:
       # ops/Caddyfile là file của T003 — CHƯA tồn tại khi task này chạy. Tham chiếu nó ở
-      # đây là đúng theo brief; T003 tạo nó ngay sau.
-      - ../ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      # đây là đúng theo brief; T003 tạo nó ngay sau. Đường dẫn tương đối so với thư mục
+      # chứa file compose này (ops/), nên `./Caddyfile` = ops/Caddyfile — không cần vòng
+      # qua gốc repo (`../ops/Caddyfile`) rồi quay lại cùng thư mục.
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ../apps/storefront/dist:/srv/storefront:ro
       # Mount cùng named volume ảnh sản phẩm, chỉ đọc, phòng trường hợp Caddy phục vụ ảnh
       # tĩnh trực tiếp thay vì đi qua `api` (quyết định thực sự thuộc Caddyfile của T003).

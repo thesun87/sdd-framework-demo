@@ -20,10 +20,16 @@ COPY packages/shared/package.json packages/shared/package.json
 RUN npm ci --workspace=apps/api --include-workspace-root=true
 
 # ---- build: biên dịch apps/api (và packages/shared mà nó phụ thuộc) ----
+# THỨ TỰ COPY CÓ Ý NGHĨA: `COPY . .` đứng TRƯỚC, `COPY --from=deps .../node_modules` đứng
+# SAU — để layer `node_modules` cài trong container (đúng OS/arch, tái lập được) luôn LÀ
+# LỚP CUỐI GHI ĐÈ, kể cả khi `ops/api.Dockerfile.dockerignore` không được BuildKit đọc (ví
+# dụ BuildKit bị tắt). Đảo ngược thứ tự này sẽ để `COPY . .` ghi đè `node_modules` thật của
+# host (sai OS/arch, có thể thiếu gói) lên trên node_modules vừa `npm ci` — xem
+# ops/api.Dockerfile.dockerignore để biết phần loại trừ context tương ứng.
 FROM node:24.21.0-bookworm-slim AS build
 WORKDIR /repo
-COPY --from=deps /repo/node_modules ./node_modules
 COPY . .
+COPY --from=deps /repo/node_modules ./node_modules
 RUN npm run build --workspace=apps/api
 
 # ---- run: runtime tối giản, chỉ mang theo dist + node_modules đã cài ----

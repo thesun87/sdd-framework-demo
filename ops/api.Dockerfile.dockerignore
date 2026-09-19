@@ -1,0 +1,20 @@
+# ops/api.Dockerfile.dockerignore — loại trừ context cho ops/api.Dockerfile.
+# BuildKit đọc `<tên-dockerfile>.dockerignore` ưu tiên hơn `.dockerignore` ở gốc context
+# (Ruling R13). Đặt ở đây, KHÔNG đặt `.dockerignore` ở gốc repo — file gốc repo không
+# task nào sở hữu, còn `ops/` vẫn nằm trong phạm vi được phép của T002.
+#
+# Quan trọng nhất: loại `node_modules` — build context là gốc repo (`context: ..`) và
+# `node_modules` thật (cài trên host) đã tồn tại sẵn ở đó; không loại nó, `COPY . .` ở
+# stage `build` sẽ gửi/ghi đè `node_modules` cài trong container (đúng OS/arch, do stage
+# `deps` tạo ra) bằng bản của host — sai kiến trúc, sai phiên bản, defeats mục đích của
+# stage `deps`. (Đã tự vệ thêm bằng cách đảo thứ tự COPY trong Dockerfile — file này là
+# lớp phòng thủ đầu tiên, giảm kích thước context gửi cho daemon.)
+node_modules
+**/node_modules
+.git
+dist
+**/dist
+.sdd
+docs
+specs
+e2e/test-results
