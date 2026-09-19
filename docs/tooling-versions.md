@@ -7,19 +7,34 @@
 | Superpowers | `superpowers@claude-plugins-official` | 6.3.0 | 2026-09-18 | Tuan Nguyen |
 | Claude Code | stable | 2.1.276 | 2026-09-18 | Tuan Nguyen |
 | Python | system | 3.12.3 | 2026-09-18 | Tuan Nguyen |
-| Node | system | **24.15.0 (sàn)** | 2026-09-19 | Tuan Nguyen |
+| Node | nvm | **24.21.0** (sàn `>=24.15`) | 2026-09-19 | Tuan Nguyen |
 | PostgreSQL | docker | 18.6 | 2026-09-19 | Tuan Nguyen |
 | PyYAML | system | 6.0.1 | 2026-09-18 | Tuan Nguyen |
 
-> ⚠️ **Máy hiện tại đang chạy Node 24.13.0 — dưới sàn.** Sàn 24.15 không do
-> runtime đặt (NestJS 11 chạy được từ 20.19) mà do `@nestjs/schematics` đặt cho
-> việc scaffold. Agent có scaffold, nên sàn cao hơn là sàn có hiệu lực. npm sẽ
-> cảnh báo `EBADENGINE` cho tới khi nâng. **Nâng Node là điều kiện tiên quyết
-> của feature 000, không phải của bước đóng băng baseline.**
+> **Node đã nâng 24.13.0 → 24.21.0 ngày 2026-09-19.** `EBADENGINE` đã hết.
+> Sàn `>=24.15` không do runtime đặt (NestJS 11 chạy được từ 20.19) mà do
+> `@nestjs/schematics` đặt cho việc scaffold; agent có scaffold, nên sàn cao hơn
+> là sàn có hiệu lực.
+>
+> **Vì sao 24.21.0 chứ không phải đúng 24.15.0.** Dòng 24.15 không có bản vá nào
+> — `24.15.0` (15/04/2026) là bản duy nhất, và nó nằm dưới hai đợt vá bảo mật:
+> **24.17.0** (18/06/2026, 9 CVE, 2 High) và **24.18.1** (29/07/2026, 11 CVE,
+> 3 High). `architecture.md` § Stack ghi Node là **sàn** (`24.15+`), không phải
+> pin, nên nâng lên bản LTS mới nhất của dòng 24 không phải một thay đổi baseline
+> (constitution §VI chỉ chặn việc đổi phiên bản đã pin).
+>
+> ⚠️ **Phiên Claude Code mở trước lúc nâng vẫn thấy 24.13.0** — `PATH` được kế
+> thừa lúc khởi động và nvm không viết đè entry đã có. `nvm alias default` đã
+> trỏ đúng `v24.21.0`; khởi động lại phiên là đủ.
 >
 > Node 24 rời Active LTS ngày **20/10/2026** và sang Maintenance tới 30/04/2028;
 > Node 26 thành Active LTS ngày 28/10/2026. Mốc đó rơi khoảng một tháng sau thời
 > điểm freeze — xem mục Deferred của `docs/baseline/architecture.md`.
+>
+> ⚠️ **Docker chưa dùng được trong distro WSL này** (`docker: command not found`
+> — WSL integration của Docker Desktop chưa bật). PostgreSQL 18.6 trong bảng trên
+> là phiên bản đã chốt, **chưa phải phiên bản đang chạy**. AD-27 đòi PostgreSQL
+> thật, nên đây là điều kiện tiên quyết của cổng nghiệm thu feature 000.
 
 Upgrade policy: one tool at a time, on a branch, validated against the
 pilot feature before adoption. Never upgrade mid-feature.
