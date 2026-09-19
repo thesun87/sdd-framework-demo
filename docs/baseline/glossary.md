@@ -38,11 +38,15 @@ The validator (HV015) fails if this file is missing or under 500 bytes.
 Source: `planning-artifacts/prds/prd-sdd-framework-demo-2026-09-18/prd.md` §3, curated
 into the baseline on 2026-09-18. Definitions kept in English to match the table above.
 
-**These terms inherit that PRD's open questions.** Three rows below encode a decision that
-is still blocking at §11.1 — *Shop owner* ("cannot place an order", Q4), *Customer* (may
-cancel their own `placed` order, Q5), and *Anonymisation* (the 12-month policy, Q3). If the
-decision-maker answers any of them differently, the row changes with it. Do not treat a
-glossary row as ratification.
+**The three questions these terms depended on are now answered** (2026-09-19, decision-maker
+Tuan Nguyen): *Shop owner* still cannot place an order (Q4 = no), *Customer* may cancel their
+own `placed` order (Q5 = yes), and *Anonymisation* keeps the 12-month mark (Q3a) — plus a
+second trigger: the shop owner may anonymise an order on the customer's request (Q3b, FR-35),
+because Luật 91/2025 requires deletion requests be honoured within 20 days.
+
+**Note on Anonymisation:** it covers the personal data *on an order* only. A customer's login
+email is out of its scope, so a deletion request is only half-honoured. Undecided — see the
+Deferred section of `architecture.md`.
 
 | Canonical term (EN) | Tiếng Việt | Definition | Do NOT use |
 |---|---|---|---|
@@ -63,5 +67,5 @@ glossary row as ratification.
 | Guest | Khách chưa đăng ký | A user with no login session. May browse and add to cart; may not place an order | "anonymous user", "visitor", "khách vãng lai", bare "khách" |
 | Customer | Khách hàng | A registered, logged-in user. Places orders, views **their own** order history, and cancels their own order while it is `placed` | "user", "buyer", "member", bare "khách" |
 | Shop owner | Chủ shop | The single administrator account. Manages products, stock and orders. **Cannot place an order** | "admin", "seller", "merchant", "quản trị viên", "nhân viên" |
-| Delivery address | Địa chỉ giao hàng | Recipient name, phone number, address. Entered per order and copied into it. Personal data under Nghị định 13/2023/NĐ-CP | "shipping address", "địa chỉ nhận hàng", "thông tin giao hàng" |
+| Delivery address | Địa chỉ giao hàng | Recipient name, phone number, address. Entered per order and copied into it. Personal data under Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15 | "shipping address", "địa chỉ nhận hàng", "thông tin giao hàng" |
 | Anonymisation | Ẩn danh hoá | Irreversible removal of recipient name, phone number and address from an order, keeping the rest | "PII scrubbing", "data deletion", "xoá dữ liệu", "ẩn dữ liệu" |
