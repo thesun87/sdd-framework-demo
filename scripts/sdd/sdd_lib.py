@@ -93,8 +93,33 @@ def read(path: Path) -> str:
 
 
 def find_ids(text: str, prefix: str) -> set[str]:
-    """Extract requirement-style IDs, e.g. FR-001, NFR-012, AC-003, T005."""
-    return set(re.findall(rf"\b{prefix}-?\d{{2,4}}\b", text))
+    """Extract requirement-style IDs, e.g. FR-001, NFR-012, AC-003, T005.
+
+    One digit is enough: a baseline PRD numbers its requirements FR-1 … FR-35,
+    and a two-digit floor made the first nine invisible to every rule that
+    reads them — SDD-003.
+    """
+    return set(re.findall(rf"\b{prefix}-?\d{{1,4}}\b", text))
+
+
+# A spec declares its requirements as template bullets — "- **FR-001**: ..." —
+# and numbers them locally (.specify/templates/spec-template.md), so a spec id
+# never equals the PRD id it comes from. The trace is the back-reference the
+# bullet carries: "- **FR-001** *(← PRD FR-4)*: ...". An FR id appearing
+# anywhere else is prose — a cross-feature mention in an out-of-scope note is
+# not this spec's requirement and must not be read as one.
+DECLARED_FR_RE = re.compile(r"^\s*[-*]\s*\*\*(FR-?\d{1,4})\*\*(.*)$", re.MULTILINE)
+PRD_ORIGIN_RE = re.compile(r"←\s*PRD\s+(FR-?\d{1,4})")
+
+
+def declared_requirements(text: str) -> dict[str, str | None]:
+    """Map each FR a spec declares to the PRD FR it cites, or None if it cites
+    nothing. Order follows the document."""
+    out: dict[str, str | None] = {}
+    for m in DECLARED_FR_RE.finditer(text):
+        origin = PRD_ORIGIN_RE.search(m.group(2))
+        out[m.group(1)] = origin.group(1) if origin else None
+    return out
 
 
 def has_unresolved_clarifications(text: str) -> bool:

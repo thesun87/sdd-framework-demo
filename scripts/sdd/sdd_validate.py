@@ -17,8 +17,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from sdd_lib import (  # noqa: E402
     BASELINE, CONSTITUTION, ROOT, SDD, SPECS,
-    active_feature, find_ids, git_sha, has_unresolved_clarifications,
-    is_bootstrap, read, working_tree_clean,
+    active_feature, declared_requirements, find_ids, git_sha,
+    has_unresolved_clarifications, is_bootstrap, read, working_tree_clean,
 )
 
 CODEBASE_CONTEXT_MAX_BYTES = 8_000   # ~one page
@@ -128,9 +128,14 @@ def validate(feature: str) -> Result:
         prd_txt = read(BASELINE / "prd.md") + "".join(
             read(p) for p in sorted((BASELINE / "prd").glob("*.md")))
         prd_frs = find_ids(prd_txt, "FR")
-        untraced = sorted(f for f in spec_frs if f not in prd_frs)
+        # "Traces to", not "has the same id" (protocol §BV003). Spec ids are
+        # local to the spec, so an id collision is not a trace and never was.
+        untraced = sorted(f for f, origin in declared_requirements(spec_txt).items()
+                          if origin is None or origin not in prd_frs)
         r.check("BV003", not untraced,
-                f"spec FRs with no PRD origin: {', '.join(untraced)}")
+                f"spec FRs with no PRD origin: {', '.join(untraced)} — each "
+                f"declared requirement must cite a PRD FR that exists, as in "
+                f"'- **FR-001** *(← PRD FR-4)*: ...'")
 
         r.warn("BV004", "architecture" in plan_txt.lower() or "ADR" in plan_txt,
                "plan.md cites no architecture decision — verify it follows the baseline")

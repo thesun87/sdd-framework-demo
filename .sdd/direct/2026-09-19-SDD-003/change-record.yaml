@@ -1,0 +1,125 @@
+change_id: 2026-09-19-SDD-003
+track: C
+type: bugfix
+ticket: SDD-003
+severity: high
+created_at: '2026-09-19T19:25:52+07:00'
+constitution:
+  path: .specify/memory/constitution.md
+  git_sha: 3a0fa5db590c4c37f5fec7564e3ded7e48f09c0a
+defect:
+  observed: >-
+    /sdd-validate on the Track A handoff for 000-walking-skeleton reports
+    "BV003 spec FRs with no PRD origin: FR-001, FR-002, FR-003, FR-004, FR-005,
+    FR-006, FR-007, FR-008" — every declared requirement in the spec — although
+    spec.md carries an explicit back-reference for each one (e.g.
+    "- **FR-001** *(← PRD FR-4)*"). The feature cannot be handed off at all.
+    In the same run BV003 silently accepts FR-14, which appears in spec.md only
+    inside an out-of-scope note ("Đặt đơn là FR-14, thuộc feature 004") and
+    belongs to feature 004, because that string happens to occur in prd.md.
+  expected: >-
+    BV003 implements the rule the protocol states at line 1907 — "every spec FR
+    traces to a PRD FR-xxx". A declared spec FR is traced when it carries a
+    back-reference resolving to an FR that exists in prd.md. A declared spec FR
+    with no back-reference, or one pointing at an FR absent from prd.md, still
+    FAILs. An FR-shaped string appearing only in prose is not a declared
+    requirement and is neither checked nor credited.
+  documented_behaviour_ref: >-
+    docs/agentic-sdd-protocol-v2.md:1907 (BV003 "every spec FR traces to a PRD
+    FR-xxx" — "traces to", not "has an identical id");
+    .specify/templates/spec-template.md:90-94 (installer-managed, mandates
+    spec-local FR-001 numbering, therefore spec.md is conformant and the
+    validator is not).
+  reproduction: >-
+    tests/sdd_validate.test.mjs — "BV003 accepts a spec FR traced by a
+    (← PRD FR-N) back-reference", "BV003 resolves a back-reference to a
+    single-digit PRD FR", "BV003 still blocks a declared spec FR with no
+    back-reference", "BV003 does not credit an FR mentioned only in prose".
+    All red before the fix.
+entry_criteria:
+  CV001_defect_against_documented_behaviour: true
+  CV002_no_business_rule_change: true
+  CV003_no_contract_change: true
+  CV004_no_schema_change: true
+  CV005_no_authz_change: true
+  CV006_no_acceptance_criteria_change: CONTESTED
+  CV007_no_nfr_impact: true
+  CV008_no_new_dependency: true
+  CV009_reproducible_by_test: true
+  CV010_single_module_scope: CONTESTED
+entry_criteria_notes: >-
+  CV006 — BV003 is a handoff quality gate, not a feature acceptance criterion,
+  but changing when it passes does change a gate. Mitigated by making the gate
+  strictly stronger, never weaker: a declared spec FR with no back-reference
+  now FAILs where a lucky string collision previously passed (the FR-14 case
+  above), and a back-reference pointing at an FR absent from prd.md FAILs.
+  Tests pin both directions, so the gate cannot be relaxed unnoticed.
+
+  CV010 — two source files, sdd_lib.py and sdd_validate.py, plus one test file.
+  Treated as one module (the glue layer), on the precedent of SDD-002. The
+  regex lives in sdd_lib.py and its only defective consumer is BV003 in
+  sdd_validate.py; splitting the change would leave the rule reading a set the
+  helper still builds wrong.
+
+  Both stretches were put to the human before any code was written, together
+  with the option of escalating to Track B, and Track C was chosen.
+root_cause: >-
+  find_ids (scripts/sdd/sdd_lib.py:95-97, unchanged since the bootstrap commit
+  d7424d8) extracts requirement ids with \b{prefix}-?\d{2,4}\b. Three faults
+  compose in BV003 (scripts/sdd/sdd_validate.py:128-133).
+
+  (1) The two-digit floor makes prd.md's FR-1 … FR-9 invisible: prd_frs holds
+  26 of the PRD's 35 requirements. Feature 000 traces exclusively to FR-4 and
+  FR-5 — both inside the invisible nine — so the rule could not have passed
+  even if the ids had matched.
+
+  (2) BV003 tests raw string membership (f in prd_frs), which assumes spec FR
+  ids share a namespace with PRD FR ids. The Spec Kit template mandates
+  spec-local FR-001 numbering and is installer-managed, so the two namespaces
+  can never coincide by construction. The real trace is the *(← PRD FR-N)*
+  back-reference, which BV003 never reads. Numeric normalisation is not a fix
+  and is actively wrong: FR-001 normalises onto PRD FR-1 (catalog browse,
+  feature 001) while it actually traces to PRD FR-4.
+
+  (3) The input set is find_ids(spec_txt, "FR") — every FR-shaped string
+  anywhere in the document, including cross-feature mentions in out-of-scope
+  notes. So the rule is false-negative on all eight declared requirements and
+  false-positive on FR-14, which belongs to another feature.
+
+  The fix lowers the floor to one digit, and makes BV003 read declared
+  requirements and their back-references instead of comparing raw id strings.
+scope:
+  allowed:
+  - scripts/sdd/sdd_lib.py
+  - scripts/sdd/sdd_validate.py
+  - tests/sdd_validate.test.mjs
+  - .sdd/direct/2026-09-19-SDD-003/**
+  forbidden:
+  - specs/**
+  - .specify/templates/**
+  - migrations/**
+  - '**/openapi.yaml'
+  - '**/*.proto'
+  - docs/baseline/**
+  - .specify/memory/constitution.md
+policy:
+  require_regression_test: true
+  require_tdd: true
+  require_code_quality_review: true
+  require_full_verification: true
+  require_spec_review: false
+  require_convergence: false
+  max_files_changed: 8
+verification:
+  commands:
+    test: npm test
+    lint: npm run lint
+escalation:
+  triggers:
+  - contract_change_required
+  - schema_change_required
+  - business_rule_ambiguity
+  - fix_requires_forbidden_scope
+  - root_cause_not_found
+  action: STOP_AND_ESCALATE_TO_TRACK_B
+status: in_progress
