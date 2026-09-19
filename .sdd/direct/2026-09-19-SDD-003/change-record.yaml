@@ -122,4 +122,4 @@ escalation:
   - fix_requires_forbidden_scope
   - root_cause_not_found
   action: STOP_AND_ESCALATE_TO_TRACK_B
-status: in_progress
+status: done
