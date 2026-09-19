@@ -7,8 +7,19 @@
 | Superpowers | `superpowers@claude-plugins-official` | 6.3.0 | 2026-09-18 | Tuan Nguyen |
 | Claude Code | stable | 2.1.276 | 2026-09-18 | Tuan Nguyen |
 | Python | system | 3.12.3 | 2026-09-18 | Tuan Nguyen |
-| Node | system | 24.13.0 | 2026-09-18 | Tuan Nguyen |
+| Node | system | **24.15.0 (sàn)** | 2026-09-19 | Tuan Nguyen |
+| PostgreSQL | docker | 18.6 | 2026-09-19 | Tuan Nguyen |
 | PyYAML | system | 6.0.1 | 2026-09-18 | Tuan Nguyen |
+
+> ⚠️ **Máy hiện tại đang chạy Node 24.13.0 — dưới sàn.** Sàn 24.15 không do
+> runtime đặt (NestJS 11 chạy được từ 20.19) mà do `@nestjs/schematics` đặt cho
+> việc scaffold. Agent có scaffold, nên sàn cao hơn là sàn có hiệu lực. npm sẽ
+> cảnh báo `EBADENGINE` cho tới khi nâng. **Nâng Node là điều kiện tiên quyết
+> của feature 000, không phải của bước đóng băng baseline.**
+>
+> Node 24 rời Active LTS ngày **20/10/2026** và sang Maintenance tới 30/04/2028;
+> Node 26 thành Active LTS ngày 28/10/2026. Mốc đó rơi khoảng một tháng sau thời
+> điểm freeze — xem mục Deferred của `docs/baseline/architecture.md`.
 
 Upgrade policy: one tool at a time, on a branch, validated against the
 pilot feature before adoption. Never upgrade mid-feature.
