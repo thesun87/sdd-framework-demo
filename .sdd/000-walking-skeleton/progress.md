@@ -189,3 +189,16 @@ Task 3: minor (deferred): `{ admin off }` trong `ops/Caddyfile` là hardening kh
 Task 3: deferred (cross-task): bơm `API_PORT` vào dịch vụ `proxy` của `ops/compose.yaml` —
   theo R14, để lại cho task nào chạm compose hợp pháp lần sau. `/speckit-converge` cần thấy dòng này.
 
+Task 4: complete (commits 8792c18..cd20ac4, review clean — spec ✅, Approved)
+Task 4: ⚠️ của reviewer đã đóng bởi controller: tôi tự chạy lại hai câu lệnh vi phạm trên
+  database thật. `UPDATE stock SET quantity=-1` → `ERROR: violates check constraint
+  "stock_quantity_non_negative"`; `DELETE FROM product` có sổ cái → `ERROR: violates RESTRICT
+  setting of foreign key constraint "stock_ledger_product_id_product_id_fk"`. Hai transcript
+  trong report của T004 là thật. Dọn bằng TRUNCATE sau khi kiểm; bốn bảng về 0 dòng.
+Task 4: minor (deferred): comment đầu `db/drizzle.config.ts` nhắc tới `db:generate` trong khi
+  `package.json` chỉ có `db:migrate` (generate chạy bằng `npx`).
+Task 4: Ruling: `generatedByDefaultAsIdentity()` (BY DEFAULT, không ALWAYS) cho mọi khoá chính
+  bigint được chấp nhận — `data-model.md` và `architecture.md` chỉ nói "bigint identity", không
+  AD nào phụ thuộc lựa chọn này, và BY DEFAULT giúp seed chèn id tường minh. — Nếu sai: đổi sang
+  ALWAYS là một migration chỉ-tiến nữa, không đụng mã.
+
