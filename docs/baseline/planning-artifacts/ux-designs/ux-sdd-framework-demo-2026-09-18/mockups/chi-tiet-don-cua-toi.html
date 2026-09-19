@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Shop Online — Chi tiết đơn hàng của tôi</title>
+<style>
+/* =====================================================================
+   MỤC SPINE CHI PHỐI MÀN NÀY
+   EXPERIENCE.md → Information Architecture, hàng "Chi tiết đơn hàng của tôi"
+                   (dòng đơn hàng + giá tại thời điểm đặt · địa chỉ giao hàng ·
+                   phương thức thanh toán · tổng tiền hàng · phí giao hàng ·
+                   tổng tiền đơn · nút huỷ chỉ khi Đã đặt · hướng dẫn chuyển
+                   khoản khi chuyển khoản + Đã đặt)
+   EXPERIENCE.md → Sống không có thông báo, quy tắc 2 và 3 (màn hình tự giải
+                   thích vì sao một hành động không còn; thay đổi do Chủ shop
+                   gây ra để lại dấu vết đọc được)
+   EXPERIENCE.md → Component Patterns (Pill trạng thái đơn hàng · Khối hướng
+                   dẫn chuyển khoản · Dấu hiệu phí giao hàng đã cập nhật ·
+                   Chọn phương thức thanh toán ở dạng chỉ đọc)
+   EXPERIENCE.md → State Patterns, hàng "Đơn hàng không huỷ được"
+   EXPERIENCE.md → Key Flows, UJ-5 (chuỗi phí giao hàng và chuỗi nhánh
+                   "Đã xác nhận")
+   DESIGN.md     → Components.status-pill (bảng màu 5 trạng thái đã chốt),
+                   Components.button-danger,
+                   Components.button-secondary, Components.banner-scope,
+                   Typography.price / price-secondary / meta
+   ===================================================================== */
+
+:root{
+  --brand-primary:#0070CE; --brand-strong:#005AA6; --brand-tint:#F0F8FF;
+  --surface-card:#FFFFFF; --surface-app:#F4F5F6; --surface-subtle:#F8FAFC;
+  --border-default:#E8EAEC; --border-subtle:#E2E8F0;
+  --ink-primary:#232628; --ink-strong:#1E293B; --ink-secondary:#687179;
+  --ink-muted:#64748B; --ink-decorative:#A2ACB4;
+  --success:#059669; --success-ink:#06763A; --success-bg:#ECFDF5; --success-border:#A7F3D0;
+  --info-bg:#F0FDF4; --info-ink:#15803D;
+  --danger:#D93843; --danger-bg:#FDECEE; --danger-border:#F5C2C7;
+  --amber:#FEC020;
+  --gutter:32px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  font-size:14px;line-height:1.5;color:var(--ink-primary);
+  background:#DDE1E4;padding:24px;
+}
+.frame{max-width:1360px;margin:0 auto;border-radius:8px;overflow:hidden;
+  border:1px solid #C9CFD4;background:var(--surface-card);}
+.chrome{background:#EDEFF1;border-bottom:1px solid var(--border-default);
+  padding:10px 14px;display:flex;align-items:center;gap:12px;}
+.dots{display:flex;gap:6px;}
+.dots i{width:11px;height:11px;border-radius:9999px;display:block;background:var(--ink-decorative);}
+.chrome-tab{background:var(--surface-card);border:1px solid var(--border-default);
+  border-radius:6px 6px 0 0;padding:5px 12px;font-size:13px;line-height:1.45;color:var(--ink-strong);}
+.urlbar{flex:1;height:28px;background:var(--surface-card);border:1px solid var(--border-subtle);
+  border-radius:9999px;display:flex;align-items:center;padding:0 12px;
+  font-size:13px;line-height:1.45;color:var(--ink-secondary);}
+.viewport{background:var(--surface-app);}
+
+.app-header{background:var(--surface-card);border-bottom:1px solid var(--border-default);
+  padding:0 var(--gutter);height:64px;display:flex;align-items:center;gap:24px;}
+.logo{font-size:17px;font-weight:600;line-height:1.4;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:16px;}
+.account{display:flex;align-items:center;gap:8px;font-size:14px;line-height:1.5;color:var(--ink-strong);}
+.avatar{width:28px;height:28px;border-radius:9999px;background:var(--amber);color:var(--ink-primary);
+  font-size:12px;font-weight:600;line-height:1.4;display:flex;align-items:center;justify-content:center;}
+
+.page{padding:var(--gutter);}
+.page-title{margin:0 0 4px;font-size:21px;font-weight:600;line-height:1.3;}
+.page-subtitle{margin:0 0 24px;font-size:14px;line-height:1.5;color:var(--ink-secondary);}
+
+.two-up{display:grid;grid-template-columns:1fr 1fr;gap:var(--gutter);align-items:start;}
+.mock-note{font-size:13px;line-height:1.45;color:var(--ink-secondary);
+  border-left:3px solid var(--ink-decorative);padding-left:10px;margin-bottom:12px;}
+
+.card{background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;}
+.card-head{padding:16px;border-bottom:1px solid var(--border-default);
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.order-code{font-size:17px;font-weight:600;line-height:1.4;color:var(--ink-primary);}
+.order-date{font-size:13px;line-height:1.45;color:var(--ink-secondary);width:100%;}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;border-radius:9999px;
+  padding:0 8px;font-size:12px;font-weight:500;line-height:1.4;}
+.pill i{width:8px;height:8px;border-radius:9999px;display:block;background:currentColor;}
+.pill-placed{background:var(--surface-subtle);color:var(--ink-secondary);}
+.pill-confirmed{background:var(--brand-tint);color:var(--brand-strong);}
+
+.sect{padding:16px;border-bottom:1px solid var(--border-default);}
+.sect:last-child{border-bottom:0;}
+.sect h3{margin:0 0 12px;font-size:13px;font-weight:600;line-height:1.45;color:var(--ink-secondary);}
+
+.lines{width:100%;border-collapse:collapse;}
+.lines th{text-align:left;font-size:13px;font-weight:400;line-height:1.45;color:var(--ink-secondary);
+  padding:0 0 8px;border-bottom:1px solid var(--border-default);}
+.lines th.num,.lines td.num{text-align:right;white-space:nowrap;}
+.lines td{padding:12px 0;border-bottom:1px solid var(--border-default);
+  font-size:14px;line-height:1.5;vertical-align:top;}
+.lines tr:last-child td{border-bottom:0;}
+.lines .pname{font-weight:600;color:var(--ink-primary);}
+.lines .pprice{font-size:15px;font-weight:600;line-height:1.3;color:var(--ink-primary);}
+
+.kv{display:grid;grid-template-columns:1fr;gap:4px;font-size:14px;line-height:1.5;}
+.kv .k{font-size:13px;line-height:1.45;color:var(--ink-secondary);}
+.kv .v{color:var(--ink-primary);}
+
+.money{display:grid;gap:8px;}
+.money-row{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  font-size:14px;line-height:1.5;}
+.money-row .k{color:var(--ink-secondary);}
+.money-row .v{font-size:15px;font-weight:600;line-height:1.3;color:var(--ink-primary);}
+.money-row.flagged{background:var(--info-bg);border-radius:6px;padding:10px 12px;align-items:flex-start;}
+.money-row.flagged .k{color:var(--info-ink);display:flex;flex-direction:column;gap:2px;}
+.money-row.flagged .k small{font-size:13px;line-height:1.45;color:var(--info-ink);}
+.money-row.flagged .v{color:var(--info-ink);}
+.money-total{border-top:1px solid var(--border-default);padding-top:12px;margin-top:4px;
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;}
+.money-total .k{font-size:14px;font-weight:600;line-height:1.5;color:var(--ink-primary);}
+.money-total .v{font-size:18px;font-weight:700;line-height:1.3;color:var(--success);}
+
+.bank{background:var(--surface-subtle);border:1px solid var(--border-default);
+  border-radius:6px;padding:16px;}
+.bank h4{margin:0 0 12px;font-size:14px;font-weight:600;line-height:1.5;color:var(--ink-primary);}
+.bank-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border-default);}
+.bank-row:last-child{border-bottom:0;}
+.bank-row .k{flex:0 0 150px;font-size:13px;line-height:1.45;color:var(--ink-secondary);}
+.bank-row .v{flex:1;font-size:14px;font-weight:600;line-height:1.5;color:var(--ink-primary);word-break:break-word;}
+.btn-secondary{display:inline-flex;align-items:center;justify-content:center;height:35px;
+  padding:0 12px;border-radius:5px;border:1px solid var(--border-default);
+  background:var(--surface-card);color:var(--ink-strong);font-size:14px;font-weight:600;line-height:1.5;}
+.btn-danger{display:inline-flex;align-items:center;justify-content:center;height:38px;
+  padding:0 16px;border-radius:6px;border:0;background:var(--danger);color:#FFFFFF;
+  font-size:14px;font-weight:600;line-height:1.5;}
+.no-cancel{font-size:14px;line-height:1.5;color:var(--ink-primary);
+  background:var(--surface-subtle);border:1px solid var(--border-default);
+  border-radius:6px;padding:12px;}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="chrome">
+    <span class="dots"><i></i><i></i><i></i></span>
+    <span class="chrome-tab">Shop Online</span>
+    <span class="urlbar">shop-online / Chi tiết đơn hàng của tôi</span>
+  </div>
+  <div class="viewport">
+
+    <div class="app-header">
+      <div class="logo">Shop Online</div>
+      <div class="header-right">
+        <span class="account"><span class="avatar">H</span>Tài khoản</span>
+      </div>
+    </div>
+
+    <div class="page">
+      <h1 class="page-title">Chi tiết đơn hàng của tôi</h1>
+      <p class="page-subtitle">Hai trạng thái dựng cạnh nhau trong cùng một bản mock.</p>
+
+      <div class="two-up">
+
+        <!-- ============ (a) Đã đặt · chuyển khoản ============ -->
+        <div>
+          <p class="mock-note">(a) Đơn hàng ở <b>Đã đặt</b> · Phương thức thanh toán: chuyển khoản</p>
+          <div class="card">
+
+            <div class="card-head">
+              <span class="order-code">DH-2026-000412</span>
+              <span class="pill pill-placed"><i></i>Đã đặt</span>
+              <span class="order-date">Ngày đặt: 18/09/2026 · 22:14</span>
+            </div>
+
+            <div class="sect">
+              <h3>Dòng đơn hàng</h3>
+              <table class="lines">
+                <thead>
+                  <tr>
+                    <th>Sản phẩm</th>
+                    <th class="num">Giá tại thời điểm đặt</th>
+                    <th class="num">Số lượng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="pname">Bình giữ nhiệt Lock&amp;Lock 500ml</td>
+                    <td class="num pprice">330.000 ₫</td>
+                    <td class="num">1</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="sect">
+              <h3>Địa chỉ giao hàng</h3>
+              <div class="kv">
+                <span class="v">Chị Hằng</span>
+                <span class="v">0912 345 678</span>
+                <span class="v">128 Nguyễn Trãi, Phường 7, Quận 5, TP. Hồ Chí Minh</span>
+              </div>
+            </div>
+
+            <div class="sect">
+              <h3>Phương thức thanh toán</h3>
+              <div class="kv"><span class="v">Chuyển khoản</span></div>
+            </div>
+
+            <div class="sect">
+              <div class="money">
+                <div class="money-row">
+                  <span class="k">Tổng tiền hàng</span>
+                  <span class="v">330.000 ₫</span>
+                </div>
+                <div class="money-row flagged">
+                  <span class="k">
+                    Phí giao hàng
+                    <small>chủ shop cập nhật lúc 07:42, 19/09/2026</small>
+                  </span>
+                  <span class="v">45.000 ₫</span>
+                </div>
+                <div class="money-total">
+                  <span class="k">Tổng tiền đơn</span>
+                  <span class="v">375.000 ₫</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sect">
+              <div class="bank">
+                <h4>Hướng dẫn chuyển khoản</h4>
+                <div class="bank-row">
+                  <span class="k">Tên ngân hàng</span>
+                  <span class="v">Vietcombank</span>
+                </div>
+                <div class="bank-row">
+                  <span class="k">Số tài khoản</span>
+                  <span class="v">0011 0012 3456 7</span>
+                  <span class="btn-secondary">Sao chép</span>
+                </div>
+                <div class="bank-row">
+                  <span class="k">Tên chủ tài khoản</span>
+                  <span class="v">NGUYEN THI LAN</span>
+                </div>
+                <div class="bank-row">
+                  <span class="k">Số tiền</span>
+                  <span class="v">375.000 ₫</span>
+                </div>
+                <div class="bank-row">
+                  <span class="k">Nội dung chuyển khoản</span>
+                  <span class="v">DH-2026-000412</span>
+                  <span class="btn-secondary">Sao chép</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sect">
+              <span class="btn-danger">Huỷ đơn hàng</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ============ (b) Đã xác nhận ============ -->
+        <div>
+          <p class="mock-note">(b) Đơn hàng ở <b>Đã xác nhận</b> · không còn nút huỷ</p>
+          <div class="card">
+
+            <div class="card-head">
+              <span class="order-code">DH-2026-000408</span>
+              <span class="pill pill-confirmed"><i></i>Đã xác nhận</span>
+              <span class="order-date">Ngày đặt: 18/09/2026 · 20:37</span>
+            </div>
+
+            <div class="sect">
+              <h3>Dòng đơn hàng</h3>
+              <table class="lines">
+                <thead>
+                  <tr>
+                    <th>Sản phẩm</th>
+                    <th class="num">Giá tại thời điểm đặt</th>
+                    <th class="num">Số lượng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="pname">Cà phê rang xay 250g</td>
+                    <td class="num pprice">120.000 ₫</td>
+                    <td class="num">2</td>
+                  </tr>
+                  <tr>
+                    <td class="pname">Trà xanh túi lọc 25 gói</td>
+                    <td class="num pprice">65.000 ₫</td>
+                    <td class="num">1</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="sect">
+              <h3>Địa chỉ giao hàng</h3>
+              <div class="kv">
+                <span class="v">Chị Hằng</span>
+                <span class="v">0912 345 678</span>
+                <span class="v">128 Nguyễn Trãi, Phường 7, Quận 5, TP. Hồ Chí Minh</span>
+              </div>
+            </div>
+
+            <div class="sect">
+              <h3>Phương thức thanh toán</h3>
+              <div class="kv"><span class="v">COD</span></div>
+            </div>
+
+            <div class="sect">
+              <div class="money">
+                <div class="money-row">
+                  <span class="k">Tổng tiền hàng</span>
+                  <span class="v">305.000 ₫</span>
+                </div>
+                <div class="money-row flagged">
+                  <span class="k">
+                    Phí giao hàng
+                    <small>chủ shop cập nhật lúc 08:05, 19/09/2026</small>
+                  </span>
+                  <span class="v">30.000 ₫</span>
+                </div>
+                <div class="money-total">
+                  <span class="k">Tổng tiền đơn</span>
+                  <span class="v">335.000 ₫</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sect">
+              <p class="no-cancel">Đơn hàng đã ở trạng thái Đã xác nhận nên bạn không huỷ được ở đây. Bạn liên hệ chủ shop để xử lý.</p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

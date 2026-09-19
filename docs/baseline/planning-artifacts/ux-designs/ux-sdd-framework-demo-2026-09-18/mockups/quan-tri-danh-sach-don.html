@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Trang quản trị — Danh sách đơn hàng</title>
+<style>
+/* =====================================================================
+   MỤC SPINE CHI PHỐI MÀN NÀY
+   EXPERIENCE.md → Information Architecture, Trang quản trị (Danh sách đơn
+                   hàng là mục mặc định sau khi đăng nhập; lọc theo trạng thái;
+                   với chuyển khoản hiện thêm tình trạng xác nhận thanh toán)
+   EXPERIENCE.md → Component Patterns (Bảng đơn hàng · Bộ lọc trạng thái ·
+                   Pill trạng thái đơn hàng · Hộp thoại xác nhận một chiều ·
+                   Bộ phân trang · Nút xác nhận thanh toán)
+   EXPERIENCE.md → Interaction Primitives, "Xác nhận hành động một chiều"
+                   (nêu hậu quả TRƯỚC, nhãn nút xác nhận là động từ của hành
+                   động, nút huỷ là lối thoát mặc định)
+   EXPERIENCE.md → Voice and Tone (Trang quản trị nói bằng câu trần thuật,
+                   không xưng hô)
+   EXPERIENCE.md → Key Flows, UJ-3 và UJ-4
+   DESIGN.md     → Components.table-row (cao 104px, cột thao tác ghim phải),
+                   Typography.table-label (header bảng viết hoa, 0.04em),
+                   Components.status-pill (bảng màu 5 trạng thái đã chốt),
+                   Components.button-primary /
+                   button-secondary, Layout & Spacing (rail 83px, khe 32px),
+                   Elevation & Depth (bóng chỉ dành cho lớp phủ)
+   ===================================================================== */
+
+:root{
+  --brand-primary:#0070CE; --brand-strong:#005AA6; --brand-tint:#F0F8FF;
+  --surface-card:#FFFFFF; --surface-app:#F4F5F6; --surface-subtle:#F8FAFC;
+  --border-default:#E8EAEC; --border-subtle:#E2E8F0;
+  --ink-primary:#232628; --ink-strong:#1E293B; --ink-secondary:#687179;
+  --ink-muted:#64748B; --ink-decorative:#A2ACB4;
+  --success:#059669; --success-ink:#06763A; --success-bg:#ECFDF5; --success-border:#A7F3D0;
+  --info-bg:#F0FDF4; --info-ink:#15803D;
+  --accent-purple:#7E22CE; --accent-purple-bg:#FAF5FF; --accent-purple-border:#E9D5FF;
+  --danger:#D93843; --danger-bg:#FDECEE; --danger-border:#F5C2C7;
+  --amber:#FEC020;
+  --gutter:32px; --rail:83px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  font-size:14px;line-height:1.5;color:var(--ink-primary);
+  background:#DDE1E4;padding:24px;
+}
+.frame{max-width:1360px;margin:0 auto;border-radius:8px;overflow:hidden;
+  border:1px solid #C9CFD4;background:var(--surface-card);}
+.chrome{background:#EDEFF1;border-bottom:1px solid var(--border-default);
+  padding:10px 14px;display:flex;align-items:center;gap:12px;}
+.dots{display:flex;gap:6px;}
+.dots i{width:11px;height:11px;border-radius:9999px;display:block;background:var(--ink-decorative);}
+.chrome-tab{background:var(--surface-card);border:1px solid var(--border-default);
+  border-radius:6px 6px 0 0;padding:5px 12px;font-size:13px;line-height:1.45;color:var(--ink-strong);}
+.urlbar{flex:1;height:28px;background:var(--surface-card);border:1px solid var(--border-subtle);
+  border-radius:9999px;display:flex;align-items:center;padding:0 12px;
+  font-size:13px;line-height:1.45;color:var(--ink-secondary);}
+.viewport{background:var(--surface-app);display:flex;align-items:stretch;}
+
+/* ---------- Rail điều hướng dọc 83px ---------- */
+.rail{flex:0 0 var(--rail);width:var(--rail);background:var(--surface-card);
+  border-right:1px solid var(--border-default);padding:16px 8px;}
+.rail-item{display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 4px;border-radius:6px;margin-bottom:8px;
+  font-size:12px;font-weight:500;line-height:1.4;color:var(--ink-muted);text-align:center;}
+.rail-item.is-active{background:var(--brand-tint);color:var(--brand-primary);}
+
+.main{flex:1;min-width:0;padding:var(--gutter);}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.page-title{margin:0;font-size:21px;font-weight:600;line-height:1.3;}
+.who{margin-left:auto;display:flex;align-items:center;gap:8px;
+  font-size:14px;line-height:1.5;color:var(--ink-strong);}
+.avatar{width:28px;height:28px;border-radius:9999px;background:var(--amber);color:var(--ink-primary);
+  font-size:12px;font-weight:600;line-height:1.4;display:flex;align-items:center;justify-content:center;}
+
+.panel{background:var(--surface-card);border:1px solid var(--border-default);border-radius:8px;}
+.panel-head{padding:16px;border-bottom:1px solid var(--border-default);
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.filter-label{font-size:13px;line-height:1.45;color:var(--ink-secondary);margin-right:4px;}
+.chip{display:inline-flex;align-items:center;height:35px;padding:0 12px;border-radius:5px;
+  border:1px solid var(--border-default);background:var(--surface-card);
+  color:var(--ink-strong);font-size:14px;font-weight:600;line-height:1.5;}
+.chip.is-active{background:var(--brand-tint);border-color:#CBE3F6;color:var(--brand-strong);}
+
+.table-wrap{overflow-x:auto;}
+table.orders{width:100%;border-collapse:collapse;min-width:1000px;}
+table.orders th{height:45px;background:var(--surface-subtle);
+  border-bottom:1px solid var(--border-default);text-align:left;padding:0 16px;
+  font-size:13px;font-weight:600;line-height:1.45;letter-spacing:0.04em;color:var(--ink-secondary);
+  white-space:nowrap;}
+table.orders th.num,table.orders td.num{text-align:right;}
+table.orders th.act,table.orders td.act{text-align:right;width:180px;}
+table.orders td{height:104px;padding:16px;border-bottom:1px solid var(--border-default);
+  vertical-align:middle;font-size:14px;line-height:1.5;}
+table.orders tbody tr:last-child td{border-bottom:0;}
+.code{font-size:14px;font-weight:600;line-height:1.5;color:var(--brand-strong);}
+.when{font-size:14px;line-height:1.5;color:var(--ink-primary);}
+.when small{display:block;font-size:13px;line-height:1.45;color:var(--ink-secondary);}
+.total{font-size:15px;font-weight:600;line-height:1.3;color:var(--ink-primary);}
+.pay{font-size:14px;line-height:1.5;color:var(--ink-primary);}
+.pay small{display:block;margin-top:4px;font-size:13px;line-height:1.45;color:var(--ink-secondary);}
+.pay small.done{color:var(--info-ink);}
+
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;border-radius:9999px;
+  padding:0 8px;font-size:12px;font-weight:500;line-height:1.4;white-space:nowrap;}
+.pill i{width:8px;height:8px;border-radius:9999px;display:block;background:currentColor;}
+/* Bảng màu 5 trạng thái — DESIGN.md → components.status-pill (đã chốt) */
+.pill-placed{background:var(--surface-subtle);color:var(--ink-secondary);}
+.pill-confirmed{background:var(--brand-tint);color:var(--brand-strong);}
+.pill-shipped{background:var(--amber);color:var(--ink-primary);}
+.pill-delivered{background:var(--ink-primary);color:var(--surface-card);}
+.pill-cancelled{background:var(--surface-card);color:var(--danger);border:1px solid var(--danger);}
+
+.btn-secondary{display:inline-flex;align-items:center;justify-content:center;height:35px;
+  padding:0 12px;border-radius:5px;border:1px solid var(--border-default);
+  background:var(--surface-card);color:var(--ink-strong);font-size:14px;font-weight:600;line-height:1.5;}
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;height:38px;
+  padding:0 16px;border-radius:6px;border:0;background:var(--brand-primary);color:#FFFFFF;
+  font-size:14px;font-weight:600;line-height:1.5;}
+
+.pager{padding:16px;display:flex;align-items:center;gap:12px;border-top:1px solid var(--border-default);
+  font-size:13px;line-height:1.45;color:var(--ink-secondary);}
+
+/* ---------- Khối 2: hộp thoại xác nhận một chiều ---------- */
+.mock-note{font-size:13px;line-height:1.45;color:var(--ink-secondary);
+  border-left:3px solid var(--ink-decorative);padding-left:10px;margin:32px 0 12px;}
+.scrim{background:rgba(35,38,40,0.28);border-radius:8px;padding:48px 16px;
+  display:flex;justify-content:center;}
+.dialog{width:100%;max-width:520px;background:var(--surface-card);
+  border:1px solid var(--border-default);border-radius:8px;
+  box-shadow:0 4px 12px rgba(35,38,40,0.08);}
+.dialog-head{padding:16px;border-bottom:1px solid var(--border-default);}
+.dialog-head h2{margin:0;font-size:17px;font-weight:600;line-height:1.4;color:var(--ink-primary);}
+.dialog-body{padding:16px;}
+.dialog-body p{margin:0 0 12px;font-size:14px;line-height:1.5;color:var(--ink-primary);}
+.dialog-body .target{margin:0;background:var(--surface-subtle);border:1px solid var(--border-default);
+  border-radius:6px;padding:12px;font-size:14px;line-height:1.5;color:var(--ink-primary);}
+.dialog-body .target b{font-weight:600;}
+.dialog-foot{padding:16px;border-top:1px solid var(--border-default);
+  display:flex;justify-content:flex-end;align-items:center;gap:12px;}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="chrome">
+    <span class="dots"><i></i><i></i><i></i></span>
+    <span class="chrome-tab">Trang quản trị</span>
+    <span class="urlbar">shop-online / admin / Danh sách đơn hàng</span>
+  </div>
+  <div class="viewport">
+
+    <nav class="rail">
+      <div class="rail-item is-active">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect x="3" y="3" width="14" height="14" rx="2.5" stroke="#0070CE" stroke-width="1.6"/>
+          <path d="M6.5 8h7M6.5 12h4.5" stroke="#0070CE" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        Đơn hàng
+      </div>
+      <div class="rail-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M3.5 6.5 10 3l6.5 3.5v7L10 17l-6.5-3.5v-7Z" stroke="#64748B" stroke-width="1.6"
+            stroke-linejoin="round"/>
+        </svg>
+        Sản phẩm
+      </div>
+      <div class="rail-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect x="3" y="3" width="6" height="6" rx="1.4" stroke="#64748B" stroke-width="1.6"/>
+          <rect x="11" y="3" width="6" height="6" rx="1.4" stroke="#64748B" stroke-width="1.6"/>
+          <rect x="3" y="11" width="6" height="6" rx="1.4" stroke="#64748B" stroke-width="1.6"/>
+          <rect x="11" y="11" width="6" height="6" rx="1.4" stroke="#64748B" stroke-width="1.6"/>
+        </svg>
+        Danh mục
+      </div>
+      <div class="rail-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="2.6" stroke="#64748B" stroke-width="1.6"/>
+          <path d="M10 2.6v2M10 15.4v2M2.6 10h2M15.4 10h2M4.8 4.8l1.4 1.4M13.8 13.8l1.4 1.4M15.2 4.8l-1.4 1.4M6.2 13.8l-1.4 1.4"
+            stroke="#64748B" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        Cài đặt
+      </div>
+    </nav>
+
+    <div class="main">
+
+      <div class="top">
+        <h1 class="page-title">Danh sách đơn hàng</h1>
+        <span class="who"><span class="avatar">L</span>Chủ shop</span>
+      </div>
+
+      <!-- ============ Khối 1: bảng đơn hàng ============ -->
+      <div class="panel">
+
+        <div class="panel-head">
+          <span class="filter-label">Lọc theo trạng thái</span>
+          <span class="chip is-active">Tất cả</span>
+          <span class="chip">Đã đặt</span>
+          <span class="chip">Đã xác nhận</span>
+          <span class="chip">Đang giao</span>
+          <span class="chip">Đã giao</span>
+          <span class="chip">Đã huỷ</span>
+        </div>
+
+        <div class="table-wrap">
+          <table class="orders">
+            <thead>
+              <tr>
+                <th>MÃ ĐƠN HÀNG</th>
+                <th>THỜI ĐIỂM ĐẶT</th>
+                <th>TÊN NGƯỜI NHẬN</th>
+                <th class="num">TỔNG TIỀN ĐƠN</th>
+                <th>PHƯƠNG THỨC THANH TOÁN</th>
+                <th>TRẠNG THÁI</th>
+                <th class="act">THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <tr>
+                <td><span class="code">DH-2026-000412</span></td>
+                <td class="when">18/09/2026<small>22:14</small></td>
+                <td>Chị Hằng</td>
+                <td class="num total">375.000 ₫</td>
+                <td class="pay">Chuyển khoản<small>Chưa xác nhận thanh toán</small></td>
+                <td><span class="pill pill-placed"><i></i>Đã đặt</span></td>
+                <td class="act"><span class="btn-secondary">Chi tiết đơn hàng</span></td>
+              </tr>
+
+              <tr>
+                <td><span class="code">DH-2026-000411</span></td>
+                <td class="when">18/09/2026<small>21:50</small></td>
+                <td>Anh Minh</td>
+                <td class="num total">214.000 ₫</td>
+                <td class="pay">COD</td>
+                <td><span class="pill pill-placed"><i></i>Đã đặt</span></td>
+                <td class="act"><span class="btn-secondary">Chi tiết đơn hàng</span></td>
+              </tr>
+
+              <tr>
+                <td><span class="code">DH-2026-000408</span></td>
+                <td class="when">18/09/2026<small>20:37</small></td>
+                <td>Chị Hằng</td>
+                <td class="num total">335.000 ₫</td>
+                <td class="pay">COD</td>
+                <td><span class="pill pill-confirmed"><i></i>Đã xác nhận</span></td>
+                <td class="act"><span class="btn-secondary">Chi tiết đơn hàng</span></td>
+              </tr>
+
+              <tr>
+                <td><span class="code">DH-2026-000405</span></td>
+                <td class="when">18/09/2026<small>18:02</small></td>
+                <td>Anh Minh</td>
+                <td class="num total">486.000 ₫</td>
+                <td class="pay">Chuyển khoản<small class="done">Đã xác nhận thanh toán</small></td>
+                <td><span class="pill pill-shipped"><i></i>Đang giao</span></td>
+                <td class="act"><span class="btn-secondary">Chi tiết đơn hàng</span></td>
+              </tr>
+
+              <tr>
+                <td><span class="code">DH-2026-000392</span></td>
+                <td class="when">16/09/2026<small>11:05</small></td>
+                <td>Anh Minh</td>
+                <td class="num total">260.000 ₫</td>
+                <td class="pay">Chuyển khoản<small class="done">Đã xác nhận thanh toán</small></td>
+                <td><span class="pill pill-delivered"><i></i>Đã giao</span></td>
+                <td class="act"><span class="btn-secondary">Chi tiết đơn hàng</span></td>
+              </tr>
+
+              <tr>
+                <td><span class="code">DH-2026-000399</span></td>
+                <td class="when">17/09/2026<small>15:20</small></td>
+                <td>Chị Hằng</td>
+                <td class="num total">149.000 ₫</td>
+                <td class="pay">COD</td>
+                <td><span class="pill pill-cancelled"><i></i>Đã huỷ</span></td>
+                <td class="act"><span class="btn-secondary">Chi tiết đơn hàng</span></td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pager">
+          <span class="btn-secondary">Trang trước</span>
+          <span>Trang 1 / 1</span>
+          <span class="btn-secondary">Trang sau</span>
+        </div>
+
+      </div>
+
+      <!-- ============ Khối 2: hộp thoại xác nhận một chiều ============ -->
+      <p class="mock-note">Hộp thoại xác nhận hành động một chiều — Xác nhận thanh toán (dựng sẵn ở trạng thái đang mở)</p>
+
+      <div class="scrim">
+        <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+          <div class="dialog-head">
+            <h2 id="dlg-title">Xác nhận thanh toán</h2>
+          </div>
+          <div class="dialog-body">
+            <p>Xác nhận thanh toán không thu hồi được. Sau khi xác nhận, đơn hàng này không huỷ được nữa, ở bất kỳ trạng thái nào.</p>
+            <p class="target">Đơn hàng <b>DH-2026-000412</b> · Tổng tiền đơn <b>375.000 ₫</b></p>
+          </div>
+          <div class="dialog-foot">
+            <span class="btn-secondary">Huỷ</span>
+            <span class="btn-primary">Tôi đã nhận thanh toán</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>
