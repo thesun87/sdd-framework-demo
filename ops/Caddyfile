@@ -6,10 +6,13 @@
 # dù `/admin/*` ở feature 000 chưa có bundle nào phía sau. Khi 006 cắm bundle admin vào,
 # nó không được phép và không cần đặt lại lớp phòng thủ này (AD-9).
 #
-# Cổng backend `api`: ops/compose.yaml (T002) không đưa biến API_PORT vào container
-# `proxy` (không có `environment:`/`env_file:` cho service này), nên cú pháp `{$API_PORT}`
-# sẽ không resolve được ở đây. Giá trị 3000 lấy trực tiếp từ ops/.env.example (API_PORT=3000)
-# và ghi cứng — đúng với hướng dẫn "cổng lấy từ API_PORT", không phải tham chiếu biến runtime.
+# Cổng backend `api`: ops/compose.yaml (T002) hiện KHÔNG đưa biến API_PORT vào container
+# `proxy` (không có `environment:`/`env_file:` cho service này) — việc bơm biến đó vào
+# `proxy` bị hoãn lại, đã ghi vào ledger (ruling R14). Dùng placeholder có giá trị mặc định
+# `{$API_PORT:3000}`: khi biến chưa tồn tại trong container (đúng thực tế hôm nay), Caddy
+# rơi về 3000 — giá trị mặc định lấy từ ops/.env.example (API_PORT=3000), không tệ hơn việc
+# ghi cứng. Khi một task sau này bơm API_PORT vào service `proxy`, Caddyfile tự đúng theo,
+# không cần sửa chéo task.
 {
 	# Container này không cần Caddy admin API — tắt để giảm bề mặt tấn công.
 	admin off
@@ -43,7 +46,7 @@
 	# Cache-Control của /api/* KHÔNG đặt ở đây — API tự đặt `no-store` (T010/T011 sở hữu,
 	# AD-20). Proxy không ghi đè, không thêm cache cho đường dẫn này.
 	handle /api/* {
-		reverse_proxy api:3000
+		reverse_proxy api:{$API_PORT:3000}
 	}
 
 	# /admin/* — ở feature 000 chưa có bundle admin nào phía sau. Trả 404 là hợp lý, nhưng
