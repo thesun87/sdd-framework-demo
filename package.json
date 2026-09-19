@@ -7,12 +7,28 @@
   "engines": {
     "node": ">=24.15"
   },
+  "workspaces": [
+    "apps/api",
+    "apps/storefront",
+    "packages/shared",
+    "packages/ui",
+    "e2e"
+  ],
   "scripts": {
     "test": "node scripts/verify.mjs test",
     "lint": "node scripts/verify.mjs lint",
     "build": "node scripts/verify.mjs build",
     "test:e2e": "node scripts/verify.mjs e2e",
     "test:regression": "npm test && npm run test:e2e"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "drizzle-kit": "0.31.10",
+    "@types/pg": "8.23.1"
   },
   "license": "UNLICENSED"
 }

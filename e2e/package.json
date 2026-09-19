@@ -1,0 +1,15 @@
+{
+  "name": "e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright end-to-end — dựng khung ở T001. Không khai \"test\"/\"build\": verification.md treo e2e dưới regression.",
+  "type": "module",
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "test:e2e": "playwright test --pass-with-no-tests"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@axe-core/playwright": "4.13.0"
+  }
+}
