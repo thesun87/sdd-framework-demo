@@ -1,0 +1,62 @@
+# ops/Caddyfile — Caddy là điểm publish HTTP DUY NHẤT ra ngoài (AD-8: một origin cho cả
+# bán hàng lẫn quản trị). Rủi ro của quyết định đó chính là lý do CSP dưới đây phải chặt.
+#
+# AD-29: "một bề mặt tồn tại trước lớp phòng thủ của nó là một cửa sổ không ai đóng lại."
+# Header an toàn phải có mặt trên CẢ HAI đường dẫn — bán hàng và quản trị — NGAY BÂY GIỜ,
+# dù `/admin/*` ở feature 000 chưa có bundle nào phía sau. Khi 006 cắm bundle admin vào,
+# nó không được phép và không cần đặt lại lớp phòng thủ này (AD-9).
+#
+# Cổng backend `api`: ops/compose.yaml (T002) không đưa biến API_PORT vào container
+# `proxy` (không có `environment:`/`env_file:` cho service này), nên cú pháp `{$API_PORT}`
+# sẽ không resolve được ở đây. Giá trị 3000 lấy trực tiếp từ ops/.env.example (API_PORT=3000)
+# và ghi cứng — đúng với hướng dẫn "cổng lấy từ API_PORT", không phải tham chiếu biến runtime.
+{
+	# Container này không cần Caddy admin API — tắt để giảm bề mặt tấn công.
+	admin off
+}
+
+# Khối header an toàn dùng chung, import vào site block DUY NHẤT bên dưới — tránh lặp ba
+# lần cùng một danh sách directive (yêu cầu "giữ file đọc được" trong brief). Nội dung
+# nguyên văn theo contract/AD-29 — không thêm, không bớt directive nào.
+#
+# 'unsafe-inline' CHỈ xuất hiện ở style-src (nhượng bộ baseline cho style nội tuyến của
+# Vite). script-src không nới lỏng eval hay script nội tuyến, không trỏ tới CDN ngoài.
+(security_headers) {
+	header {
+		Content-Security-Policy "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; connect-src 'self'; style-src 'self' 'unsafe-inline'"
+		Referrer-Policy "same-origin"
+		X-Content-Type-Options "nosniff"
+	}
+}
+
+:80 {
+	# `header` nằm ở top-level của site block (không lồng riêng trong từng `handle`) nên áp
+	# dụng cho MỌI nhánh bên dưới, kể cả nhánh lỗi (404 của /admin/*, 502/503 khi /api/* không
+	# có backend sống) — đây chính là phần nhiều cấu hình Caddy làm sai (brief đã cảnh báo).
+	import security_headers
+
+	# /api/* — luôn chuyển tới NestJS, KHÔNG BAO GIỜ rơi vào SPA fallback, kể cả khi backend
+	# trả 404 hoặc không phản hồi được. Route này đứng TRƯỚC route tệp tĩnh trong Caddyfile,
+	# và `handle` là khối loại trừ lẫn nhau theo thứ tự khai báo, nên `/api/*` không thể rơi
+	# xuống nhánh SPA fallback (edge case ghi trong spec.md §Edge Cases).
+	#
+	# Cache-Control của /api/* KHÔNG đặt ở đây — API tự đặt `no-store` (T010/T011 sở hữu,
+	# AD-20). Proxy không ghi đè, không thêm cache cho đường dẫn này.
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	# /admin/* — ở feature 000 chưa có bundle admin nào phía sau. Trả 404 là hợp lý, nhưng
+	# vẫn phải mang đủ header an toàn ở trên (AD-29) — đây là bề mặt phải có phòng thủ
+	# trước khi có nội dung, không phải sau.
+	handle /admin/* {
+		respond 404
+	}
+
+	# Còn lại: tệp tĩnh của storefront; không khớp tệp nào thì SPA fallback về index.html.
+	handle {
+		root * /srv/storefront
+		try_files {path} /index.html
+		file_server
+	}
+}
