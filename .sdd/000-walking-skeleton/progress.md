@@ -171,3 +171,21 @@ Task 2: minor (deferred): `ops/api.Dockerfile.dockerignore` chỉ loại `e2e/te
   còn lại của `e2e/` vẫn vào build context.
 Task 2: minor (deferred): bằng chứng "node_modules khác nhau" chỉ chứng minh phần dockerignore,
   không chứng minh phần đảo thứ tự COPY (nhánh BuildKit tắt). Mã đúng cả hai phần khi đọc.
+Ruling: R14 — `ops/Caddyfile` dùng placeholder `{$API_PORT:<mặc định>}` cho cổng backend thay
+vì số ghi cứng; việc bơm `API_PORT` vào container `proxy` trong `ops/compose.yaml` để lại cho
+task nào hợp pháp chạm compose lần sau (T015 hoặc một feature sau), và được ghi ở đây để
+`/speckit-converge` không đánh rơi. — Vì T003 báo đúng rằng `ops/compose.yaml` là forbidden
+scope của nó và hiện không bơm `API_PORT` vào `proxy`; placeholder có giá trị mặc định cho kết
+quả **không tệ hơn** số ghi cứng hôm nay và **tự đúng** ngay khi biến được bơm, mà không cần
+task nào sửa chéo file của task khác. — Nếu sai: đổi `API_PORT` trong `.env` mà quên bơm vào
+`proxy` thì proxy vẫn trỏ cổng mặc định; T015 (dựng sạch, chạy trọn quickstart) là nơi bắt được.
+
+Task 3: fix round 1/5 (1 addressed, 0 open — matcher `@api path /api /api/*` và
+  `@admin path /admin /admin/*`; đường dẫn trần không còn rơi vào SPA fallback;
+  header vẫn vô điều kiện trên cả năm đường dẫn; commits ce29ec9..b21bae7)
+Task 3: complete (commits cb15644..b21bae7, review clean sau 1 vòng sửa)
+Task 3: minor (deferred): `{ admin off }` trong `ops/Caddyfile` là hardening không được brief
+  yêu cầu — vô hại, tự chú thích, giữ nguyên.
+Task 3: deferred (cross-task): bơm `API_PORT` vào dịch vụ `proxy` của `ops/compose.yaml` —
+  theo R14, để lại cho task nào chạm compose hợp pháp lần sau. `/speckit-converge` cần thấy dòng này.
+
