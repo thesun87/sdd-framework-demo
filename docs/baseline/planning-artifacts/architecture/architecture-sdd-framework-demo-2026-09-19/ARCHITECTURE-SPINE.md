@@ -222,8 +222,12 @@ Không module nào gọi ngược chiều mũi tên, và **không module nào bi
 
 - **Binds:** `ordering`, AD-12, AD-13, PRD §9.3, FR-30, FR-31
 - **Prevents:** `AD-12` nói trường của đơn là bất biến sau khi tạo; `PRD §9.3` lại đòi xoá không hồi phục tên, số điện thoại, địa chỉ sau 12 tháng. Hai luật va nhau, và lối thoát tự nhiên — một job `UPDATE` thẳng vào bảng đơn — vừa vòng qua AD-12 vừa buộc phải mở một đường đọc không lọc `customer_id` trong repository của AD-13.
-- **Rule:** ẩn danh hoá là một thao tác **có tên, một chiều**, ghi `anonymised_at` và thay ba trường PII bằng giá trị rỗng; nó là **ngoại lệ thứ ba và cuối cùng** của AD-12. Nó chạy trong job nền, dùng đường đọc riêng của AD-13, và không bao giờ gắn vào một controller. Mọi màn hình đọc đơn phải hiển thị được một đơn đã ẩn danh hoá **mà không lỗi** — `FR-30` và `FR-31` vẫn phải chạy trên đơn 13 tháng tuổi.
-  > Chính sách 12 tháng vẫn **đang chặn** ở `PRD §11.1 Q3`. Luật này cố định *hình dạng* của thao tác, không cố định mốc thời gian.
+- **Rule:** ẩn danh hoá là một thao tác **có tên, một chiều**, ghi `anonymised_at` và thay ba trường PII bằng giá trị rỗng; nó là **ngoại lệ thứ ba và cuối cùng** của AD-12. **Cùng một thao tác đó phục vụ hai đường kích hoạt, không được có hai cài đặt:**
+  1. **Tự động** — job nền, **12 tháng** sau khi đơn đạt `delivered` hoặc `cancelled`. Dùng đường đọc riêng của AD-13, không bao giờ gắn vào một controller.
+  2. **Theo yêu cầu** — chủ shop bấm từ Trang quản trị khi khách yêu cầu xoá dữ liệu qua kênh ngoài. Đây là quyền thứ 17 trong ma trận, và nó tồn tại vì `Luật 91/2025/QH15` cho chủ thể dữ liệu quyền yêu cầu xoá với **thời hạn đáp ứng 20 ngày** — một job chạy theo lịch 12 tháng không đáp ứng được nghĩa vụ đó.
+
+  Mọi màn hình đọc đơn phải hiển thị được một đơn đã ẩn danh hoá **mà không lỗi** — `FR-30` và `FR-31` vẫn phải chạy trên đơn 13 tháng tuổi, và giờ cũng phải chạy trên đơn **13 ngày** tuổi đã bị xoá theo yêu cầu. Thao tác ghi dấu vết: thời điểm, tài khoản thực hiện, và đường kích hoạt nào.
+  > **Căn cứ pháp lý đã đổi.** `NĐ 13/2023/NĐ-CP` — văn bản mà PRD §9.1, §9.3 và `glossary.md` đang trích dẫn — **hết hiệu lực 01/01/2026**, thay bằng `Luật số 91/2025/QH15` và `NĐ 356/2025/NĐ-CP`. Mốc 12 tháng do người quyết định giữ nguyên; trích dẫn thì phải sửa ở mọi artifact. Ghi chú *"chưa có tư vấn pháp lý"* của PRD vẫn đứng.
 
 ### AD-27 — Bất biến chỉ được chứng minh trên PostgreSQL thật
 
@@ -440,7 +444,8 @@ Addendum §4 chỉ đích danh tài liệu kiến trúc là nơi ở của danh 
 
   Và mục *Prerequisites* phải nói thật: **Node ≥ 24.15, Docker + Docker Compose, dịch vụ `postgres` đang chạy, migration đã áp (AD-25), và `playwright install` đã chạy.** Dòng *"No network access needed"* hiện tại **sai** kể từ lúc chọn Playwright — kéo trình duyệt cần mạng ở lần đầu. Ngưỡng coverage cũng đặt ở đây, thứ mà file tự ghi là *"set one before the first real product feature"*.
 - **`Node ≥ 20.12` thấp hơn sàn của NestJS 11 (`≥ 20.19`)** — trong cả `docs/baseline/verification.md` và `package.json`, phải sửa lên **Node ≥ 24.15** trong cùng một commit. `docs/tooling-versions.md` đang ghi 24.13.0, thấp hơn sàn 24.15 của `@nestjs/schematics` — cùng một lần sửa.
-- **Ma trận phân quyền `PRD §5` thiếu một dòng.** Quyết định Q10 thêm quyền *"Đặt lại mật khẩu khách hàng"* — chỉ chủ shop. Ma trận đang đóng băng ở 15 dòng, phải thành 16.
+- **Ma trận phân quyền `PRD §5` thiếu hai dòng.** Q10 thêm *"Đặt lại mật khẩu khách hàng"*; Q3b thêm *"Ẩn danh hoá đơn theo yêu cầu của khách"*. Cả hai chỉ chủ shop. Ma trận đang đóng băng ở 15 dòng, phải thành **17**.
+- **Căn cứ pháp lý đã chết, trích dẫn ở bốn nơi.** `NĐ 13/2023/NĐ-CP` hết hiệu lực **01/01/2026**, thay bằng `Luật số 91/2025/QH15` + `NĐ 356/2025/NĐ-CP`. Phải sửa ở: `PRD §9.1`, `PRD §9.3`, dòng `Delivery address` trong `docs/baseline/glossary.md`, và mọi chỗ khác nhắc tới nó. Đây không phải chuyện câu chữ — luật mới mang **thời hạn đáp ứng yêu cầu xoá 20 ngày** (30 nếu có bên xử lý thứ ba), thứ đã sinh ra nhánh thứ hai của AD-26; và nó cho doanh nghiệp nhỏ/khởi nghiệp quyền chọn không áp dụng một số điều trong 5 năm, **trừ** đơn vị xử lý dữ liệu của *"số lượng lớn chủ thể"* — với 300.000 đơn ở Y3 thì vế trừ này không hiển nhiên là không áp. Cần tư vấn pháp lý, đúng như PRD đã ghi.
 - **AD-17 mâu thuẫn với FR-8.** FR-8 tên là *"Giỏ của khách chưa đăng ký tồn tại và **được gộp** khi đăng nhập"*. Với giỏ hoàn toàn ở `localStorage` thì không có giỏ server nào để gộp vào, và Customer mất giỏ khi đổi thiết bị. Người curate phải chọn: **sửa FR-8**, hoặc **đổi quyết định giỏ hàng**.
 
 ### Thuộc người curate baseline
@@ -449,9 +454,17 @@ Addendum §4 chỉ đích danh tài liệu kiến trúc là nơi ở của danh 
 - **`docs/baseline/adr/` sẽ đóng băng rỗng.** Các quyết định xứng đáng nhất nếu muốn có ADR: AD-1, AD-3, AD-8, AD-9, AD-16, AD-22, AD-23.
 - **`000-walking-skeleton` vẫn là placeholder.** Lát mỏng nhất trung thực với spine này: `catalog` + phần tối thiểu của `stock` (một bảng `stock`, một dòng `stock_ledger`, một test tải đồng thời của AD-21). Nó vẫn buộc kéo theo Caddy một origin, hai Vite build, `packages/shared`, migration, và Compose + Postgres — nên nằm sát trần 15 task. **Không** đưa `ordering` vào lát đầu tiên.
 
-### Còn chặn ở PRD §11.1 — ngoài thẩm quyền của spine
+### PRD §11.1 — đã đóng hết
 
-Q3 (chính sách ẩn danh hoá 12 tháng — AD-26 cố định *hình dạng* thao tác, không cố định mốc), Q4 (chủ shop đặt đơn hộ khách), Q5 (quyền khách tự huỷ).
+Cả năm câu chặn đã có câu trả lời của người quyết định, ghi lại ở đây để người curate áp vào PRD:
+
+| | Quyết định | Spine phải đổi gì |
+| --- | --- | --- |
+| **Q3** | Giữ mốc **12 tháng**; chuyển căn cứ sang `Luật 91/2025` + `NĐ 356/2025`. Quyền yêu cầu xoá: **chủ shop ẩn danh hoá tay** từ Trang quản trị | AD-26 có hai đường kích hoạt; ma trận +1 dòng |
+| **Q4** | **Không** — chủ shop không đặt đơn hộ khách. Q12 đóng theo: ô "thêm vào giỏ" giữ `—` | Không đổi |
+| **Q5** | **Có** — khách tự huỷ đơn khi ở `placed` | Không đổi; AD-14 đã xây trên giả định này |
+| **Q9** | Định danh đăng nhập = **email** | AD-6 (email không bao giờ là địa chỉ gửi) |
+| **Q10** | Chủ shop đặt lại mật khẩu qua Trang quản trị | AD-7; ma trận +1 dòng |
 
 ### Cố ý đẩy xuống dưới
 
@@ -459,7 +472,7 @@ Q3 (chính sách ẩn danh hoá 12 tháng — AD-26 cố định *hình dạng* 
 - **Ngân sách bundle và ngưỡng hiệu năng cụ thể.** Khách đến từ Facebook/Zalo gần như chắc chắn dùng điện thoại (`PRD Q7` chưa giải), trong khi UX chọn desktop-first và kiến trúc chọn SPA. p95 tải trang ≤ 1,5 s trên 4G là chỗ ngân sách này chết. Cùng chỗ: kích thước trang 24/100 của FR-3, và p95 ≤ 400 ms của danh sách đơn ở 300.000 đơn (FR-29) — cả hai cần quyết định về index và phân trang. Thuộc `/speckit-plan`.
 - **Thư viện định tuyến và tầng dữ liệu của FE.** Chưa chốt; ràng buộc duy nhất áp lên nó là AD-20 (không cache tồn kho ở client) và quy ước khả năng tiếp cận. Hai bề mặt **phải chọn giống nhau** — đó là lý do nó được nêu ở đây thay vì để im.
 - **Kiểm chứng cặp `drizzle-kit 0.31.10` + PostgreSQL 18.** Có issue mở (#4944) về `push` sinh câu `DROP CONSTRAINT` không hợp lệ do PG18 đổi cách biểu diễn `NOT NULL`. AD-25 đã cấm `push`, nên rủi ro được vòng qua — nhưng chưa ai chạy thử `generate` + `migrate` trên PG18 thật.
-- **Ẩn danh hoá `account.email`.** Quyết định của phiên này là email sống vĩnh viễn (tài khoản là quan hệ liên tục, không phải giao dịch đã xong). Điều đó để lại một tập PII không có hạn bên cạnh chính sách 12 tháng của `PRD §9.3`. *Xem lại cùng Q3*, khi có tư vấn pháp lý về NĐ 13/2023.
+- **⚠️ `account.email` không nằm trong phạm vi ẩn danh hoá, nên yêu cầu xoá chỉ được đáp ứng một nửa.** Quyết định của phiên này là email sống vĩnh viễn (tài khoản là quan hệ liên tục, không phải giao dịch đã xong), và AD-26 chỉ chạm tới PII **trên đơn**. Với ẩn danh hoá tự động 12 tháng thì khoảng hở đó chấp nhận được. Với **yêu cầu xoá theo `Luật 91/2025`** (Q3b) thì không hẳn: khách nói "xoá dữ liệu của tôi", chủ shop bấm nút, và email — định danh trực tiếp của họ — **vẫn còn nguyên**. Spine không tự chốt việc này vì nó là chính sách dữ liệu, không phải thiết kế. *Ba lối ra để người quyết định chọn khi có tư vấn pháp lý:* xoá luôn tài khoản khi ẩn danh hoá theo yêu cầu (khách mất luôn khả năng đăng nhập); thay email bằng một giá trị vô nghĩa nhưng giữ dòng tài khoản; hoặc giữ nguyên và ghi rõ trong chính sách rằng tài khoản phải được xoá bằng một yêu cầu riêng.
 - **Nâng NestJS lên dòng 12.** Dòng 11 cố ý được chọn để code do agent viết không lệch bản, và vẫn đang nhận bản vá. *Xem lại khi:* dòng 11 ngừng ra bản vá bảo mật (theo dõi releases, không theo dõi dist-tag `latest`).
 - **Nâng Node lên dòng 26.** Node 24 sang Maintenance ngày **20/10/2026**, Node 26 thành Active LTS ngày 28/10/2026. Maintenance vẫn có bản vá tới 04/2028 nên không gấp — nhưng mốc này rơi **một tháng sau** thời điểm freeze.
 - **Nâng TypeScript lên dòng 6 rồi 7.** Cần kiểm chứng trước: Nest 11 có chạy trên trình biên dịch mới mà vẫn giữ `emitDecoratorMetadata` không.
