@@ -202,3 +202,40 @@ Task 4: Ruling: `generatedByDefaultAsIdentity()` (BY DEFAULT, không ALWAYS) cho
   AD nào phụ thuộc lựa chọn này, và BY DEFAULT giúp seed chèn id tường minh. — Nếu sai: đổi sang
   ALWAYS là một migration chỉ-tiến nữa, không đụng mã.
 
+Ruling: R15 — `tsx` phải được khai **tường minh** và **pin chính xác** trong `devDependencies`
+của `package.json` gốc, dù nó đang có sẵn nhờ hoisting từ `drizzle-kit`/`vite`. — Vì
+`npm run db:seed` là một **bước đã ghi trong quickstart** và `SC-007` đòi dựng lại từ kho mã
+sạch; một phụ thuộc chỉ tồn tại nhờ cây phụ thuộc của gói khác có thể biến mất khi gói đó nâng
+cấp, và khi đó bước seed gãy trên clone sạch — đúng thứ SC-007 tồn tại để bắt. Đây cùng loại
+với minor `@types/node` của T001, nhưng nó **chịu tải lúc chạy**, không chỉ lúc biên dịch. —
+Nếu sai: thừa một dòng devDependency.
+
+Ruling: R16 — finding Important của review T005 (idempotency kiểu check-then-act trên cột
+không có ràng buộc UNIQUE) được **tách đôi**: (a) nửa **tranh chấp đồng thời** phải sửa ngay
+trong `db/seed.ts` bằng advisory lock của PostgreSQL — nằm trọn trong phạm vi T005, rẻ, và
+đóng đúng lỗ mà SC-007 quan tâm khi ai đó chạy dựng lại hai lần song song; (b) nửa **khoá
+UNIQUE trên `name_normalized`** **park lại**, vì sửa nó là một migration, mà `db/migrations/**`
+là phạm vi của T004 đã đóng, và không tiêu chí nghiệm thu nào của `000` đòi nó. — Vì tiêu chí
+thật (`SC-007`) nói "dựng lại bằng các bước đã ghi", tức tuần tự, và review cũng kết luận đây
+là gia cố tương lai chứ không phải vi phạm tiêu chí. — Nếu sai: một hàng dữ liệu mẫu trùng
+xuất hiện khi ai đó sửa tay `name_normalized` rồi seed lại; hiện rõ ngay ở trang chủ và sửa
+bằng một migration thêm UNIQUE ở feature sau. **Ghi cho `/speckit-converge`: cân nhắc UNIQUE
+`category.name_normalized` / `product.name_normalized` ở một feature sau.**
+Ruling: R17 — cảnh báo ⚠️ của review ("nếu môi trường prod không đặt `NODE_ENV`, hàng rào seed
+im lặng") **không** mở thêm việc ở `000`. — Vì `NODE_ENV` do T002 chốt làm biến phân biệt môi
+trường, `ops/compose.yaml` là nơi khai nó, và feature `000` không có quy trình triển khai prod
+nào để gia cố; thêm một tín hiệu thứ hai bây giờ là phát minh cơ chế ngoài baseline. — Nếu sai:
+một lần triển khai prod quên đặt `NODE_ENV` có thể chạy seed; hậu quả là dữ liệu mẫu trong prod,
+phát hiện ngay và xoá được. **Ghi cho `/speckit-converge`.**
+
+Task 5: fix round 1/5 (4 addressed, 0 open — advisory lock `pg_advisory_xact_lock` đặt đúng
+  trong transaction trước mọi SELECT; regex dùng escape unicode tường minh, cùng dải codepoint;
+  comment giả định `PRODUCT_IMAGE_PATH`; thông điệp hàng rào prod nói cả cách khắc phục;
+  commits 0a321cb..9fc574f)
+Task 5: complete (commits 84cc156..9fc574f, review clean sau 1 vòng sửa; 1 finding park theo R16b)
+Task 5: parked — nửa "khoá UNIQUE trên name_normalized" của finding Important — Ruling R16(b):
+  cần migration, `db/migrations/**` là phạm vi T004 đã đóng, không tiêu chí nào của 000 đòi.
+Task 5: minor (deferred): khoá advisory `72500001` là số chọn tay, chưa có sổ đăng ký khoá.
+Task 5: minor (deferred): báo cáo test đua không dán dòng lệnh `&`/`wait` chứng minh hai tiến
+  trình thật sự chồng nhau; tính đúng của khoá đã được xác minh bằng đọc mã.
+
