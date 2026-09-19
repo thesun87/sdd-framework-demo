@@ -20,7 +20,8 @@
     "build": "node scripts/verify.mjs build",
     "test:e2e": "node scripts/verify.mjs e2e",
     "test:regression": "npm test && npm run test:e2e",
-    "db:migrate": "drizzle-kit migrate --config db/drizzle.config.ts"
+    "db:migrate": "drizzle-kit migrate --config db/drizzle.config.ts",
+    "db:seed": "tsx db/seed.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
