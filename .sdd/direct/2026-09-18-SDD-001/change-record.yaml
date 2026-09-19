@@ -1,0 +1,81 @@
+change_id: 2026-09-18-SDD-001
+track: C
+type: bugfix
+ticket: SDD-001
+severity: medium
+created_at: '2026-09-18T14:12:19+07:00'
+constitution:
+  path: .specify/memory/constitution.md
+  git_sha: 75b81f70efdc03e04b7da6dd06cdfe7463645ddc
+defect:
+  observed: sdd_change.py --ticket '../../escaped-BUG' writes the record to .sdd/direct/escaped-BUG/change-record.yaml
+    — outside the .sdd/direct/<change-id>/ tree — while the file's own change_id field
+    still reads '2026-09-18-../../escaped-BUG'. Location and change_id disagree, so
+    the Track C audit trail silently loses the record.
+  expected: A ticket id that is not a safe path segment is rejected with a non-zero
+    exit and no files created. Every record lives at .sdd/direct/<YYYY-MM-DD>-<ticket>/change-record.yaml.
+  documented_behaviour_ref: 'docs/agentic-sdd-setup-guide.md §2.2 (canonical layout:
+    .sdd/direct/<date>-<ticket>/) and §3.6; CLAUDE.md §7 Track C runbook.'
+  reproduction: tests/sdd_change.test.mjs — 'rejects a ticket id that escapes .sdd/direct'
+entry_criteria:
+  CV001_defect_against_documented_behaviour: true
+  CV002_no_business_rule_change: true
+  CV003_no_contract_change: true
+  CV004_no_schema_change: true
+  CV005_no_authz_change: true
+  CV006_no_acceptance_criteria_change: true
+  CV007_no_nfr_impact: true
+  CV008_no_new_dependency: true
+  CV009_reproducible_by_test: true
+  CV010_single_module_scope: true
+root_cause: sdd_change.py interpolated --ticket straight into a filesystem path (change_id
+  = f'{today}-{ticket}' -> SDD/'direct'/change_id) with no check that the ticket is
+  a single safe path segment. Path.__truediv__ resolves '..' at write time, so the
+  record directory escaped .sdd/direct/. Compounding it, mkdir(parents=True) ran before
+  any validation, so a malformed ticket left directories behind even when the run
+  should have failed.
+scope:
+  allowed:
+  - scripts/sdd/sdd_change.py
+  - tests/sdd_change.test.mjs
+  forbidden:
+  - migrations/**
+  - '**/openapi.yaml'
+  - '**/*.proto'
+  - docs/baseline/**
+  - .specify/memory/constitution.md
+  - specs/**
+  - scripts/sdd/sdd_validate.py
+  - scripts/sdd/sdd_handoff.py
+  - scripts/sdd/sdd_lib.py
+policy:
+  require_regression_test: true
+  require_tdd: true
+  require_code_quality_review: true
+  require_full_verification: true
+  require_spec_review: false
+  require_convergence: false
+  max_files_changed: 8
+verification:
+  commands:
+    test: npm test
+    lint: npm run lint
+escalation:
+  triggers:
+  - contract_change_required
+  - schema_change_required
+  - business_rule_ambiguity
+  - fix_requires_forbidden_scope
+  - root_cause_not_found
+  action: STOP_AND_ESCALATE_TO_TRACK_B
+status: done
+fix:
+  summary: Validate the ticket id against ^[A-Za-z0-9][A-Za-z0-9._-]*$ and exit non-zero
+    before any directory is created.
+  files_changed:
+  - scripts/sdd/sdd_change.py
+  - tests/sdd_change.test.mjs
+verification_result:
+  test: npm test — 12 passed, 0 failed
+  lint: npm run lint — passed
+  verified_at: '2026-09-18T14:13:59+07:00'

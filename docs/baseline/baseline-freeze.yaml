@@ -1,0 +1,28 @@
+# Baseline freeze record.
+#
+# Track A handoff validation (BV001/BV002) requires:
+#   * status: frozen
+#   * baseline_id matching the handoff's baseline.baseline_id
+#
+# Do not set status to `frozen` until a named human has actually read and
+# accepted every artifact listed under `artifacts`.
+baseline_id: TODO-baseline-0001
+status: draft          # draft | frozen | superseded
+frozen_at: null
+frozen_by: null        # a real human name — not "the team", not an agent
+supersedes: null
+
+artifacts:
+  product_brief: docs/baseline/product-brief.md
+  prd: docs/baseline/prd.md
+  architecture: docs/baseline/architecture.md
+  ux_spec: docs/baseline/ux-spec.md
+  glossary: docs/baseline/glossary.md
+  feature_map: docs/baseline/feature-map.md
+  verification: docs/baseline/verification.md
+  adr_dir: docs/baseline/adr/
+
+notes: >
+  Freeze is a human act with a human name on it. Setup guide Appendix B #2:
+  an unfrozen baseline means one agent reads a draft while another edits it,
+  and every downstream artifact becomes unverifiable.

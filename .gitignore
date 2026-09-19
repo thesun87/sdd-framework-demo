@@ -1,0 +1,25 @@
+# ── BMAD scratch — regenerate, never review ────────────────────────
+_bmad/**/cache/
+_bmad/render/
+_bmad/custom/config.user.toml
+.bmad-output/
+
+# ── Execution snapshots are large; keep only manifests ─────────────
+.sdd/*/runs/*/*.snapshot.md
+
+# ── Spec Kit machine-local state ───────────────────────────────────
+# .specify/feature.json is already ignored by .specify/.gitignore
+
+# ── Python ─────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# ── OS / editor ────────────────────────────────────────────────────
+.DS_Store
+*.swp
+
+# Claude Code per-machine overrides (team settings live in .claude/settings.json)
+.claude/settings.local.json
