@@ -165,7 +165,7 @@ Không module nào gọi ngược chiều mũi tên, và **không module nào bi
 - **Binds:** `ordering`, FR-6, FR-7, FR-8, FR-14, PRD §9.2
 - **Prevents:** giỏ hàng client gửi lên kèm giá và server dùng luôn giá đó — khách sửa được giá của chính đơn mình.
 - **Rule:** giỏ nằm ở `localStorage` và chỉ chứa `product_id` + số lượng, **không bao giờ chứa giá**. Khi đặt đơn, server đọc giá và tồn kho hiện hành từ database và bỏ qua mọi giá do client gửi. Không bảng giỏ hàng nào tồn tại; không dòng nào tạo cho khách chưa đăng ký.
-  > ⚠️ **Xung đột với PRD chưa giải quyết** — xem Deferred. Luật này làm `FR-8` ("giỏ được **gộp** khi đăng nhập") gần như rỗng nghĩa.
+  > **Xung đột với FR-8 đã giải, 2026-09-19:** người quyết định chọn sửa `FR-8` cho khớp luật này thay vì đổi quyết định giỏ hàng. FR-8 giờ cam kết giỏ **sống sót** qua lần đăng nhập, không phải **được gộp** — vì không có giỏ thứ hai phía máy chủ để gộp vào. Hai hệ quả được chấp nhận: mất giỏ khi đổi thiết bị, và tình huống "đăng nhập vào tài khoản đã có sẵn giỏ" không còn tồn tại.
 
 ### AD-18 — Đặt đơn là thao tác idempotent, và khoá thuộc về một khách
 
@@ -249,6 +249,13 @@ Không module nào gọi ngược chiều mũi tên, và **không module nào bi
 - **Prevents:** lối mòn phổ biến nhất để cô lập test là bọc mỗi test trong một transaction rồi rollback. Nếu một feature đặt kiểu cô lập đó vào helper dùng chung, thì N "tiến trình" của test tải đồng thời **chia nhau một transaction**: tranh chấp biến mất, test xanh, và cam kết trung tâm của sản phẩm trở thành vô nghĩa **mà không có dấu hiệu bất thường nào**. Đây là đường duy nhất trong toàn bộ spine mà một test xanh nói dối. Thêm nữa, database test là **dịch vụ dùng chung trong `compose.yaml`**, không dựng mới mỗi lần chạy — nên một test để lại dữ liệu sẽ làm lần chạy sau sai theo kiểu khó truy.
 - **Rule:** test tranh chấp — test tải đồng thời của AD-21, và mọi test dựng lại một tình huống đua mà AD-1/AD-14/AD-18 gọi tên — **chạy trên trạng thái đã commit**, dùng nhiều kết nối độc lập, và dọn bằng `TRUNCATE`; **không bao giờ bằng transaction rollback**, và không bao giờ bằng nhiều promise trên một kết nối. Test không tranh chấp được dùng cô lập kiểu rollback. Mọi test, thuộc loại nào, phải **chạy lại được nhiều lần trên cùng một database mà không cần dựng lại nó** — không test nào giả định database sạch khi bắt đầu; nó tự tạo dữ liệu nó cần.
 - **E2E không phải nơi chứng minh bất biến:** Playwright phủ luồng người dùng (UJ-1, UJ-6) và những thứ chỉ trình duyệt thấy được — AD-9, AD-20, sàn WCAG 2.1 AA. Bằng chứng của SM-1 nằm ở test tải đồng thời của AD-21, **không** ở E2E; một luồng E2E xanh không bao giờ được tính là đã chứng minh tính nguyên tử.
+
+### AD-29 — Content-Security-Policy là lớp phòng thủ bắt buộc, không phải tuỳ chọn
+
+- **Binds:** proxy, `storefront`, `backoffice`, AD-8, bất biến §8 #3
+- **Prevents:** quyết định giữ **một origin** (AD-8) đã chấp nhận có ý thức rằng một lỗ XSS trên Trang bán hàng phát được request mang cookie quản trị — `httpOnly` chặn việc *đọc* token, không chặn việc *dùng* nó. Khi rủi ro đó được chấp nhận, CSP là **thứ duy nhất còn lại** giữa một lỗ XSS và toàn quyền chủ shop. Nhưng "nên có CSP" không phải một ràng buộc: không AD nào giữ nó, không feature nào nhận nó, và tới `/speckit-converge` sẽ không ai nhớ nó từng được hứa.
+- **Rule:** reverse proxy phát `Content-Security-Policy` cho **cả hai** bundle, tối thiểu gồm `default-src 'self'`; `script-src 'self'` — **không `unsafe-inline`, không `unsafe-eval`, không CDN**; `object-src 'none'`; `base-uri 'self'`; `frame-ancestors 'none'`; `connect-src 'self'` (đủ, vì AD-8 đã đặt mọi thứ sau một origin). Kèm `Referrer-Policy: same-origin` và `X-Content-Type-Options: nosniff`. Cấu hình ở `ops/Caddyfile` và **hạ cánh trong feature `000` cùng lúc với Caddy**, không phải sau — một bề mặt tồn tại trước lớp phòng thủ của nó là một cửa sổ không ai đóng lại. Nới lỏng bất kỳ directive nào là thay đổi trên nhánh `baseline/*`, không phải một quyết định trong task.
+  > `style-src` được phép mang `'unsafe-inline'`: Vite chèn style nội tuyến và loại bỏ nó đòi một nonce cho mỗi request, thứ không đáng ở quy mô này. Nhượng bộ này **chỉ áp cho style** và không mở đường cho script — vector tấn công mà AD-8 quan tâm là thực thi script, không phải CSS.
 
 ## Consistency Conventions
 
@@ -391,7 +398,7 @@ ops/
 | --- | --- | --- |
 | Danh mục, duyệt, tìm kiếm bỏ dấu, phân trang (FR-1–3) | `catalog` + `storefront` | AD-11, AD-5 |
 | Trang sản phẩm, hiển thị còn/hết (FR-4, FR-5) | `catalog` → `stock` | **AD-19, AD-20**, AD-2 |
-| Giỏ hàng, gộp khi đăng nhập (FR-6–8) | `storefront` (localStorage) | AD-17 ⚠️ *xem Deferred* |
+| Giỏ hàng ở trình duyệt, sống sót qua đăng nhập (FR-6–8) | `storefront` (localStorage) | AD-17 |
 | Đăng ký, đăng nhập, tường đăng ký, tài khoản chủ shop (FR-9–11, FR-33) | `identity` | AD-6, AD-7, **AD-8** |
 | Đặt đơn với kiểm tra tồn kho nguyên tử (FR-12–15) | `ordering` → `stock` | **AD-1, AD-3, AD-18, AD-23**, AD-12, AD-17, AD-21 |
 | Vòng đời đơn, huỷ, hoàn kho có điều kiện (FR-16–19) | `ordering` | **AD-14**, AD-2, AD-13, AD-23 |
@@ -405,6 +412,7 @@ ops/
 | Tiến hoá schema (xuyên suốt) | `db/migrations` | **AD-25** |
 | Quan sát, đối chiếu, ẩn danh hoá (xuyên suốt) | `ops`, job nền | **AD-4, AD-26**, mục Quan sát và sự cố |
 | Bằng chứng của mọi bất biến (xuyên suốt) | cạnh mã nguồn + `e2e/` | **AD-21, AD-27, AD-28** |
+| Header an toàn, CSP (xuyên suốt) | `ops/Caddyfile`, hạ cánh ở feature `000` | **AD-29**, AD-8 |
 
 ## Phương án đã bị loại
 
@@ -456,7 +464,7 @@ Addendum §4 chỉ đích danh tài liệu kiến trúc là nơi ở của danh 
 - **~~`Node ≥ 20.12` thấp hơn sàn của NestJS 11~~ — ĐÃ SỬA 2026-09-19.** Đặt `>=24.15` ở `package.json`, ghi sàn và ngày hết hạn Active LTS vào `docs/tooling-versions.md`. **Máy hiện tại chạy 24.13.0, vẫn dưới sàn** — npm sẽ cảnh báo `EBADENGINE`; nâng Node là điều kiện tiên quyết của feature 000, không phải của freeze. Bối cảnh cũ: — trong cả `docs/baseline/verification.md` và `package.json`, phải sửa lên **Node ≥ 24.15** trong cùng một commit. `docs/tooling-versions.md` đang ghi 24.13.0, thấp hơn sàn 24.15 của `@nestjs/schematics` — cùng một lần sửa.
 - **Ma trận phân quyền `PRD §5` thiếu hai dòng.** Q10 thêm *"Đặt lại mật khẩu khách hàng"*; Q3b thêm *"Ẩn danh hoá đơn theo yêu cầu của khách"*. Cả hai chỉ chủ shop. Ma trận đang đóng băng ở 15 dòng, phải thành **17**.
 - **~~Căn cứ pháp lý đã chết~~ — ĐÃ SỬA trong bản curate ngày 2026-09-19.** `NĐ 13/2023/NĐ-CP` hết hiệu lực **01/01/2026**, thay bằng `Luật số 91/2025/QH15` + `NĐ 356/2025/NĐ-CP`. Spine ước lượng "bốn nơi"; thực tế là **bảy** — `prd.md` ×3, `ux-spec.md` ×3, `glossary.md` ×1, `product-brief.md` ×1. Tất cả đã sửa. Đây không phải chuyện câu chữ — luật mới mang **thời hạn đáp ứng yêu cầu xoá 20 ngày** (30 nếu có bên xử lý thứ ba), thứ đã sinh ra nhánh thứ hai của AD-26; và nó cho doanh nghiệp nhỏ/khởi nghiệp quyền chọn không áp dụng một số điều trong 5 năm, **trừ** đơn vị xử lý dữ liệu của *"số lượng lớn chủ thể"* — với 300.000 đơn ở Y3 thì vế trừ này không hiển nhiên là không áp. Cần tư vấn pháp lý, đúng như PRD đã ghi.
-- **AD-17 mâu thuẫn với FR-8.** FR-8 tên là *"Giỏ của khách chưa đăng ký tồn tại và **được gộp** khi đăng nhập"*. Với giỏ hoàn toàn ở `localStorage` thì không có giỏ server nào để gộp vào, và Customer mất giỏ khi đổi thiết bị. Người curate phải chọn: **sửa FR-8**, hoặc **đổi quyết định giỏ hàng**.
+- **~~AD-17 mâu thuẫn với FR-8~~ — ĐÃ GIẢI 2026-09-19.** Người quyết định chọn **sửa FR-8**. Nó giờ cam kết giỏ *sống sót* qua lần đăng nhập thay vì *được gộp*, vì "hai giỏ được gộp" là một tiêu chí nghiệm thu không bao giờ chạy được. AD-17 không đổi. Sửa lan ra 9 chỗ trên `prd.md` và `ux-spec.md`, gồm cả tường thuật UJ-2 và một trường hợp biên UX nay không còn tồn tại.
 
 ### Thuộc người curate baseline
 
@@ -482,7 +490,7 @@ Cả năm câu chặn đã có câu trả lời của người quyết định, 
 - **Ngân sách bundle và ngưỡng hiệu năng cụ thể.** Khách đến từ Facebook/Zalo gần như chắc chắn dùng điện thoại (`PRD Q7` chưa giải), trong khi UX chọn desktop-first và kiến trúc chọn SPA. p95 tải trang ≤ 1,5 s trên 4G là chỗ ngân sách này chết. Cùng chỗ: kích thước trang 24/100 của FR-3, và p95 ≤ 400 ms của danh sách đơn ở 300.000 đơn (FR-29) — cả hai cần quyết định về index và phân trang. Thuộc `/speckit-plan`.
 - **Thư viện định tuyến và tầng dữ liệu của FE.** Chưa chốt; ràng buộc duy nhất áp lên nó là AD-20 (không cache tồn kho ở client) và quy ước khả năng tiếp cận. Hai bề mặt **phải chọn giống nhau** — đó là lý do nó được nêu ở đây thay vì để im.
 - **Kiểm chứng cặp `drizzle-kit 0.31.10` + PostgreSQL 18.** Có issue mở (#4944) về `push` sinh câu `DROP CONSTRAINT` không hợp lệ do PG18 đổi cách biểu diễn `NOT NULL`. AD-25 đã cấm `push`, nên rủi ro được vòng qua — nhưng chưa ai chạy thử `generate` + `migrate` trên PG18 thật.
-- **⚠️ `account.email` không nằm trong phạm vi ẩn danh hoá, nên yêu cầu xoá chỉ được đáp ứng một nửa.** Quyết định của phiên này là email sống vĩnh viễn (tài khoản là quan hệ liên tục, không phải giao dịch đã xong), và AD-26 chỉ chạm tới PII **trên đơn**. Với ẩn danh hoá tự động 12 tháng thì khoảng hở đó chấp nhận được. Với **yêu cầu xoá theo `Luật 91/2025`** (Q3b) thì không hẳn: khách nói "xoá dữ liệu của tôi", chủ shop bấm nút, và email — định danh trực tiếp của họ — **vẫn còn nguyên**. Spine không tự chốt việc này vì nó là chính sách dữ liệu, không phải thiết kế. *Ba lối ra để người quyết định chọn khi có tư vấn pháp lý:* xoá luôn tài khoản khi ẩn danh hoá theo yêu cầu (khách mất luôn khả năng đăng nhập); thay email bằng một giá trị vô nghĩa nhưng giữ dòng tài khoản; hoặc giữ nguyên và ghi rõ trong chính sách rằng tài khoản phải được xoá bằng một yêu cầu riêng.
+- **`account.email` nằm ngoài phạm vi ẩn danh hoá — khoảng hở tuân thủ ĐÃ CHẤP NHẬN, 2026-09-19.** AD-26 chỉ chạm PII **trên đơn**; email của khách hàng không bị xoá và v1 **không có cơ chế nào xoá nó**. Một yêu cầu "xoá dữ liệu của tôi" vì thế chỉ được đáp ứng phần trên đơn. Người quyết định chọn giữ nguyên sau khi được nêu rõ cái giá. Đáng ghi lại: phương án "xoá luôn tài khoản" **bất khả** — AD-24 đặt `ON DELETE RESTRICT` giữa `order.customer_id` và `account`, mà đơn phải giữ 5 năm; nên lựa chọn thật chỉ có hai, và ẩn danh hoá bản ghi tài khoản bị loại vì chi phí. *Xem lại khi:* có tư vấn pháp lý về `Luật 91/2025`, hoặc khi số chủ thể dữ liệu tiến tới ngưỡng "số lượng lớn" mà `prd.md` §9.1 nêu. Xử lý tạm: ngoài hệ thống.
 - **Nâng NestJS lên dòng 12.** Dòng 11 cố ý được chọn để code do agent viết không lệch bản, và vẫn đang nhận bản vá. *Xem lại khi:* dòng 11 ngừng ra bản vá bảo mật (theo dõi releases, không theo dõi dist-tag `latest`).
 - **Nâng Node lên dòng 26.** Node 24 sang Maintenance ngày **20/10/2026**, Node 26 thành Active LTS ngày 28/10/2026. Maintenance vẫn có bản vá tới 04/2028 nên không gấp — nhưng mốc này rơi **một tháng sau** thời điểm freeze.
 - **Nâng TypeScript lên dòng 6 rồi 7.** Cần kiểm chứng trước: Nest 11 có chạy trên trình biên dịch mới mà vẫn giữ `emitDecoratorMetadata` không.

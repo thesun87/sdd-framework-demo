@@ -84,8 +84,8 @@ Phiên bản đầu cố ý dừng trước những thứ làm dự án thương
 > **Trường hợp biên:** món hàng vừa hết giữa lúc chị đang ở màn hình thanh toán → xem UJ-6.
 
 > **UJ-2. Anh Minh xem hết hàng rồi mới chịu khai tên.**
-> Anh Minh chưa từng mua ở đây, đến từ một bài Facebook. Là khách chưa đăng ký. Anh tìm "bình giữ nhiệt", lọc theo danh mục, mở ba sản phẩm, bỏ hai món vào giỏ. Không có màn hình nào chặn anh cho tới lúc này — duyệt hàng không tốn gì thì không đòi gì. Khi bấm đặt hàng, tường đăng ký mới hiện ra. Anh đăng ký; **hai món trong giỏ được gộp nguyên vẹn vào tài khoản mới** (FR-8). Anh đặt đơn.
-> **Trường hợp biên:** nếu anh đăng nhập vào một tài khoản đã có sẵn hàng trong giỏ, hai giỏ được gộp lại chứ không cái nào bị xoá.
+> Anh Minh chưa từng mua ở đây, đến từ một bài Facebook. Là khách chưa đăng ký. Anh tìm "bình giữ nhiệt", lọc theo danh mục, mở ba sản phẩm, bỏ hai món vào giỏ. Không có màn hình nào chặn anh cho tới lúc này — duyệt hàng không tốn gì thì không đòi gì. Khi bấm đặt hàng, tường đăng ký mới hiện ra. Anh đăng ký; **hai món trong giỏ đi tiếp cùng anh, không mất gì** (FR-8). Anh đặt đơn.
+> **Trường hợp biên đã biến mất:** giỏ sống trong trình duyệt chứ không gắn với tài khoản (`architecture.md` AD-17), nên không tồn tại "tài khoản đã có sẵn giỏ". Cái giá: anh mở lại trên điện thoại thì giỏ không theo sang.
 
 > **UJ-3. Chị Lan mở back office lúc 7 giờ sáng và xử lý đêm qua trong mười phút.**
 > Chị Lan là chủ shop, làm một mình. Đăng nhập back office trên máy tính, thấy danh sách đơn `placed` từ đêm. Với đơn của chị Hằng, chị **nhập phí giao hàng** cho khu vực đó (FR-20) — đơn vẫn ở `placed`, tổng tiền cập nhật, và chị Hằng vẫn còn quyền huỷ. Chị nhắn cho khách hàng qua Zalo xác nhận phí, rồi mới bấm `confirmed`. Tồn kho đã bị trừ từ lúc đơn được đặt, nên không có gì phải đối chiếu.
@@ -231,15 +231,19 @@ Thêm sản phẩm vào giỏ không làm thay đổi tồn kho của sản ph�
 - Hai giỏ hàng khác nhau chứa cùng một sản phẩm khi tồn kho chỉ còn 1 — cả hai thao tác thêm vào giỏ đều thành công.
 - Giỏ hàng không có thời hạn hết hạn liên quan tới tồn kho.
 
-#### FR-8: Giỏ của khách chưa đăng ký tồn tại và được gộp khi đăng nhập
+#### FR-8: Giỏ của khách chưa đăng ký sống sót qua lần đăng nhập
 
-Giỏ hàng của khách chưa đăng ký tồn tại qua các lần tải trang, và được gộp vào giỏ của khách hàng khi người đó đăng ký hoặc đăng nhập. Thực hiện UJ-2.
+Giỏ hàng sống trong trình duyệt và tồn tại qua các lần tải trang. Khi khách chưa đăng ký đăng ký hoặc đăng nhập, giỏ đang có **đi tiếp cùng họ** — không bị xoá, không bị thay bằng giỏ khác. Thực hiện UJ-2.
 
 **Hệ quả kiểm chứng được:**
-- Giỏ của khách chưa đăng ký còn nguyên sau khi tải lại trang.
-- Đăng ký với một giỏ đang có hàng → giỏ của tài khoản mới chứa đúng các dòng đó.
-- Đăng nhập vào tài khoản đã có giỏ → hai giỏ được **gộp**; sản phẩm trùng cộng dồn số lượng; không dòng nào bị mất.
-- Sau khi gộp, giỏ của khách chưa đăng ký không còn tồn tại.
+- Giỏ còn nguyên sau khi tải lại trang.
+- Đăng ký với một giỏ đang có hàng → sau khi đăng ký, giỏ vẫn chứa đúng các dòng đó, đúng số lượng.
+- Đăng nhập với một giỏ đang có hàng → sau khi đăng nhập, giỏ vẫn chứa đúng các dòng đó.
+- Đăng xuất **không** xoá giỏ.
+
+> **NOTE FOR PM.** Bản nháp đặt tên FR này là "được **gộp** khi đăng nhập" và mô tả việc hợp nhất hai giỏ. Kiến trúc chốt giỏ sống hoàn toàn ở `localStorage` (`architecture.md` AD-17), nên **không tồn tại giỏ thứ hai phía máy chủ để gộp vào** — "hai giỏ được gộp" là một tiêu chí nghiệm thu không bao giờ chạy được, và một AC rỗng nằm trong baseline đã đóng băng còn tệ hơn một AC bị xoá.
+>
+> **Hai hệ quả đã được chấp nhận có ý thức:** khách hàng **mất giỏ khi đổi thiết bị hoặc xoá dữ liệu trình duyệt**, và tình huống "đăng nhập vào tài khoản đã có sẵn giỏ" **không còn tồn tại**. Đổi lại: không bảng giỏ hàng nào phía máy chủ, và không dòng dữ liệu nào được tạo cho khách chưa đăng ký — đúng tinh thần §9.2.
 
 ---
 
@@ -659,7 +663,7 @@ Bảng này vừa liệt kê phạm vi, vừa là bản đồ FR của tài li�
 |---|---|---|
 | 4.1 | Danh mục phẳng, duyệt, tìm kiếm có bỏ dấu, phân trang | FR-1 – FR-3 |
 | 4.2 | Trang sản phẩm: giá, ảnh, tình trạng còn/hết | FR-4, FR-5 |
-| 4.3 | Giỏ hàng không giữ chỗ tồn kho; gộp giỏ khi đăng nhập | FR-6 – FR-8 |
+| 4.3 | Giỏ hàng ở trình duyệt, không giữ chỗ tồn kho; sống sót qua lần đăng nhập | FR-6 – FR-8 |
 | 4.4 | Đăng ký, đăng nhập, tường đăng ký; tài khoản chủ shop tạo sẵn; **đặt lại mật khẩu khách** | FR-9 – FR-11, FR-33, **FR-34** |
 | 4.5 | Đặt đơn: địa chỉ giao, phương thức thanh toán, **kiểm tra tồn kho nguyên tử** | FR-12 – FR-15 |
 | 4.6 | Vòng đời `placed → confirmed → shipped → delivered` + `cancelled`; khách hàng huỷ ở `placed`; hoàn kho có điều kiện | FR-16 – FR-19 |
@@ -755,7 +759,13 @@ Không có sổ địa chỉ tách rời (FR-12), không hồ sơ cá nhân, kh�
 
 **Hai đường kích hoạt, một hành vi.** Ngoài mốc tự động 12 tháng ở trên, chủ shop ẩn danh hoá được một đơn **ngay khi khách yêu cầu** (FR-35) — `Luật 91/2025/QH15` cho chủ thể dữ liệu quyền yêu cầu xoá với thời hạn đáp ứng 20 ngày, thứ mà một job chạy theo lịch 12 tháng không đáp ứng được. Hai đường phải dùng **chung một cài đặt**, không phải hai.
 
-> **Vẫn cần tư vấn pháp lý.** Mốc 12 tháng là lựa chọn của người quyết định, không phải kết luận pháp lý — discovery không chốt nó và chưa ai đối chiếu với `Luật 91/2025` hay `NĐ 356/2025`. Và ẩn danh hoá **không chạm tới email của khách hàng** (FR-9), nên một yêu cầu xoá chỉ được đáp ứng một nửa; chưa có quyết định về việc đó.
+> **Vẫn cần tư vấn pháp lý.** Mốc 12 tháng là lựa chọn của người quyết định, không phải kết luận pháp lý — discovery không chốt nó và chưa ai đối chiếu với `Luật 91/2025` hay `NĐ 356/2025`.
+
+**Giới hạn của việc ẩn danh hoá — đã quyết định, không phải sơ suất.** Ẩn danh hoá (tự động lẫn theo yêu cầu) chỉ chạm dữ liệu cá nhân **trên đơn hàng**. Email của khách hàng — định danh đăng nhập ở FR-9 — **không** bị xoá và **không có cơ chế nào xoá nó ở v1**. Nghĩa là một yêu cầu "xoá dữ liệu của tôi" chỉ được đáp ứng phần trên đơn; tài khoản vẫn còn.
+
+Người quyết định đã chọn giữ nguyên như vậy sau khi được nêu rõ cái giá. Phương án "xoá luôn tài khoản" **bất khả về mặt kỹ thuật**: `architecture.md` AD-24 đặt `ON DELETE RESTRICT` giữa đơn hàng và tài khoản, mà đơn phải giữ 5 năm. Phương án còn lại — ẩn danh hoá cả bản ghi tài khoản — bị loại vì chi phí, không vì không làm được.
+
+> ⚠️ **Đây là một khoảng hở tuân thủ đã biết và được chấp nhận**, không phải một thứ bị bỏ sót. Nếu một khách hàng thực sự yêu cầu xoá toàn bộ, chủ shop phải xử lý ngoài hệ thống. Cần xem lại cùng tư vấn pháp lý về `Luật 91/2025`, và trước khi số lượng chủ thể dữ liệu tăng tới ngưỡng "số lượng lớn" ở §9.1.
 
 ## 10. Chỉ số thành công
 

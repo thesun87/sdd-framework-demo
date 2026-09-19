@@ -670,7 +670,7 @@ Cùng nguyên tắc áp cho **Xác nhận thanh toán** và **chuyển trạng t
 - **Giữ** khi quay lại: số trang và danh mục đang xem trên Trang bán hàng; từ khoá tìm kiếm;
   bộ lọc trạng thái và số trang của Danh sách đơn hàng trong Trang quản trị.
 - **Đặt lại** về trang 1 khi: đổi danh mục, đổi từ khoá tìm kiếm, đổi bộ lọc trạng thái.
-- **Giữ nguyên tuyệt đối**: giỏ hàng — qua Tường đăng ký, qua đăng nhập (hai giỏ hàng **gộp**,
+- **Giữ nguyên tuyệt đối**: giỏ hàng — qua Tường đăng ký, qua đăng nhập (giỏ **sống sót nguyên vẹn**,
   sản phẩm trùng cộng dồn số lượng, không dòng nào mất), và qua trang **Đơn chưa đặt được**.
 - **Không giữ**: nội dung đang gõ trong biểu mẫu địa chỉ giao hàng khi rời hẳn khỏi Đặt đơn.
   Địa chỉ được điền lại từ đơn hàng gần nhất ở lần sau — đó là cơ chế thay cho sổ địa chỉ.
@@ -834,14 +834,12 @@ Luật 91/2025 + tối thiểu hoá dữ liệu đặt câu hỏi về việc th
 3. Lọc thêm bằng danh mục ở sidebar, mở ba Chi tiết sản phẩm, bỏ hai sản phẩm vào giỏ hàng.
 4. **Không có màn hình nào chặn anh cho tới đây.** Duyệt hàng không tốn gì thì không đòi gì.
 5. Bấm **Đặt đơn** → **Tường đăng ký** mới xuất hiện. Anh đăng ký.
-6. **Cao trào:** hai dòng giỏ hàng được **gộp nguyên vẹn** vào tài khoản vừa tạo (FR-8) — không
+6. **Cao trào:** hai dòng giỏ hàng **đi tiếp nguyên vẹn** sau khi tạo tài khoản (FR-8) — không
    dòng nào mất, số lượng không đổi — và anh được trả về đúng bước Đặt đơn. Thứ duy nhất anh
    phải khai cho tới lúc này là một định danh và một mật khẩu; địa chỉ giao hàng mới hỏi ở bước
    sau.
 
-*Biên:* anh đăng nhập vào một tài khoản đã có sẵn giỏ hàng → **hai giỏ hàng được gộp**, sản phẩm
-trùng **cộng dồn số lượng**, không cái nào bị xoá. Thông báo: "Giỏ hàng trên máy này đã được gộp
-vào tài khoản của bạn."
+*Biên đã biến mất:* giỏ hàng sống trong trình duyệt chứ không gắn với tài khoản (`architecture.md` AD-17), nên không tồn tại "tài khoản đã có sẵn giỏ hàng", và không có thông báo gộp nào. Cái giá đã được chấp nhận: mở lại trên thiết bị khác thì giỏ không theo sang.
 
 ### UJ-3 — Chị Lan mở Trang quản trị lúc 7 giờ sáng, xử lý đêm qua trong mười phút
 

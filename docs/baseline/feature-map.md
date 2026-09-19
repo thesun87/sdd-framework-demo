@@ -18,10 +18,10 @@ nào mồ côi, và mọi chỗ một FR nằm ở hai feature đều phải có
 
 | ID | Outcome (what the user can do afterwards) | Depends on | FR | AD | Track | Status |
 |---|---|---|---|---|---|---|
-| 000-walking-skeleton | Khách mở được trang chủ, thấy một sản phẩm thật lấy từ database, và **tình trạng còn/hết của nó đúng dưới tải đồng thời** | — | 4, 5 *(một phần)* | AD-1, AD-21, AD-25, AD-27, AD-28 | A | planned |
+| 000-walking-skeleton | Khách mở được trang chủ, thấy một sản phẩm thật lấy từ database, **tình trạng còn/hết của nó đúng dưới tải đồng thời**, và trang phát đủ header an toàn | — | 4, 5 *(một phần)* | AD-1, AD-21, AD-25, AD-27, AD-28, **AD-29** | A | planned |
 | 001-catalog-browse | Khách duyệt danh mục phẳng, tìm sản phẩm theo tên **có bỏ dấu**, và phân trang | 000 | 1–5 | AD-11, AD-19, AD-20 | A | planned |
 | 002-accounts | Khách tự đăng ký và đăng nhập; tài khoản chủ shop có sẵn từ lúc triển khai | 000 | 9, 10, 33 | AD-6, AD-8 | A | planned |
-| 003-cart-and-wall | Khách thêm hàng vào giỏ ở trình duyệt và gặp tường đăng ký khi định đặt đơn | 001, 002 | 6, 7, 8, 11 | AD-17 | A | planned |
+| 003-cart-and-wall | Khách thêm hàng vào giỏ ở trình duyệt, giỏ **sống sót qua lần đăng nhập**, và gặp tường đăng ký khi định đặt đơn | 001, 002 | 6, 7, 8, 11 | AD-17 | A | planned |
 | 004-place-order | Khách đặt được đơn, **và không bao giờ đặt được đơn vượt tồn kho** | 003 | 12–15 | AD-1, AD-3, AD-18, AD-23 | A | planned |
 | 005-my-orders | Khách xem lịch sử và chi tiết đơn của mình, **và không thấy đơn của ai khác** | 004 | 31, 32 | AD-13 | A | planned |
 | 006-backoffice-orders | Chủ shop xem được danh sách đơn có lọc, và chi tiết từng đơn | 004 | 29, 30 | AD-9, AD-13 | A | planned |
@@ -46,7 +46,9 @@ một origin (AD-8), hai Vite build (AD-9), `packages/shared` (AD-10), migration
 giá của việc spine cố định nhiều bất biến hạ tầng, và nó được trả một lần.
 Nếu vượt trần ở `/speckit-tasks`, thứ nên cắt ra là **bundle `backoffice`**
 (hoãn tới `006`), **không phải** test tải đồng thời của AD-21 — bỏ test đó là
-bỏ đúng thứ `000` tồn tại để chứng minh.
+bỏ đúng thứ `000` tồn tại để chứng minh. **Cũng không phải CSP (AD-29):** nó là
+lớp phòng thủ duy nhất còn lại cho rủi ro XSS mà AD-8 đã chấp nhận có ý thức, và
+một bề mặt tồn tại trước lớp phòng thủ của nó là một cửa sổ không ai đóng lại.
 
 **`004` là feature rủi ro nhất.** Nó gánh AD-1, AD-3, AD-18 và AD-23 cùng lúc,
 cộng màn *"Đơn chưa đặt được"* mà `addendum.md` §5 gọi là *"khoảnh khắc UX nặng
