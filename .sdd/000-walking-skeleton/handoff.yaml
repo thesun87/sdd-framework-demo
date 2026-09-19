@@ -1,0 +1,64 @@
+feature_id: 000-walking-skeleton
+track: A
+generated_at: '2026-09-19T19:12:35+07:00'
+constitution:
+  path: .specify/memory/constitution.md
+  git_sha: 3a0fa5db590c4c37f5fec7564e3ded7e48f09c0a
+spec:
+  path: specs/000-walking-skeleton/spec.md
+  git_sha: 23822c9113334a32daf20ef9bc9dd31ae2ee2b06
+plan:
+  path: specs/000-walking-skeleton/plan.md
+  git_sha: 7988df5b373c0b0d45cc183cc6fd53ed77dcc10d
+tasks:
+  path: specs/000-walking-skeleton/tasks.md
+  git_sha: 148c5f94b841ee86c5488aeb1b44ed7e23493c86
+execution:
+  engine: superpowers
+  mode: subagent-driven-development
+policy:
+  allow_replan: false
+  allow_spec_change: false
+  allow_architecture_change: false
+  require_tdd: false
+  require_task_review: true
+  require_code_quality_review: true
+  require_final_verification: true
+  require_convergence: false
+  tdd_exemption_reason: 'Bootstrap: test harness does not yet exist.'
+  allow_baseline_change: false
+verification:
+  source: docs/baseline/verification.md
+  commands:
+    test: npm test
+    lint: npm run lint
+    regression: npm run test:regression
+    build: npm run build
+context:
+  include:
+  - constitution
+  - glossary
+  - feature_spec
+  - implementation_plan
+  - current_task
+  - relevant_dependencies
+  - referenced_prd_sections
+  - referenced_architecture_sections
+  exclude:
+  - full_prd
+  - full_architecture_document
+  - unrelated_tasks
+  - unrelated_features
+  - full_chat_history
+  - unrelated_repository_context
+baseline:
+  baseline_id: baseline-0001-ecommerce
+  prd:
+    path: docs/baseline/prd.md
+    git_sha: f347fd1a23a6d3ce4941bf935c4de4963bebeddd
+  architecture:
+    path: docs/baseline/architecture.md
+    git_sha: f347fd1a23a6d3ce4941bf935c4de4963bebeddd
+  glossary:
+    path: docs/baseline/glossary.md
+    git_sha: f90da947b72720448d48e0eb69d8950d5dffd575
