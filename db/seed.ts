@@ -17,7 +17,7 @@
 // tồn kho; trạng thái ban đầu của dữ liệu mẫu không phải một thay đổi nghiệp vụ. (Tên bảng
 // cố ý không xuất hiện nguyên văn trong file này — xem acceptance criteria của task-005.)
 
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
@@ -28,7 +28,8 @@ import { category, product, productImage, stock } from './schema/index.js';
 if (process.env.NODE_ENV === 'production') {
   console.error(
     'db/seed.ts: từ chối chạy vì NODE_ENV=production. Script này chỉ nạp dữ liệu MẪU cho môi ' +
-      'trường phát triển/kiểm thử — không bao giờ chạy ở production.',
+      'trường phát triển/kiểm thử — không bao giờ chạy ở production. Nếu bạn đang cố nạp dữ ' +
+      'liệu mẫu cho dev/test, hãy chạy lại với NODE_ENV=development (hoặc test).',
   );
   process.exit(1);
 }
@@ -65,7 +66,10 @@ function normalizeName(name: string): string {
     .toLowerCase()
     .replace(/đ/g, 'd')
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    // Escape Unicode tuong minh (U+0300 - U+036F), KHONG phai ky tu dau ket hop go truc tiep
+    // trong ma nguon - ky tu go truc tiep vo hinh, de vo khi diff/mo lai bang editor khac/
+    // doi encoding (fix round 1, review T005).
+    .replace(/[\u0300-\u036f]/g, '')
     .trim();
 }
 
@@ -75,6 +79,19 @@ async function main(): Promise<void> {
 
   try {
     await db.transaction(async (tx) => {
+      // Khoá advisory PHẠM VI TRANSACTION (tự nhả khi transaction commit/rollback, không cần
+      // unlock tay) — chặn nửa "chạy đồng thời" của finding review round 1: hai tiến trình
+      // seed chạy song song đều có thể vượt qua SELECT tra-tồn-tại ở dưới TRƯỚC KHI cái nào
+      // commit, sinh ra hai dòng category/product cùng `name_normalized` (không có UNIQUE
+      // index đứng sau, xem comment đầu file). Khoá này serialize các lần chạy seed với
+      // nhau — tiến trình thứ hai đợi tới khi tiến trình thứ nhất commit/rollback rồi mới
+      // đọc, nên không còn cửa sổ đua. Khoá KHÔNG sửa được nửa "sửa `name_normalized` từ bên
+      // ngoài rồi lookup miss" — nửa đó bị chặn (parked) theo ruling R16(b): cần UNIQUE index
+      // (một migration, thuộc T004 đã đóng), không phải việc của seed script.
+      // Khoá cố định 72500001 — không trùng với khoá advisory nào khác trong hệ thống (hiện
+      // chưa có khoá advisory nào khác được dùng ở đâu trong repo này).
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(72500001)`);
+
       // --- category ---------------------------------------------------------------------
       const categoryName = 'Đồ uống';
       const categoryNameNormalized = normalizeName(categoryName);
@@ -124,6 +141,10 @@ async function main(): Promise<void> {
       }
 
       // --- product_image --------------------------------------------------------------------
+      // Khoá tra-tồn-tại gồm cả PRODUCT_IMAGE_PATH đã resolve: giả định biến này ỔN ĐỊNH
+      // giữa các lần chạy. Nếu giá trị đổi (ví dụ đổi named volume) giữa hai lần chạy, seed
+      // sẽ chèn thêm một dòng `product_image` thứ hai thay vì nhận ra đó là cùng một ảnh
+      // logic — chấp nhận theo review round 1, không đổi cấu trúc khoá.
       const imagePath = `${productImagePath}/ca-phe-sua-da.jpg`;
 
       const existingImage = await tx
