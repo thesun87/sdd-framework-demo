@@ -148,3 +148,53 @@ test("HV015 blocks a missing or thin glossary", () => {
     assert.match(r.stdout, /FAIL {2}HV015/);
   } finally { sb.cleanup(); }
 });
+
+/**
+ * HV012 vs protocol §A9.  The protocol sets `require_convergence: false` for the
+ * walking skeleton — there is no prior codebase to converge against — while
+ * HV012 blocks any handoff whose require_convergence is not `true`.  Both cannot
+ * be right.  The exemption wins, but ONLY when the handoff proves it is the
+ * bootstrap feature carrying constitution §II's written reason; every other
+ * handoff is still blocked, so the gate is not loosened in general.
+ */
+
+function patchPolicy(path, edit) {
+  const y = readFileSync(path, "utf8");
+  writeFileSync(path, edit(y));
+}
+
+/** policy: keys are emitted by yaml.safe_dump at exactly two spaces. */
+const EXEMPT = "require_convergence: false\n  require_tdd: false\n" +
+  '  tdd_exemption_reason: "Bootstrap: test harness does not yet exist."';
+
+test("HV012 accepts require_convergence:false for the bootstrap feature", () => {
+  const sb = makeSandbox();
+  try {
+    const feature = "000-walking-skeleton";
+    seedFeature(sb, feature);
+    const hp = handoffFor(sb, feature, "A");
+    patchPolicy(hp, (y) => y.replace(/require_convergence: true/, EXEMPT));
+    sb.git("add", "-A"); sb.git("commit", "-q", "-m", "handoff");
+
+    const r = runGlue("sdd_validate.py", ["--feature", feature], sb.dir);
+    assert.ok(!r.stdout.includes("HV012"),
+      `HV012 must stand down for the bootstrap feature, got:\n${r.stdout}${r.stderr}`);
+  } finally { sb.cleanup(); }
+});
+
+test("HV012 still blocks require_convergence:false for any other feature", () => {
+  const sb = makeSandbox();
+  try {
+    const { feature } = seedFeature(sb);
+    seedTrackBExtras(sb, feature);
+    sb.git("add", "-A"); sb.git("commit", "-q", "-m", "track B inputs");
+    const hp = handoffFor(sb, feature);
+    patchPolicy(hp, (y) => y.replace(/require_convergence: true/, EXEMPT));
+    sb.git("add", "-A"); sb.git("commit", "-q", "-m", "handoff");
+
+    const r = runGlue("sdd_validate.py", ["--feature", feature], sb.dir);
+    assert.equal(r.status, 1, "a non-bootstrap feature must not escape convergence");
+    assert.match(r.stdout, /FAIL\s+HV012/,
+      "the exemption is by feature id — claiming a reason must not be enough");
+  } finally { sb.cleanup(); }
+});
