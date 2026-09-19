@@ -31,10 +31,20 @@
 > Node 26 thành Active LTS ngày 28/10/2026. Mốc đó rơi khoảng một tháng sau thời
 > điểm freeze — xem mục Deferred của `docs/baseline/architecture.md`.
 >
-> ⚠️ **Docker chưa dùng được trong distro WSL này** (`docker: command not found`
-> — WSL integration của Docker Desktop chưa bật). PostgreSQL 18.6 trong bảng trên
-> là phiên bản đã chốt, **chưa phải phiên bản đang chạy**. AD-27 đòi PostgreSQL
-> thật, nên đây là điều kiện tiên quyết của cổng nghiệm thu feature 000.
+> ✅ **Docker đã dùng được — chặn này đã gỡ, đo lại ngày 2026-09-19.**
+> `docker -v` → **29.1.2** (build 890dcca); `docker compose version` →
+> **v2.40.3-desktop.1**; `docker info` trả lời bình thường (Docker Desktop,
+> 20 container, 24 image), nên daemon sống chứ không chỉ có binary trên `PATH`.
+> `docker pull postgres:18.6` thành công, nên **PostgreSQL 18.6 giờ là phiên bản
+> chạy được thật**, không còn chỉ là phiên bản đã chốt — AD-27 thoả được.
+> Việc pull thành công cũng chứng minh có mạng, nên `npx playwright install`
+> (bước chuẩn bị có mạng của `regression`) không còn là ẩn số.
+>
+> Bản ghi cũ ở chỗ này nói `docker: command not found` và gọi đây là điều kiện
+> tiên quyết của cổng nghiệm thu feature 000. Câu đó **hết hiệu lực**. Giữ lại
+> dấu vết vì nó giải thích vì sao `specs/000-walking-skeleton/plan.md` và
+> `tasks.md` vẫn mang ghi chú chặn Docker: hai file đó do Spec Kit sở hữu
+> (`CLAUDE.md` §3) và sẽ được `/speckit-analyze` đối chiếu, không sửa tay ở đây.
 
 Upgrade policy: one tool at a time, on a branch, validated against the
 pilot feature before adoption. Never upgrade mid-feature.
