@@ -154,3 +154,20 @@ Task 1: minor (deferred): `packages/shared/tsconfig.json` và `packages/ui/tscon
   lại `module`/`moduleResolution` đã có trong `tsconfig.base.json`.
 Task 1: minor (deferred): `apps/storefront/tsconfig.json` và `e2e/tsconfig.json` kế thừa
   `declaration`/`sourceMap` trong khi đặt `noEmit: true` — cấu hình chết, vô hại.
+Ruling: R13 — file loại trừ build context của ảnh api đặt tại **`ops/api.Dockerfile.dockerignore`**
+(BuildKit đọc `<tên-Dockerfile>.dockerignore` trước `.dockerignore` ở gốc context), **không**
+tạo `.dockerignore` ở gốc repo. — Vì review T002 đúng: `COPY . .` với context là gốc repo sẽ
+đè `node_modules` đã `npm ci` trong tầng `deps` bằng cây của host (sai OS/arch), và không có
+gì loại trừ `.git/`. Đặt ở `ops/` giữ mọi thứ trong allowed scope của T002; một `.dockerignore`
+ở gốc là file gốc repo mà không task nào sở hữu. — Nếu sai: BuildKit bị tắt ở một môi trường
+nào đó thì file này bị bỏ qua và build lại kéo cả cây; T015 dựng sạch sẽ bắt được.
+
+Task 2: fix round 1/5 (3 addressed, 0 open — Dockerfile COPY order + `ops/api.Dockerfile.dockerignore`
+  theo R13; đường mount Caddyfile; bằng chứng crash-loop postgres 18; commits 9f352f4..d7abf6e)
+Task 2: complete (commits c0dd960..d7abf6e, review clean sau 1 vòng sửa)
+Task 2: minor (deferred): `${PRODUCT_IMAGE_PATH:-...}` lặp ở hai chỗ trong `ops/compose.yaml`,
+  phải tự giữ đồng bộ với `ops/.env.example`.
+Task 2: minor (deferred): `ops/api.Dockerfile.dockerignore` chỉ loại `e2e/test-results`, phần
+  còn lại của `e2e/` vẫn vào build context.
+Task 2: minor (deferred): bằng chứng "node_modules khác nhau" chỉ chứng minh phần dockerignore,
+  không chứng minh phần đảo thứ tự COPY (nhánh BuildKit tắt). Mã đúng cả hai phần khi đọc.
