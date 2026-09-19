@@ -23,3 +23,6 @@ __pycache__/
 
 # Claude Code per-machine overrides (team settings live in .claude/settings.json)
 .claude/settings.local.json
+
+# Claude Code worktrees (machine-local, never committed)
+.claude/worktrees/
