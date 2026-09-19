@@ -1,0 +1,105 @@
+change_id: 2026-09-19-SDD-002
+track: C
+type: bugfix
+ticket: SDD-002
+severity: high
+created_at: '2026-09-19T18:53:10+07:00'
+constitution:
+  path: .specify/memory/constitution.md
+  git_sha: 3a0fa5db590c4c37f5fec7564e3ded7e48f09c0a
+defect:
+  observed: 'sdd_handoff.py hardcodes require_tdd: True and require_convergence: True for every feature,
+    and has no tdd_exemption_reason key at all. Generating the handoff for 000-walking-skeleton therefore
+    produces a policy that contradicts constitution §II. Separately, sdd_validate.py HV012 blocks any
+    handoff whose require_convergence is not True, so setting it to false as protocol §A9 prescribes makes
+    /sdd-validate fail. The two rules cannot both be satisfied: feature 000 cannot be handed off correctly
+    at all.'
+  expected: 'Feature 000-walking-skeleton gets require_tdd: false, tdd_exemption_reason and require_convergence:
+    false, exactly as protocol §A9 §L588-600 writes them, and /sdd-validate passes on that handoff. Every
+    other feature is unchanged and still blocked by HV012.'
+  documented_behaviour_ref: constitution.md §II final bullet (miễn trừ duy nhất); docs/agentic-sdd-protocol-v2.md
+    §A9 lines 588-600.
+  reproduction: tests/sdd_handoff.test.mjs — 'feature 000-walking-skeleton carries the constitution §II
+    bootstrap exemption'; tests/sdd_validate.test.mjs — 'HV012 accepts require_convergence:false for the
+    bootstrap feature'. Both red before the fix.
+entry_criteria:
+  CV001_defect_against_documented_behaviour: true
+  CV002_no_business_rule_change: true
+  CV003_no_contract_change: true
+  CV004_no_schema_change: true
+  CV005_no_authz_change: true
+  CV006_no_acceptance_criteria_change: CONTESTED
+  CV007_no_nfr_impact: true
+  CV008_no_new_dependency: true
+  CV009_reproducible_by_test: true
+  CV010_single_module_scope: CONTESTED
+entry_criteria_notes: 'CV006 — HV012 is a quality gate, not a feature acceptance criterion, but changing
+  when it passes does change a gate. Mitigated by keeping the gate closed by default: it stands down only
+  for a handoff whose feature_id is literally 000-walking-skeleton AND which carries require_tdd: false
+  AND a non-empty tdd_exemption_reason. A handoff that merely claims an exemption is still blocked, and
+  there is a test pinning that.
+
+  CV010 — three files, not one: sdd_lib.py, sdd_handoff.py, sdd_validate.py. Treated as one module (the
+  glue layer). Splitting the constant across generator and validator would let them drift, which is the
+  exact class of defect being fixed here.
+
+  Both stretches were raised with the human before work started and approved.'
+root_cause: The policy block in sdd_handoff.py was written as a literal dict with no notion that the protocol
+  grants one feature a different policy, and HV012 was written as an unconditional equality check. Neither
+  file referenced the other, so the contradiction was only visible by reading constitution §II, protocol
+  §A9 and two python files side by side — which nothing in the pipeline forced anyone to do. The fix puts
+  the exemption in one place that both import.
+scope:
+  allowed:
+  - scripts/sdd/sdd_lib.py
+  - scripts/sdd/sdd_handoff.py
+  - scripts/sdd/sdd_validate.py
+  - tests/sdd_handoff.test.mjs
+  - tests/sdd_validate.test.mjs
+  forbidden:
+  - docs/baseline/**
+  - .specify/memory/constitution.md
+  - docs/agentic-sdd-protocol-v2.md
+  - specs/**
+  - scripts/sdd/sdd_change.py
+  - _bmad/**
+  - .specify/scripts/**
+policy:
+  require_regression_test: true
+  require_tdd: true
+  require_code_quality_review: true
+  require_full_verification: true
+  require_spec_review: false
+  require_convergence: false
+  max_files_changed: 8
+verification:
+  commands:
+    test: npm test
+    lint: npm run lint
+    regression: npm run test:regression
+escalation:
+  triggers:
+  - contract_change_required
+  - schema_change_required
+  - business_rule_ambiguity
+  - fix_requires_forbidden_scope
+  - root_cause_not_found
+  action: STOP_AND_ESCALATE_TO_TRACK_B
+status: done
+fix:
+  summary: Put BOOTSTRAP_FEATURE / BOOTSTRAP_TDD_REASON / is_bootstrap() in sdd_lib.py; sdd_handoff.py
+    derives require_tdd and require_convergence from it and writes tdd_exemption_reason; HV012 stands
+    down only for a handoff that proves it is that feature. Keyed by literal feature id so no later feature
+    can claim it.
+  files_changed:
+  - scripts/sdd/sdd_lib.py
+  - scripts/sdd/sdd_handoff.py
+  - scripts/sdd/sdd_validate.py
+  - tests/sdd_handoff.test.mjs
+  - tests/sdd_validate.test.mjs
+verification_result:
+  test: npm test — 16 passed, 0 failed (was 12 before, +4 new)
+  lint: npm run lint — passed
+  regression: npm run test:regression — passed, product half reported SKIPPED (expected until feature
+    000 lands)
+  verified_at: '2026-09-19T18:53:10+07:00'

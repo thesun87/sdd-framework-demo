@@ -25,6 +25,30 @@ SDD = ROOT / ".sdd"
 CONSTITUTION = ROOT / ".specify" / "memory" / "constitution.md"
 FEATURE_JSON = ROOT / ".specify" / "feature.json"
 
+# ---------------------------------------------------------------------------
+# The single bootstrap exemption.
+#
+# Constitution §II: "Miễn trừ duy nhất: feature `000-walking-skeleton` được chạy
+# với require_tdd: false, lý do ghi rõ trong handoff của nó — bộ khung test chính
+# là thứ đang được dựng. Miễn trừ này hết hiệu lực ngay khi feature 000 merge,
+# và không được viện dẫn lại."
+#
+# Protocol §A9 spells out the matching handoff policy, including
+# require_convergence: false — there is no prior codebase to converge against.
+#
+# It is keyed by literal feature id ON PURPOSE. A --bootstrap flag or a policy
+# key would let any later feature claim the same exemption; a name cannot be
+# reused, and it stops meaning anything the moment feature 000 is merged and
+# deleted.
+# ---------------------------------------------------------------------------
+BOOTSTRAP_FEATURE = "000-walking-skeleton"
+BOOTSTRAP_TDD_REASON = "Bootstrap: test harness does not yet exist."
+
+
+def is_bootstrap(feature: str | None) -> bool:
+    """True only for the one feature constitution §II names."""
+    return feature == BOOTSTRAP_FEATURE
+
 
 def git_sha(path: Path) -> str | None:
     """Last commit SHA that touched `path`. None if untracked/uncommitted."""

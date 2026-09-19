@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sdd_lib import (  # noqa: E402
     BASELINE, CONSTITUTION, ROOT, SDD, SPECS,
     active_feature, find_ids, git_sha, has_unresolved_clarifications,
-    read, working_tree_clean,
+    is_bootstrap, read, working_tree_clean,
 )
 
 CODEBASE_CONTEXT_MAX_BYTES = 8_000   # ~one page
@@ -92,7 +92,12 @@ def validate(feature: str) -> Result:
     r.check("HV011", pol.get("require_task_review") is not None
             and pol.get("require_code_quality_review") is not None,
             "review policy not defined")
-    r.check("HV012", pol.get("require_convergence") is True,
+    # The exemption is granted by feature id, never by a handoff asking for it:
+    # a handoff that merely carries tdd_exemption_reason is still blocked.
+    bootstrap = (is_bootstrap(h.get("feature_id"))
+                 and pol.get("require_tdd") is False
+                 and bool(pol.get("tdd_exemption_reason")))
+    r.check("HV012", pol.get("require_convergence") is True or bootstrap,
             "convergence is not enabled")
 
     for key in ("spec", "plan", "tasks"):

@@ -16,8 +16,8 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from sdd_lib import (  # noqa: E402
-    BASELINE, CONSTITUTION, ROOT, SDD, SPECS,
-    active_feature, git_sha, read,
+    BASELINE, BOOTSTRAP_TDD_REASON, CONSTITUTION, ROOT, SDD, SPECS,
+    active_feature, git_sha, is_bootstrap, read,
 )
 
 
@@ -66,11 +66,14 @@ def build(feature: str, track: str) -> dict:
             "allow_replan": False,
             "allow_spec_change": False,
             "allow_architecture_change": False,
-            "require_tdd": True,
+            # Constitution §II + protocol §A9: the walking skeleton is the one
+            # feature allowed to build its test harness instead of being driven
+            # by it, and the one with nothing to converge against.
+            "require_tdd": not is_bootstrap(feature),
             "require_task_review": True,
             "require_code_quality_review": True,
             "require_final_verification": True,
-            "require_convergence": True,
+            "require_convergence": not is_bootstrap(feature),
         },
         "verification": {
             "source": "docs/baseline/verification.md",
@@ -85,6 +88,10 @@ def build(feature: str, track: str) -> dict:
                         "full_chat_history", "unrelated_repository_context"],
         },
     }
+
+    if is_bootstrap(feature):
+        # §II requires the reason be written down, not assumed by whoever reads it.
+        h["policy"]["tdd_exemption_reason"] = BOOTSTRAP_TDD_REASON
 
     if track == "A":
         freeze = yaml.safe_load(read(BASELINE / "baseline-freeze.yaml") or "{}") or {}
