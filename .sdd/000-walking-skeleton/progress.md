@@ -301,3 +301,29 @@ Task 9: minor (deferred): `stock.public.ts:getStockStatus` tái dùng type `Stoc
 (tồn kho không bao giờ âm dưới tải đồng thời) đã có bằng chứng chạy được trên PostgreSQL thật:
 AC-AD1, AC-AD21, AC-AD28, SC-002 đều đạt. `npm test` giờ chạy tới `*.race-spec.ts`.
 
+Ruling: R20 — T010 được phép mở rộng scope để sửa `apps/api/jest.config.js` (thêm ĐÚNG một
+mục `transform` cho `packages/shared/dist/**/*.js`), dù brief T010 không liệt kê file này. —
+Vì đây là khoảng trống thật: `packages/shared` build ra ESM, Jest (CJS loader mặc định) không
+`require()` được, và `tsc` không phát hiện ra vì nó không chạy qua Jest; task đầu tiên thật sự
+import từ `packages/shared` trong test (`apps/api`) là nơi hợp lý để phát hiện và vá — cùng
+loại với R15/R18 (khoảng trống hạ tầng lộ ra ở task đầu tiên chạm tới nó). — Điều kiện: mục
+`transform` phải hẹp (chỉ `packages/shared/dist`), không đổi hành vi test của T008/T009 (đã
+báo cáo 7/7 xanh trước/sau). Review xác minh phạm vi hẹp và không hồi quy trước khi chấp nhận.
+— Nếu sai: sửa lại `jest.config.js` là việc cơ học, không đụng mã sản phẩm.
+Ghi chú cho brief T011: `apps/api/package.json` chưa khai `packages/shared` là dependency
+thật (chỉ hoisting) — T010 xác nhận vẫn hoạt động nhưng đây là nợ tích luỹ từ T009 (R19) và
+giờ cả T010. T011 PHẢI thêm dependency tường minh, không để tích thêm sang T012/T013.
+
+Task 10: complete (commits c07db19..a78db0a, review clean — spec ✅, Approved; 3/3 catalog
+  suite ĐỎ đúng lý do "Cannot find module '../../app.module'"; T008/T009 xác nhận KHÔNG hồi
+  quy — con số đúng là 4 suite/6 test, không phải "7/7" như report/ruling R20 ghi nhầm)
+Task 10: minor (deferred): `assertRawBodyNeverContainsQuantity` kiểm từ khoá phụ chỉ khớp
+  "quantity"/"inventory" nguyên văn, chưa khớp hết danh sách biến thể (`stockcount`, `qty`…)
+  nếu chúng lọt vào một chuỗi tự do — phòng tuyến CHÍNH (regex số nguyên trên toàn bộ raw
+  text) không bị ảnh hưởng, đây chỉ là phòng tuyến phụ.
+Task 10: minor (deferred, lặp lại từ R19/R20): `apps/api/package.json` vẫn chưa khai
+  `packages/shared` là dependency thật — T011 PHẢI đóng (đã ghi trong brief T011).
+R20 correction: con số đúng của T008/T009 là **4 test suites / 6 tests** (không phải 7/7 như
+  ghi nhầm ở ruling R20 gốc) — review T010 tự chạy lại xác nhận không hồi quy dù con số báo
+  cáo sai; sửa cho đúng ở đây.
+

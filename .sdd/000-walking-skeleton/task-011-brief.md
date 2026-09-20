@@ -13,6 +13,29 @@
 Làm các contract test đỏ của T010 xanh: API đọc trả Sản phẩm thật từ PostgreSQL, ghép tình
 trạng tồn kho **bằng lời gọi service công khai**, và không để lộ con số tồn kho.
 
+## Hợp đồng bootstrap của T010 — bắt buộc tương thích, không thương lượng
+
+T010 đã khoá cách app được khởi động trong test, ghi trong
+`apps/api/src/modules/catalog/catalog-test-support.ts`:
+`createTestApp()` = `NestFactory.create(AppModule, { logger: false })` + `app.init()` —
+**không** `setGlobalPrefix`, **không** `useGlobalPipes`/`useGlobalFilters`, **không**
+`listen()`. Hệ quả bắt buộc cho `app.module.ts` mà bạn viết:
+
+- Tiền tố `/api` và mọi pipe/filter/interceptor ảnh hưởng tới hợp đồng HTTP (đặc biệt bộ lọc
+  404 dùng envelope lỗi dùng chung) **phải** khai **bên trong `AppModule`** — route-level
+  hoặc qua token `APP_FILTER`/`APP_PIPE` — **không** chỉ trong `main.ts`. Nếu bạn đặt chúng
+  chỉ trong `main.ts` (`app.setGlobalPrefix('api')`, `app.useGlobalFilters(...)`), test của
+  T010 sẽ không đi qua chúng và sẽ đỏ sai lý do.
+- Nếu bạn thấy hợp đồng bootstrap này sai hoặc không đủ, DỪNG và báo controller — đừng tự sửa
+  `catalog-test-support.ts` (T010 sở hữu).
+
+## Nợ dependency phải trả ở task này
+
+`apps/api/package.json` **chưa** khai `packages/shared` là dependency thật — cả T009 (R19)
+lẫn T010 (R20) đều dựa vào npm workspace hoisting và ghi lại khoản nợ này. **T011 phải thêm
+`packages/shared` vào `dependencies` của `apps/api/package.json`, pin đúng phiên bản
+`workspace:*` hoặc số phiên bản hiện có** — không để tích thêm sang T012/T013.
+
 ## Requirements
 
 1. **Repository + service + controller** cho `category`, `product`, `product_image` trong
