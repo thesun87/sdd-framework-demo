@@ -359,3 +359,24 @@ Jest → DB còn fixture → controller TRUNCATE + reseed → xác nhận "Cà p
 quantity=50). T012 (storefront, kiểm tay) và T015 (quickstart) đều phải tự làm bước này trước
 khi kiểm; T015 vốn đã có `db:seed` trong quy trình chạy sạch.
 
+Ruling: R22 — **lỗ hổng plan thật, phát hiện lúc T012 kiểm tay**: `product_image.path` lưu
+đường dẫn TRÊN ĐĨA (đúng AD-15, đúng data-model.md), nhưng T011 trả nguyên văn giá trị đó làm
+`imagePath`/`images[].path` trong response API — trong khi `contracts/storefront-http.md` thể
+hiện hình dạng đó là **đường dẫn URL** (`"/images/…"`). Không route nào trong `ops/Caddyfile`
+phục vụ tệp tĩnh từ `PRODUCT_IMAGE_PATH`. Kết quả: `<img src>` của T012 render đúng theo hợp
+đồng nó nhận được, nhưng trỏ tới một đường dẫn trình duyệt không bao giờ tải được (`/data/...`
+rơi vào SPA fallback, trả `index.html`) — ảnh sẽ KHÔNG hiện trên trình duyệt thật. Đây là lỗ
+hổng chưa task nào trong 15 task sở hữu: T011 (đã đóng, không sai so với hợp đồng nó nhận —
+hợp đồng chỉ nói hình dạng field, không nói rõ nghĩa vụ ánh xạ đường dẫn) và T003 (đã đóng,
+brief của nó không yêu cầu route ảnh). SC-001/FR-001 đòi thấy **ảnh** thật ở cả hai trang;
+T015 sẽ đi qua kịch bản tay #2 và phát hiện đây, nhưng phát hiện bây giờ rẻ hơn.
+
+**Quyết định**: mở một fix nhỏ, có brief + review đầy đủ như một task, đặt tên **T011b**
+(chèn giữa T012 và T013 trong trình tự thực thi — không đổi số của `tasks.md`, không sửa
+`tasks.md`, chỉ là nhãn nội bộ của controller cho `/speckit-converge` truy vết). Phạm vi:
+(a) `ops/Caddyfile` — thêm route tĩnh `/images/*` phục vụ tệp từ volume đã mount tại
+`PRODUCT_IMAGE_PATH`; (b) `apps/api/src/modules/catalog/**` — ánh xạ `product_image.path`
+(đường dẫn đĩa) thành URL `/images/<tên tệp>` trong mọi response (`imagePath` và
+`images[].path`), không đổi cột dữ liệu. — Nếu sai: ảnh vẫn không hiện, T015 bắt lại, sửa cùng
+phạm vi.
+
