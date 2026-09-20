@@ -488,3 +488,20 @@ Task 13: minor (deferred): `formatPriceVnd` trong test lặp lại logic định
 **Checkpoint Phase 5 (User Story 3 — header an toàn) — HOÀN TẤT.** SC-004 có bằng chứng trình
 duyệt thật, cả hai đường dẫn, kể cả biến thể không dấu "/" cuối.
 
+Task 14: complete (commits eb5e8c5..33bb0c4, review clean — spec ✅, Approved; reviewer tự
+  chạy lại performance.e2e-spec.ts thật trên stack đang chạy: home p95=41ms (n=30, ngưỡng
+  1500ms), API p95=15ms (n=50, ngưỡng 400ms), cả hai dưới ngưỡng một bậc độ lớn; metrics
+  endpoint không lộ trường nhạy cảm nào — xác nhận bằng grep + curl thật). Middleware log của
+  T011 chỉ được MỞ RỘNG (thêm `duration_ms`), xác nhận bằng `git show` bản gốc — không viết
+  lại, không log kép. T013's hai file e2e và `ops/Caddyfile`/`ops/compose.yaml` xác nhận
+  KHÔNG đổi (diff rỗng). SC-003 giờ có bằng chứng đo được.
+Task 14: minor (deferred): `resetMetricsStoreForTest()` xuất ra nhưng chưa có test nào dùng
+  trong diff này — vô hại, chưa ai tiêu thụ.
+Task 14: minor (deferred, đã ghi ở R9): chặn `/api/internal/*` ở tầng reverse-proxy hoãn sang
+  feature sau — đã đúng thiết kế, chỉ nhắc lại để không bị quên.
+Task 14: minor (deferred): metrics trong bộ nhớ, mất khi container restart — đánh đổi có chủ
+  ý theo AD-16 cho walking skeleton một tiến trình.
+
+**Checkpoint Phase 6 (Polish & Cross-Cutting) một phần — T014 xong.** Còn lại: T015 (chạy
+trọn quickstart trên clone sạch) — cổng nghiệm thu cuối cùng của toàn bộ feature 000.
+
