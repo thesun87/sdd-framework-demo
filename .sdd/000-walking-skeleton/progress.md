@@ -248,3 +248,13 @@ Task 7: minor (deferred): `colors.neutral`, `spacing.md/lg`, `fontSize.md/lg` kh
 Task 7: minor (deferred): `RouteAnnouncer` dùng kỹ thuật `clip: rect(0,0,0,0)` cũ thay vì
   `clip-path: inset(50%)` hiện đại hơn — cả hai đều hoạt động đúng, không phải lỗi.
 
+Task 6: complete (commits f8dd23e..5792b00, review clean — spec ✅, Approved)
+Task 6: minor (deferred): self-review của report ghi nhầm grep quantity/inventory khớp "3
+  dòng", thực tế 5 dòng (1 comment + 4 dòng test) — bản chất đúng (không có field tồn kho thật).
+Task 6: note cho review T010: `.strict()` chỉ chặn `quantity` lạ **tại thời điểm** response
+  chạy qua `.parse()/.safeParse()` — nếu handler serialize thẳng dòng DB thô mà không qua
+  schema thì `.strict()` không cứu được. Kiểm tường minh ở review T010.
+
+**Checkpoint Phase 2 (Foundational) — HOÀN TẤT.** T001…T007 đều complete, review sạch.
+Hạ tầng, lược đồ, hợp đồng và packages/ui đã sẵn sàng cho Phase 3.
+
