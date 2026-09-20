@@ -606,3 +606,16 @@ lại các dòng Ruling gốc — lịch sử quyết định phải giữ nguy�
   ở tầng site-block, đây là lỗ hổng coverage, không phải lỗi sống); `db/schema/stock.ts`
   `updated_at` không có `defaultNow()`, mọi đường ghi phải tự nhớ set.
 
+Fix wave R28: complete (commit `0dba4af`), review có phạm vi hẹp (đúng đúng diff của commit này,
+  không phải toàn nhánh) **Approved, không finding** — reviewer tự chạy lại
+  `build --workspace=packages/shared`, `build --workspace=packages/ui`, `lint --workspace=apps/api`,
+  đối chiếu field-by-field `catalog.service.ts` với schema thật của `packages/shared`, xác nhận
+  `.parse()` ở `catalog.controller.ts` là thật (không phải cosmetic) và lỗi ZodError được
+  `error-envelope.filter.ts` bắt an toàn (không crash trần), xác nhận không có circular dependency
+  `shared↔ui`, và tự chạy `stock-withdraw-quantity-guard.int-spec.ts` (3/3 pass, không chạm DB).
+  Ledger commit riêng: `22a17b4`.
+
+**Checkpoint: TOÀN BỘ feature `000-walking-skeleton` — 15 task kế hoạch + 3 fix kiểm soát
+(T011b/c/d) + final whole-branch review + 1 fix wave (R28, I-1/I-2/I-3) — ĐÃ HOÀN TẤT, review
+sạch ở mọi cấp (task/branch/fix-wave). Sẵn sàng cho `superpowers:finishing-a-development-branch`.**
+
