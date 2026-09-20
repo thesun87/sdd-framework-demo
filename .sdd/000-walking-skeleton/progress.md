@@ -380,3 +380,17 @@ T015 sẽ đi qua kịch bản tay #2 và phát hiện đây, nhưng phát hiệ
 `images[].path`), không đổi cột dữ liệu. — Nếu sai: ảnh vẫn không hiện, T015 bắt lại, sửa cùng
 phạm vi.
 
+Task 12: complete (commits 414a4f4..4ed3bf3, review clean — spec ✅, Approved; 16/16 test
+  xanh, tất cả mock fetch, không chạm database thật). Lát cắt dọc US1 nhìn thấy được:
+  trang chủ + trang chi tiết fetch API thật, `StockStatusLabel`/`RouteAnnouncer` từ
+  `packages/ui` là nguồn duy nhất, sản phẩm hết hàng vẫn hiện và vẫn bấm được (cùng path code,
+  không nhánh riêng), test AD-20 (không cache) chứng minh gọi lại thật với dữ liệu khác nhau —
+  đúng thứ nguy hiểm nhất theo baseline.
+Task 12: minor (deferred): hai liên kết điều hướng ("← Trang chủ", "Quay lại trang chủ") nằm
+  ngoài 5 trường brief liệt kê cho trang chi tiết — hợp lý cho SPA không có chrome trình
+  duyệt, không phải 1 trong 3 thứ bị cấm tường minh (giỏ hàng/liên quan/đánh giá).
+Task 12: minor (deferred): router tự viết chưa có test tự động cho back/forward hay tải trực
+  tiếp `/products/:id` — đúng khi đọc mã, chỉ thiếu test; T013 (Playwright thật) có thể đóng.
+Task 12: xác nhận lại — `<img src>` render đúng chuỗi API trả về, không tự biến đổi; giá trị
+  đó sai là lỗi của T011b (đang sửa), không phải của T012.
+
