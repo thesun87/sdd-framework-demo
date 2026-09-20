@@ -65,7 +65,10 @@ trỏ vào `dist/`. Trên clone sạch, `dist/` chưa tồn tại. `scripts/veri
 **trước** `packages/` (không tự sắp lại theo phụ thuộc), nên lệnh `npm test` / `npm run lint` /
 `npm run build` chạy đầu tiên trên clone sạch báo lỗi `Cannot find module 'shared'` cho
 `apps/api` và `apps/storefront` — không phải lỗi mã nguồn, mà là một bước setup còn thiếu ở
-bản quickstart cũ. Build hai package này một lần trước khi làm gì khác:
+bản quickstart cũ. Ràng buộc thật là: build hai package này một lần **trước khi chạy bốn lệnh
+hợp đồng** ở mục "Kiểm chứng" bên dưới — không phải "trước khi làm gì khác" theo nghĩa đen (bước
+này vẫn đứng SAU `npm install` / `docker compose up -d postgres` / `npm run db:migrate` ở mục
+"Dựng và chạy" phía trên, thứ tự đó không đổi):
 
 ```bash
 npm run build --workspace=packages/shared
@@ -95,6 +98,19 @@ docker run --rm --network shop-online_default \
   node:24.21.0-bookworm-slim npx tsx db/seed.ts
 ```
 
+> **Ghi chú cho người sửa sau**: tag `node:24.21.0-bookworm-slim` ở trên được chọn **thủ công**,
+> ĐỘC LẬP với `FROM node:24.21.0-bookworm-slim` của `ops/api.Dockerfile` — hai nơi trôi lệch
+> theo thời gian nếu chỉ một bên được nâng cấp. Khi đổi phiên bản Node của Dockerfile, đổi luôn
+> dòng này cho khớp.
+>
+> **Volume `shop-online_product-images` do đâu mà có?** KHÔNG phải do
+> `docker compose -f ops/compose.yaml up -d postgres` ở mục "Dựng và chạy" phía trên tạo ra —
+> lệnh đó chỉ khởi động dịch vụ `postgres` nên Compose chỉ tạo volume mà `postgres` khai
+> (`postgres-data`); xác nhận thật ở vòng sửa T015 fix-round-1: `docker volume ls` ngay sau
+> `up -d postgres` chỉ có `shop-online_postgres-data`, chưa có `product-images`. Volume này do
+> chính lệnh `docker run -v shop-online_product-images:...` ở trên **tự tạo** (Docker tự tạo
+> named volume tham chiếu trong `-v` nếu chưa tồn tại) — không cần bước nào khác đứng trước nó.
+
 `npm run db:seed` chạy `db/seed.ts` — **idempotent**, tách khỏi `db/migrations/`, và **không
 bao giờ chạy ở prod** (chốt 2026-09-19). Chạy lại nhiều lần (kể cả bằng container ở trên) phải
 cho cùng một trạng thái; đó là điều kiện để `SC-007` lặp lại được.
@@ -104,11 +120,25 @@ cho cùng một trạng thái; đó là điều kiện để `SC-007` lặp lạ
 Không task nào được tự đặt lệnh test riêng (`verification.md`, Constitution §III). Đúng thứ tự
 dưới đây — lý do ở phần "Thứ tự bắt buộc" ngay sau:
 
+Ba trong bốn lệnh hợp đồng chạy được ngay, không cần stack `api`/`proxy` sống:
+
 ```bash
 npm test              # glue + Jest(api) + Vitest(storefront, packages) — gồm *.int-spec.ts, *.race-spec.ts
 npm run lint
 npm run build         # Vite build storefront + compile apps/api — TẠO apps/storefront/dist
-docker compose -f ops/compose.yaml up -d --build      # api + proxy — xem lý do đặt ở ĐÂY, không phải trước "Dựng và chạy"
+```
+
+Giữa lệnh hợp đồng thứ ba (`build`) và thứ tư (`test:regression`) có đúng MỘT bước hạ tầng bắt
+buộc — đây **không phải lệnh hợp đồng thứ năm**, chỉ là điều kiện để `test:regression` có một
+stack sống mà chạm vào (lý do đặt đúng ở vị trí này — không sớm hơn — xem mục ngay dưới):
+
+```bash
+docker compose -f ops/compose.yaml up -d --build      # api + proxy — KHÔNG nằm trong bốn lệnh hợp đồng
+```
+
+Lệnh hợp đồng thứ tư, chạy SAU khi stack đã sống:
+
+```bash
 npm run test:regression   # npm test + Playwright e2e — cần stack SỐNG THẬT (proxy cổng 80)
 ```
 
@@ -116,10 +146,14 @@ npm run test:regression   # npm test + Playwright e2e — cần stack SỐNG TH�
 `SKIPPED — no product workspace exists yet`. Đây là lần đầu tiên điều đó đúng trong repo này
 (xác nhận lại trên clone sạch, T015 — cả bốn lệnh exit 0, không còn `SKIPPED` ở đâu).
 
-`--build` (không phải `up -d` trần): nếu một image tên `shop-online-api` đã có sẵn trong cache
-Docker cục bộ (từ một lần build khác, project name khác nhưng TRÙNG tên `shop-online` — xem
-`ops/compose.yaml`), `up -d` trần **âm thầm dùng lại ảnh cũ, không build lại** — không chứng
-minh gì về clone hiện tại. `--build` buộc build lại thật từ context của ĐÚNG clone đang đứng.
+`--build` (không phải `up -d` trần): `ops/compose.yaml` chốt `name: shop-online` ngay đầu file
+— KHÔNG suy ra từ tên/đường dẫn thư mục clone. Vì vậy **bất kỳ clone nào** của repo này, dù nằm
+ở thư mục nào, cũng sinh ra image/container **cùng một tên** (`shop-online-api`,
+`shop-online-postgres-1`, …). Nếu một image tên `shop-online-api` đã có sẵn trong cache Docker
+cục bộ — để lại từ một clone hoặc một lần build KHÁC, TRƯỚC ĐÓ — `up -d` trần sẽ **âm thầm dùng
+lại ảnh cũ đó, không build lại**, và không chứng minh được gì về mã nguồn của clone hiện tại
+đang đứng. `--build` buộc build lại thật từ context của ĐÚNG clone đang đứng, bất kể cache
+Docker đang có gì.
 
 ### Vì sao `docker compose -f ops/compose.yaml up -d --build` (dựng cả stack) nằm SAU `npm run build`, không nằm ở mục "Dựng và chạy" phía trên
 
@@ -138,7 +172,11 @@ sở hữu root** (daemon Docker chạy bằng root) trước khi mount — xác
 lập AD-28 bắt chúng TRUNCATE + tự seed fixture riêng — chạy sau khi đã `db:seed` sẽ **xoá** Sản
 phẩm mẫu thật, thay bằng dữ liệu test. Vì vậy, thứ tự bắt buộc là:
 
-1. `db:seed` (mục "Dựng và chạy" ở trên, container-based).
+1. `db:seed` (mục "Dựng và chạy" ở trên, container-based). Đúng — bước 2 ngay sau sẽ
+   `TRUNCATE` xoá sạch dữ liệu bước này vừa nạp; seed ở đây **không phí**: đây là cách rẻ nhất
+   để phát hiện ngay lỗi container/network/volume của chính lệnh seed (mục "`npm run db:seed`"
+   ở trên) — TRƯỚC khi đầu tư vài phút chạy hết bốn lệnh hợp đồng ở bước 2. Nếu lệnh seed sai
+   (network/volume/quyền), bạn biết ngay ở đây, không phải sau khi `test:regression` chạy xong.
 2. Bốn lệnh hợp đồng (mục này).
 3. `db:seed` **lại** — đúng lệnh container ở mục "Dựng và chạy", chạy lại — để phục hồi Sản
    phẩm mẫu thật trước khi làm bước 4.
@@ -151,6 +189,22 @@ riêng (id khác, tên khác) trước khi seed lại, sản phẩm đó **vẫn
 SONG với Sản phẩm mẫu thật, không thay thế nó. Đây là hành vi đã biết (ghi nhận từ T013), không
 chặn các kịch bản tay bên dưới vì chúng đều xác định Sản phẩm mẫu qua tên/id của chính nó, không
 qua "sản phẩm duy nhất trong hệ thống".
+
+Muốn dọn về đúng **một** sản phẩm (Sản phẩm mẫu thật) trước khi làm kịch bản tay, chạy thêm hai
+câu lệnh sau (xác thực thật ở vòng sửa T015 fix-round-1 — xem báo cáo §"Fix round 1"):
+
+```sql
+DELETE FROM stock_ledger WHERE product_id IN (SELECT id FROM product WHERE name LIKE 'Sản phẩm test%');
+DELETE FROM product WHERE name LIKE 'Sản phẩm test%';
+```
+
+Phải xoá `stock_ledger` **trước** vì cột `stock_ledger.product_id` khai `onDelete: 'restrict'`
+(AD-24 — sổ cái là bản kiểm toán, không tự xoá theo Product); xoá thẳng `product` trước sẽ báo
+lỗi `violates RESTRICT setting of foreign key constraint`. Câu `DELETE FROM product` sau đó tự
+xoá theo tầng (`CASCADE`) cả `stock` lẫn `product_image` của đúng sản phẩm fixture đó — không
+đụng Sản phẩm mẫu thật. Chạy qua
+`docker exec <container-postgres> psql -U app -d shop -c "<câu lệnh>"`, không cần `TRUNCATE` cả
+bảng (sẽ xoá luôn Sản phẩm mẫu thật vừa seed).
 
 ## Kịch bản nghiệm thu chạy tay
 
