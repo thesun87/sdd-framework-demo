@@ -475,3 +475,16 @@ T011d. Bổ sung cho brief T015: **thứ tự bắt buộc** — chạy bốn l�
 regression) TRƯỚC, sau đó `db:seed` lại (qua container, xem ghi chú db:seed ở trên), RỒI MỚI
 đi qua tám kịch bản nghiệm thu tay. Làm ngược thứ tự sẽ thấy dữ liệu fixture, không phải demo.
 
+Task 13: complete (commits 42a3cdf..ee27a84, review clean — spec ✅, Approved; reviewer tự
+  chạy lại 7/7 Playwright test THẬT trên Chromium THẬT qua stack đang chạy — header CSP kiểm
+  từng directive (không substring), '/admin' KHÔNG dấu "/" cuối cũng được kiểm (đúng lớp lỗi
+  Caddyfile đã sửa ở review trước), axe 0 vi phạm AA cả hai trang, RouteAnnouncer đổi nội dung
+  thật khi điều hướng). SC-004 (100% phản hồi mang đủ header, cả hai đường dẫn) có bằng chứng
+  trình duyệt thật. Không claim bất biến đồng thời nào trong e2e/ (đúng AD-28).
+Task 13: minor (deferred): `formatPriceVnd` trong test lặp lại logic định dạng của
+  `apps/storefront/src/formatPrice.ts` (buộc phải vậy, không được import chéo workspace) —
+  rủi ro trôi thầm lặng nếu logic định dạng đổi sau này, không phải lỗi hiện tại.
+
+**Checkpoint Phase 5 (User Story 3 — header an toàn) — HOÀN TẤT.** SC-004 có bằng chứng trình
+duyệt thật, cả hai đường dẫn, kể cả biến thể không dấu "/" cuối.
+
