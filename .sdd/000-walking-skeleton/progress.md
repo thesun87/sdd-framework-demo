@@ -421,3 +421,26 @@ Task 11b: fix round 1/5 (1 addressed, 0 open — console.warn có cấu trúc kh
 Task 11b: complete (commits 08efb13..f60f2fe, review clean sau 1 vòng sửa — spec ✅, Approved)
 Task 11b: minor (deferred): `diskPath.startsWith(prefix)` tính hai lần (if guard + ternary) —
   vô hại, thừa nhẹ.
+Ruling: R25 — T011c phát hiện lỗ hổng thứ ba cùng họ R22/R23: stage `run` của
+`ops/api.Dockerfile` chỉ copy `node_modules`, `apps/api/dist`, `apps/api/package.json` —
+KHÔNG copy `packages/shared/dist` hay `packages/shared/package.json`. Vì `node_modules/shared`
+là **symlink** (npm workspace) trỏ tới `/repo/packages/shared`, và thư mục đó không tồn tại
+trong stage `run`, container khởi động lỗi `Cannot find module 'shared'` — CRASH LOOP thật,
+lần đầu phát hiện vì đây là lần đầu ảnh build được (R23 vừa sửa xong nửa kia). T011c đúng khi
+từ chối sửa: brief của nó cấm tường minh chạm stage `deps`/`run`, chỉ cho một dòng ở stage
+`build`. **Quyết định**: mở fix **T011d**, phạm vi DUY NHẤT stage `run` của
+`ops/api.Dockerfile` — thêm `COPY --from=build /repo/packages/shared/dist ./packages/shared/dist`
+và `COPY --from=build /repo/packages/shared/package.json ./packages/shared/package.json`,
+trước dòng `EXPOSE`. Không đổi gì khác trong file. — Nếu sai: container vẫn crash, sửa tiếp
+là thêm dòng COPY, không đổi kiến trúc.
+
+Task 11c: complete (commits 9bd7463..934ef34, review clean — spec ✅, Approved; reviewer tự
+  chạy lại `docker compose build api` và 3/8 test T010 để xác nhận độc lập, không chỉ tin
+  report). Ảnh `packages/shared` build được lúc build ảnh `api` — LẦN ĐẦU TIÊN. Tệp ảnh thật
+  (746B JPEG hợp lệ) được ghi ra đĩa lúc seed, idempotent, cùng path với database.
+Task 11c: minor (deferred): lỗi copy tệp (nếu tệp nguồn mất) rơi vào catch chung của
+  `main()`, thông điệp không nêu đích danh bước copy — vẫn rõ ràng qua stack/ENOENT, chỉ là
+  chưa đặt tên bước.
+Task 11c: minor (deferred): report không ghi rõ cần export `DATABASE_URL`/`PRODUCT_IMAGE_PATH`/
+  `NODE_ENV` để chạy lại `npx jest src/modules/catalog` độc lập ngoài quy trình đã ghi.
+
