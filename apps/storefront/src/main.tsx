@@ -1,9 +1,13 @@
-// Entry point tối thiểu cho T001 — chỉ để `vite build` có thứ thật để build.
-// KHÔNG chứa logic sản phẩm. Task sở hữu UI sẽ thay nội dung này.
+// Entry point thật của storefront (T012) — thay khung tối thiểu do T001 dựng.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { App } from "./App.js";
 
 const container = document.getElementById("root");
 if (container) {
-  createRoot(container).render(<StrictMode />);
+  createRoot(container).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
 }

@@ -1,0 +1,47 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import type { storefront } from "shared";
+import { ProductDetailPage } from "./ProductDetailPage.js";
+import * as client from "../api/client.js";
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+const DETAIL: storefront.ProductDetail = {
+  id: 1,
+  name: "Cà phê sữa đá",
+  description: "Cà phê phin truyền thống pha cùng sữa đặc, phục vụ lạnh với đá viên.",
+  price: 25000,
+  images: [{ path: "/images/ca-phe-sua-da.jpg", position: 0 }],
+  stockStatus: "in_stock",
+};
+
+describe("ProductDetailPage — FR-003: tối giản, không scope creep", () => {
+  it("hiện tên, mô tả, giá, ảnh, nhãn tồn kho — KHÔNG nút thêm vào giỏ / sản phẩm liên quan / đánh giá", async () => {
+    vi.spyOn(client, "fetchProductDetail").mockResolvedValue({ kind: "ok", data: DETAIL });
+
+    render(<ProductDetailPage id="1" />);
+
+    await waitFor(() => expect(screen.getByText("Cà phê sữa đá")).toBeTruthy());
+    expect(screen.getByText(DETAIL.description)).toBeTruthy();
+    expect(screen.getByText("25.000₫")).toBeTruthy();
+    expect(screen.getByText("Còn hàng")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Cà phê sữa đá" })).toBeTruthy();
+
+    // Không có bất kỳ nút/khối nào cho ba tính năng bị cấm ở feature 000.
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByText(/thêm vào giỏ/i)).toBeNull();
+    expect(screen.queryByText(/sản phẩm liên quan/i)).toBeNull();
+    expect(screen.queryByText(/đánh giá/i)).toBeNull();
+  });
+
+  it("Sản phẩm không tồn tại (404) hiện thông báo rõ ràng, không phải trang trắng", async () => {
+    vi.spyOn(client, "fetchProductDetail").mockResolvedValue({ kind: "not-found" });
+
+    render(<ProductDetailPage id="999999999" />);
+
+    await waitFor(() => expect(screen.getByText(/không tồn tại/i)).toBeTruthy());
+  });
+});

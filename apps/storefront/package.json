@@ -2,16 +2,18 @@
   "name": "storefront",
   "version": "0.1.0",
   "private": true,
-  "description": "SPA storefront — dựng khung ở T001, chưa có mã sản phẩm. AD-9: bundle riêng với backoffice (chưa mọc ở feature này).",
+  "description": "SPA storefront (T012): trang chủ + trang chi tiết Sản phẩm, gọi API thật. AD-9: bundle riêng với backoffice (chưa mọc ở feature này).",
   "type": "module",
   "scripts": {
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "lint": "tsc --noEmit",
     "build": "vite build"
   },
   "dependencies": {
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "shared": "0.1.0",
+    "ui": "0.1.0"
   },
   "devDependencies": {
     "vite": "8.3.0",
