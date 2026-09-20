@@ -1,14 +1,14 @@
 import type { CSSProperties } from "react";
+import type { storefront } from "shared";
 import { tokens } from "./tokens.js";
 
 /**
- * Union cục bộ, hai giá trị. KHÔNG import kiểu này từ `packages/shared` —
- * T006 đang viết package đó song song trong cùng worktree và việc phụ thuộc
- * vào nó ở đây có thể tạo phụ thuộc vòng. Giá trị canonical là
- * `in_stock` / `out_of_stock` (`plan.md` §Quyết định đã chốt (B)); nhãn
- * tiếng Việt chỉ sống ở tầng hiển thị bên dưới.
+ * Re-export kiểu canonical từ `packages/shared` (fix wave I-2/I-3, final whole-branch
+ * review) — `packages/shared` không phụ thuộc `packages/ui`, và `apps/storefront` đã phụ
+ * thuộc cả hai cùng lúc mà không có phụ thuộc vòng nào, nên không có lý do gì để giữ một bản
+ * khai lại cục bộ ở đây.
  */
-export type StockStatus = "in_stock" | "out_of_stock";
+export type StockStatus = storefront.StockStatus;
 
 const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
   in_stock: "Còn hàng",

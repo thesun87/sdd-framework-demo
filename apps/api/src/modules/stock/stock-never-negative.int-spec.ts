@@ -6,8 +6,6 @@
 //   2. `CHECK (quantity >= 0)` ở database LÀ hàng rào cuối (data-model.md) — test chứng
 //      minh nó CHẶN THẬT bằng cách cố tình vi phạm nó bằng một UPDATE vô điều kiện, bỏ qua
 //      toàn bộ logic ứng dụng.
-//
-// ĐỎ ở task này vì `./stock.service` (T009 sở hữu) CHƯA TỒN TẠI.
 
 import type { Pool } from 'pg';
 import {

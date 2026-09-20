@@ -4,8 +4,6 @@
 // §GET /api/health). Hợp đồng không định nghĩa hình dạng thân response cho endpoint này —
 // chỉ định nghĩa mã trạng thái: 200 khi hệ thống lành mạnh. Vì vậy test này CHỈ khẳng định
 // mã trạng thái, không bịa thêm hình dạng thân response mà hợp đồng không yêu cầu.
-//
-// PHẢI ĐỎ trước T011: `AppModule` (apps/api/src/app.module.ts) chưa tồn tại.
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 

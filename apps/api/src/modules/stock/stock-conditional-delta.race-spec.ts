@@ -12,9 +12,6 @@
 //   - Chạy trên trạng thái ĐÃ COMMIT thật (mỗi lần rút tự BEGIN...COMMIT trên client riêng
 //     của nó) — KHÔNG BAO GIỜ cô lập bằng transaction rollback.
 //   - Dọn dữ liệu giữa các lần lặp bằng TRUNCATE, không dựng lại database/lược đồ.
-//
-// ĐỎ ở task này vì `./stock.service` (T009 sở hữu) CHƯA TỒN TẠI — không phải vì lỗi cú
-// pháp hay lỗi kết nối.
 
 import type { Pool, QueryResult } from 'pg';
 import {
@@ -25,8 +22,6 @@ import {
   truncateAllTables,
   withUnitOfWork,
 } from './stock-test-support';
-// T009 phải tạo file này và export `withdrawStock` khớp ĐÚNG chữ ký `WithdrawStock` khai ở
-// ./stock.contract.ts. File chưa tồn tại — đây là nguồn ĐỎ mong đợi của cả bốn test T008.
 import { withdrawStock } from './stock.service';
 import type { WithdrawStockResult } from './stock.contract';
 

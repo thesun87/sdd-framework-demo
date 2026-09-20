@@ -4,9 +4,6 @@
 // định HÌNH DẠNG lỗi 404 của hợp đồng, không sở hữu nội dung FR-004 — đó là T011).
 // Nguồn: contracts/storefront-http.md §GET /api/products/:id.
 //
-// PHẢI ĐỎ trước T011: `AppModule` (apps/api/src/app.module.ts) chưa tồn tại — xem chú thích
-// đầy đủ trong `catalog-test-support.ts` và `catalog-products-list.int-spec.ts`.
-//
 // Database THẬT (AD-27), tái sử dụng hạ tầng T008 (`../stock/stock-test-support.ts`).
 import type { INestApplication } from '@nestjs/common';
 import type { Pool } from 'pg';

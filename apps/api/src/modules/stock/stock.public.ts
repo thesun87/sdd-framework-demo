@@ -10,18 +10,17 @@
 // này CHỈ đọc: không `BEGIN`/`COMMIT`, không tham gia đơn vị công việc nào (AD-23 ràng buộc
 // đường GHI, không ràng buộc đọc-để-hiển-thị).
 
+import type { storefront } from 'shared';
+
 import type { StockUnitOfWork } from './stock.contract';
 import { readStockQuantity } from './stock.repository';
 
 /**
- * Trùng khớp `StockStatusSchema` của `packages/shared` (`in_stock` | `out_of_stock`,
- * packages/shared/src/storefront/product.ts). Khai lại cục bộ ở đây thay vì import trực
- * tiếp vì `apps/api/package.json` chưa khai `shared` là dependency — thêm dependency đó nằm
- * ngoài scope Allowed của T009 (chỉ `stock.service.ts`, `stock.public.ts`,
- * `apps/api/src/modules/stock/**`, và một dòng `tsconfig.build.json`); hợp nhất hai kiểu này
- * là việc của T011 khi `catalog` ghép response HTTP.
+ * Re-export kiểu canonical `StockStatus` (`z.infer<typeof StockStatusSchema>`) từ
+ * `packages/shared/src/storefront/product.ts` — nguồn sự thật DUY NHẤT cho hình dạng này
+ * (AD-10). Không khai lại union cục bộ ở đây nữa (fix wave I-2, final whole-branch review).
  */
-export type StockStatus = 'in_stock' | 'out_of_stock';
+export type StockStatus = storefront.StockStatus;
 
 /**
  * Suy ra `stockStatus` hiển thị cho khách từ `quantity` tồn kho hiện có — ĐỌC THUẦN, không

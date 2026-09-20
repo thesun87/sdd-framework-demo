@@ -3,12 +3,6 @@
 // Contract test cho `GET /api/products` (T010 — sở hữu FR-006, FR-007, SC-005).
 // Nguồn: contracts/storefront-http.md §GET /api/products, spec.md FR-006/FR-007/SC-005.
 //
-// PHẢI ĐỎ trước T011: `AppModule` (apps/api/src/app.module.ts) chưa tồn tại — mọi test dưới
-// đây import (gián tiếp qua `catalog-test-support.ts`) một module chưa có, nên toàn bộ file
-// thất bại ngay ở bước "Test suite failed to run" (Cannot find module '../../app.module'),
-// đúng khuôn mẫu T008 đã dùng cho `./stock.service` (task-008-report.md §4) — KHÔNG phải lỗi
-// cú pháp, KHÔNG phải lỗi kết nối database.
-//
 // Database THẬT (AD-27): dùng `createTestPool`/`assertDatabaseReachable`/`truncateAllTables`/
 // `seedProduct`/`seedStock` NGUYÊN VẸN từ `../stock/stock-test-support.ts` (hạ tầng T008) —
 // không viết lại một bản thứ hai.

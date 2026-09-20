@@ -7,8 +7,7 @@
 // trong code.
 //
 // Dòng `stock_ledger` trong test này được tạo qua ĐƯỜNG GHI THẬT (`withdrawStock`), không
-// phải một INSERT tay — vì vậy không có cách nào test này xanh trước khi module `stock`
-// tồn tại. ĐỎ ở task này vì `./stock.service` (T009 sở hữu) CHƯA TỒN TẠI.
+// phải một INSERT tay.
 
 import type { Pool } from 'pg';
 import {

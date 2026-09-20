@@ -4,12 +4,6 @@
 # khác sở hữu file này (Ruling R5). Build context là GỐC REPO (xem `context: ..` trong
 # ops/compose.yaml) vì image cần `npm ci` từ workspace root (package-lock.json dùng chung)
 # rồi mới build riêng workspace `apps/api`.
-#
-# LƯU Ý CHO NGƯỜI ĐỌC SAU: ở đặc trưng 000, `apps/api` CHƯA CÓ mã nguồn (T001 chỉ dựng
-# workspace rỗng). Dockerfile này đúng về HÌNH DẠNG và được xác thực bằng
-# `docker compose -f ops/compose.yaml config`, nhưng KHÔNG cần build thành công hôm nay —
-# `npm ci`/`npm run build` ở các stage dưới sẽ lỗi cho tới khi apps/api có package.json và
-# mã nguồn thật. T011 và T015 là nơi image này thực sự dựng và chạy được.
 
 # ---- deps: cài dependency của toàn workspace (dùng chung package-lock.json gốc) ----
 FROM node:24.21.0-bookworm-slim AS deps

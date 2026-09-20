@@ -15,6 +15,16 @@ import { applyConditionalWithdrawal, insertStockLedgerEntry } from './stock.repo
 export const withdrawStock: WithdrawStock = async (unitOfWork, input) => {
   const { productId, quantity, reason, orderId = null, actorAccountId = null } = input;
 
+  // Fix wave finding I-1 (final whole-branch review, R28) — `quantity` PHẢI là số nguyên
+  // dương. Không chặn ở đây thì: (a) `quantity <= -1` làm vị từ điều kiện của UPDATE
+  // (`quantity >= $1`) trở thành hiển nhiên đúng, khiến UPDATE ÂM THẦM TĂNG tồn kho thay vì
+  // giảm; (b) `quantity === 0` khiến `stock_ledger.delta <> 0` (CHECK constraint) ném lỗi
+  // Postgres 23514 thoát ra ngoài dưới dạng exception chưa bắt, thay vì hợp đồng
+  // `{ applied: false }` mà `stock.contract.ts` mô tả cho các trường hợp không hợp lệ.
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    throw new RangeError(`withdrawStock: quantity must be a positive integer, got ${quantity}`);
+  }
+
   // MỘT câu UPDATE có điều kiện — AD-1. "0 dòng bị ảnh hưởng" là nhánh hợp lệ dưới đây, không
   // phải exception: `applyConditionalWithdrawal` trả `null` thay vì ném lỗi.
   const withdrawal = await applyConditionalWithdrawal(unitOfWork, productId, quantity);

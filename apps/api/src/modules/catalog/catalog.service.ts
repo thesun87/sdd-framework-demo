@@ -12,36 +12,22 @@
 // hộ nó phương tiện kết nối, không đưa hộ nó logic.
 import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
+import type { storefront } from 'shared';
 
 import { getStockStatus } from '../stock/stock.public';
 import { findAllProductSummaries, findProductById, findProductImages } from './catalog.repository';
 import { ENV, type AppEnv } from './env.provider';
 import { PG_POOL } from './pg-pool.provider';
 
-export interface ProductSummaryView {
-  readonly id: number;
-  readonly name: string;
-  readonly price: number;
-  readonly imagePath: string | null;
-  readonly stockStatus: 'in_stock' | 'out_of_stock';
-}
-
-export interface ProductImageView {
-  readonly path: string;
-  readonly position: number;
-}
-
-export interface ProductDetailView {
-  readonly id: number;
-  readonly name: string;
-  readonly description: string;
-  readonly price: number;
-  // Mảng THƯỜNG (không `readonly`) — khớp đúng kiểu `images` mà `storefront.ProductDetail`
-  // (suy từ `z.array(...)` của packages/shared) mô tả; `readonly T[]` không gán được cho
-  // `T[]` (TS2322), dù nội dung bất biến về mặt thực thi (không ai `push`/`splice` vào đây).
-  readonly images: ProductImageView[];
-  readonly stockStatus: 'in_stock' | 'out_of_stock';
-}
+// Fix wave I-2 (final whole-branch review, R28) — không tự khai lại hình dạng response ở
+// đây: dùng THẲNG kiểu suy ra (`z.infer`) từ schema `packages/shared` (AD-10), đúng cách
+// `catalog.controller.ts` đã làm cho kiểu trả về HTTP. `ProductSummaryView`/`ProductDetailView`
+// chính là `storefront.ProductSummary`/`storefront.ProductDetail` — không có trường nào khác
+// biệt giữa hình dạng nội bộ của service và hình dạng HTTP ở `000`, nên không cần một kiểu
+// trung gian riêng.
+export type ProductSummaryView = storefront.ProductSummary;
+export type ProductImageView = storefront.ProductImage;
+export type ProductDetailView = storefront.ProductDetail;
 
 @Injectable()
 export class CatalogService {

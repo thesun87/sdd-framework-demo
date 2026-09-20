@@ -4,8 +4,6 @@
 // và `quantity_after` của dòng đó KHỚP `stock.quantity` ngay sau thao tác — trong CÙNG một
 // đơn vị công việc (không đọc lại sau khi commit riêng rẽ, tránh lệch do một transaction
 // khác xen vào giữa hai lần đọc).
-//
-// ĐỎ ở task này vì `./stock.service` (T009 sở hữu) CHƯA TỒN TẠI.
 
 import type { Pool } from 'pg';
 import {
