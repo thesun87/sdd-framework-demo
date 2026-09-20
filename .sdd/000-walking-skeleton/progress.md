@@ -539,3 +539,13 @@ và controller đều KHÔNG được sửa. **Việc cần làm, giao cho ngư�
 `docs/baseline/verification.md` §Prerequisites với `specs/000-walking-skeleton/quickstart.md`
 (dòng 24–77 sau khi T015 sửa) và cập nhật trên nhánh `baseline/*`.
 
+Task 15: fix round 1/5 (6 addressed, 0 open — bốn lệnh hợp đồng tách rõ khỏi bước hạ tầng,
+  thứ tự build packages diễn đạt đúng, câu project-name viết lại đúng cơ chế, lý do pre-seed,
+  SQL dọn dẹp xác minh đúng thứ tự FK RESTRICT/CASCADE against db/schema/stock.ts thật, cảnh
+  báo trôi tag Node + làm rõ nguồn gốc named volume — reviewer xác minh cả SQL lẫn claim volume
+  đúng với schema/compose thật, không chỉ tin report; commits d30eff1..dcb136f)
+Task 15: complete (commits b56b842..dcb136f, review clean sau 1 vòng sửa — spec ✅, Approved)
+
+**Checkpoint Phase 6 (Polish & Cross-Cutting) — HOÀN TẤT. TẤT CẢ 15 TASK CỦA tasks.md + 3 fix
+kiểm soát (T011b/T011c/T011d) đã complete, review sạch.**
+
