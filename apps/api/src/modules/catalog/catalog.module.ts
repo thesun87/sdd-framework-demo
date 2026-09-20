@@ -15,11 +15,14 @@ import { CatalogService } from './catalog.service';
 import { envProvider } from './env.provider';
 import { ErrorEnvelopeFilter } from './error-envelope.filter';
 import { HealthController } from './health.controller';
+import { MetricsController } from './metrics.controller';
 import { PgPoolLifecycle, pgPoolProvider } from './pg-pool.provider';
 import { requestLoggingMiddleware } from './request-logging.middleware';
 
 @Module({
-  controllers: [CatalogController, HealthController],
+  // `MetricsController` (T014, Ruling R9) — `/api/internal/metrics`, không liên kết từ
+  // storefront, chỉ đo thời lượng (xem metrics.controller.ts).
+  controllers: [CatalogController, HealthController, MetricsController],
   providers: [
     envProvider,
     pgPoolProvider,
