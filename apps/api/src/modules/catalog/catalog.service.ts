@@ -60,11 +60,36 @@ export class CatalogService {
   // Giữ nguyên phần đường dẫn CÒN LẠI sau khi bỏ tiền tố `PRODUCT_IMAGE_PATH` (không chỉ lấy
   // `path.basename`) — một ảnh thật có thể nằm trong thư mục con của `PRODUCT_IMAGE_PATH` sau
   // này (task-011b-brief.md Requirement #3); lấy basename sẽ làm mất thông tin đó.
+  //
+  // Fix round 1 (review T011b) — `diskPath` không khớp tiền tố `PRODUCT_IMAGE_PATH` đã cấu
+  // hình KHÔNG PHẢI lỗi live hôm nay (dữ liệu seed luôn khớp), nhưng nếu biến này đổi mà không
+  // re-seed, hoặc một đường GHI tương lai chuẩn hoá `path` khác đi, fallback bên dưới
+  // (`diskPath.replace(/^\/+/, '')`) vẫn trả về MỘT URL — chỉ là URL SAI (ví dụ lộ nguyên
+  // `/images/data/product-images/x.jpg`), vỡ `<img>` một cách ÂM THẦM, không ai biết vì sao.
+  // KHÔNG throw — một dòng `product_image` hỏng không được phép làm sập cả response danh
+  // sách/chi tiết Sản phẩm (một sản phẩm ảnh lỗi không nên kéo theo cả trang). Thay vào đó,
+  // log CẢNH BÁO có cấu trúc ra stdout — cùng quy ước với
+  // `request-logging.middleware.ts`/`error-envelope.filter.ts` của module này (`level`, một
+  // `msg` tiếng Việt, các trường liên quan, `timestamp` ISO) — để vận hành viên thấy điều kiện
+  // bất thường này ngay, không phải suy luận ngược từ một `<img>` vỡ trên trình duyệt.
   private toImageUrl(diskPath: string): string {
     const root = this.env.PRODUCT_IMAGE_PATH.replace(/\/+$/, '');
-    const relative = diskPath.startsWith(`${root}/`)
-      ? diskPath.slice(root.length + 1)
-      : diskPath.replace(/^\/+/, '');
+    const prefix = `${root}/`;
+
+    if (!diskPath.startsWith(prefix)) {
+      // eslint-disable-next-line no-console -- log có cấu trúc ra stdout là chủ ý (cùng quy ước module).
+      console.warn(
+        JSON.stringify({
+          level: 'warn',
+          msg: 'product_image.path không khớp tiền tố PRODUCT_IMAGE_PATH đã cấu hình — ánh xạ URL ảnh có thể sai',
+          diskPath,
+          productImagePath: this.env.PRODUCT_IMAGE_PATH,
+          timestamp: new Date().toISOString(),
+        }),
+      );
+    }
+
+    const relative = diskPath.startsWith(prefix) ? diskPath.slice(prefix.length) : diskPath.replace(/^\/+/, '');
     return `/images/${relative}`;
   }
 
