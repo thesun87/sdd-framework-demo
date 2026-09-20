@@ -25,6 +25,24 @@ volume (mẫu đã hoạt động, xem `.sdd/000-walking-skeleton/task-011c-repo
 cách khác bạn xác minh chạy được. Đây chính xác là loại việc `quickstart.md` (T015 allowed
 scope) tồn tại để bắt — không phải một task-riêng, không cần hỏi lại.
 
+## Va chạm tên project Docker Compose — PHẢI xử lý trước khi bắt đầu
+
+`ops/compose.yaml` chốt `name: shop-online` (không suy ra từ thư mục). Cây làm việc chính
+(`.claude/worktrees/000-walking-skeleton`) đang chạy stack này thật (`postgres`+`api`+`proxy`,
+dữ liệu mẫu sạch). Nếu bạn `docker compose up` từ clone sạch **trong khi** stack đó còn chạy,
+Docker sẽ coi đó là **CÙNG MỘT project** (cùng tên `shop-online`) — bạn sẽ không có một hệ
+thống sạch thật, bạn sẽ nối vào/tái dùng đúng container/volume đang chạy, và SC-007 ("dựng lại
+từ kho mã sạch") không được chứng minh thật.
+
+**Bắt buộc**: trước khi bắt đầu, `cd` vào cây làm việc chính
+(`.claude/worktrees/000-walking-skeleton`) và chạy
+`docker compose -f ops/compose.yaml down -v` để gỡ sạch stack cũ (container + named volume +
+network) — không còn task nào khác cần nó (T001…T014 đã đóng hết). Sau đó toàn bộ việc dựng,
+test, kiểm tay của BẠN chạy từ **clone sạch**, dùng đúng project name `shop-online` (giờ trống,
+sẽ tạo container/volume MỚI hoàn toàn). Ghi rõ trong report bạn đã gỡ stack cũ và dựng stack
+mới từ đâu. Khi xong, quyết định và nói rõ: giữ stack của clone sạch chạy (bàn giao feature ở
+trạng thái đang chạy) hay gỡ nó — cả hai đều chấp nhận được, miễn nói rõ.
+
 ## Requirements
 
 1. **Clone sạch**: `git clone` chính worktree/repo này sang một thư mục tạm **ngoài** cây làm
