@@ -394,3 +394,30 @@ Task 12: minor (deferred): router tự viết chưa có test tự động cho ba
 Task 12: xác nhận lại — `<img src>` render đúng chuỗi API trả về, không tự biến đổi; giá trị
   đó sai là lỗi của T011b (đang sửa), không phải của T012.
 
+Ruling: R23 — hai lỗ hổng thật T011b phát hiện khi kiểm chứng đầu-cuối, cả hai chặn T015
+(SC-006/SC-007 đòi `docker compose up` cả stack chạy được và dựng lại từ clone sạch tái tạo
+được kết quả), cả hai chưa task nào sở hữu:
+(a) **Ảnh ` api` KHÔNG BAO GIỜ build được** — `ops/api.Dockerfile` không build `packages/shared`
+trước khi biên dịch `apps/api`, nên `tsc` không resolve được `'shared'`. Đây là lỗ hổng có từ
+T002 (ghi rõ "chưa build được, T011/T015 sẽ làm nó build") nhưng T011 đã đóng và ảnh vẫn không
+build — không ai còn sở hữu việc này.
+(b) **Không tệp ảnh thật nào từng được ghi vào volume `product-images`** — `db/seed.ts` (T005)
+chỉ chèn dòng database, không ghi byte ảnh. Một clone sạch sẽ có `product_image.path` trỏ tới
+tệp không tồn tại → ảnh 404 dù route (T011b) đã đúng.
+
+**Quyết định**: mở fix **T011c**, phạm vi (a) `ops/api.Dockerfile` — thêm bước build
+`packages/shared` trước khi biên dịch `apps/api` trong multi-stage build; (b) `db/seed.ts` —
+ghi một tệp ảnh JPEG nhỏ (đặt tại một đường dẫn tài sản mới, commit vào repo) ra
+`PRODUCT_IMAGE_PATH` lúc seed chạy, idempotent (ghi đè an toàn, không lỗi nếu đã có). — Nếu
+sai: (a) sửa lại là việc Docker cơ học; (b) một task sau ghi ảnh thật hơn, không phá gì.
+
+Task 11b: review đã tự kiểm rủi ro path-traversal ở route `/images/*` và bác bỏ (không phải
+ruling của controller — reviewer tự giải quyết): cùng pattern `root * ... + file_server` đã
+dùng cho SPA fallback (đã review ở T003), Caddy path-clean trước khi matcher chạy, `caddy
+validate` xác nhận cấu hình hợp lệ.
+
+Task 11b: fix round 1/5 (1 addressed, 0 open — console.warn có cấu trúc khi diskPath không
+  khớp PRODUCT_IMAGE_PATH, hành vi fallback URL không đổi, không throw; commits 47448a0..f60f2fe)
+Task 11b: complete (commits 08efb13..f60f2fe, review clean sau 1 vòng sửa — spec ✅, Approved)
+Task 11b: minor (deferred): `diskPath.startsWith(prefix)` tính hai lần (if guard + ternary) —
+  vô hại, thừa nhẹ.
