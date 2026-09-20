@@ -68,6 +68,35 @@
 		respond 404
 	}
 
+	# /images/* — ảnh sản phẩm (T011b, Ruling R22 ở progress.md): `product_image.path` lưu
+	# đường dẫn TRÊN ĐĨA (đúng AD-15 — ảnh trên hệ tệp, không blob), nhưng tầng trình bày
+	# (`catalog.service.ts`) đã ánh xạ giá trị đó thành URL `/images/<tên tệp hoặc thư mục
+	# con/tên tệp>` trong mọi response HTTP. Route này biến URL đó thành tệp thật — đọc từ
+	# CHÍNH volume `product-images` đã mount READ-ONLY vào dịch vụ `proxy` này
+	# (`ops/compose.yaml`), tức là CÙNG một origin (AD-8): không CDN, không origin thứ hai.
+	#
+	# Đặt sau `@api`/`@admin` ở trên (thứ tự không quan trọng — path prefix của ba nhánh khác
+	# nhau nên không nhánh nào che nhánh kia — chỉ đặt gần nhau cho dễ đọc), và TRƯỚC nhánh SPA
+	# fallback bên dưới để `/images/*` không bao giờ rơi vào `index.html`.
+	#
+	# `{$PRODUCT_IMAGE_PATH:/data/product-images}` — cùng kiểu placeholder-có-mặc-định mà
+	# `reverse_proxy api:{$API_PORT:3000}` ở trên đã dùng, cùng lý do: biến này KHÔNG được bơm
+	# vào container `proxy` qua `environment:`/`env_file:` (chỉ dùng để resolve đường dẫn mount
+	# ở `ops/compose.yaml`, phía host); mặc định khớp đúng
+	# `${PRODUCT_IMAGE_PATH:-/data/product-images}` mà compose file đó dùng.
+	#
+	# `uri strip_prefix /images` bỏ tiền tố `/images` khỏi đường dẫn TRƯỚC khi `file_server`
+	# tra trong `root` — Caddy áp dụng `root`/`uri`/`file_server` theo thứ tự ưu tiên cố định
+	# của chính nó (không theo thứ tự dòng viết trong file), nên `/images/ca-phe-sua-da.jpg`
+	# map đúng tới `<mount>/ca-phe-sua-da.jpg`; một ảnh ở thư mục con (`/images/x/y.jpg`) vẫn
+	# map đúng tới `<mount>/x/y.jpg` — không giả định ảnh luôn nằm phẳng ở gốc mount.
+	@images path /images/*
+	handle @images {
+		root * {$PRODUCT_IMAGE_PATH:/data/product-images}
+		uri strip_prefix /images
+		file_server
+	}
+
 	# Còn lại: tệp tĩnh của storefront; không khớp tệp nào thì SPA fallback về index.html.
 	handle {
 		root * /srv/storefront

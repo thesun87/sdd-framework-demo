@@ -15,6 +15,7 @@ import type { Pool } from 'pg';
 
 import { getStockStatus } from '../stock/stock.public';
 import { findAllProductSummaries, findProductById, findProductImages } from './catalog.repository';
+import { ENV, type AppEnv } from './env.provider';
 import { PG_POOL } from './pg-pool.provider';
 
 export interface ProductSummaryView {
@@ -44,7 +45,32 @@ export interface ProductDetailView {
 
 @Injectable()
 export class CatalogService {
-  constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+  constructor(
+    @Inject(PG_POOL) private readonly pool: Pool,
+    @Inject(ENV) private readonly env: AppEnv,
+  ) {}
+
+  // T011b (Ruling R22): `product_image.path` (`catalog.repository.ts`) là đường dẫn TRÊN ĐĨA
+  // (đúng AD-15 — không đổi ở đây, không đổi cột lưu trong database). Hợp đồng
+  // (`contracts/storefront-http.md`) thể hiện `imagePath`/`images[].path` là URL
+  // (`"/images/…"`) mà `ops/Caddyfile` (route `@images`, T011b) phục vụ tĩnh từ CHÍNH
+  // `PRODUCT_IMAGE_PATH` này. Ánh xạ CHỈ ở tầng trình bày, đúng một chỗ, dùng cho cả hai hình
+  // dạng response (list và detail) — không lặp lại logic.
+  //
+  // Giữ nguyên phần đường dẫn CÒN LẠI sau khi bỏ tiền tố `PRODUCT_IMAGE_PATH` (không chỉ lấy
+  // `path.basename`) — một ảnh thật có thể nằm trong thư mục con của `PRODUCT_IMAGE_PATH` sau
+  // này (task-011b-brief.md Requirement #3); lấy basename sẽ làm mất thông tin đó.
+  private toImageUrl(diskPath: string): string {
+    const root = this.env.PRODUCT_IMAGE_PATH.replace(/\/+$/, '');
+    const relative = diskPath.startsWith(`${root}/`)
+      ? diskPath.slice(root.length + 1)
+      : diskPath.replace(/^\/+/, '');
+    return `/images/${relative}`;
+  }
+
+  private toImageUrlOrNull(diskPath: string | null): string | null {
+    return diskPath === null ? null : this.toImageUrl(diskPath);
+  }
 
   /** `GET /api/products` — con số tồn kho chính xác KHÔNG BAO GIỜ đi qua object này
    *  (FR-007/AD-19): chỉ `stockStatus` (`in_stock`/`out_of_stock`) suy từ `stock.public.ts`. */
@@ -55,7 +81,7 @@ export class CatalogService {
         id: row.id,
         name: row.name,
         price: row.price,
-        imagePath: row.imagePath,
+        imagePath: this.toImageUrlOrNull(row.imagePath),
         stockStatus: await getStockStatus(this.pool, row.id),
       })),
     );
@@ -69,7 +95,7 @@ export class CatalogService {
       return undefined;
     }
 
-    const [images, stockStatus] = await Promise.all([
+    const [imageRows, stockStatus] = await Promise.all([
       findProductImages(this.pool, productId),
       getStockStatus(this.pool, productId),
     ]);
@@ -79,7 +105,10 @@ export class CatalogService {
       name: product.name,
       description: product.description,
       price: product.price,
-      images,
+      images: imageRows.map((image) => ({
+        path: this.toImageUrl(image.path),
+        position: image.position,
+      })),
       stockStatus,
     };
   }
