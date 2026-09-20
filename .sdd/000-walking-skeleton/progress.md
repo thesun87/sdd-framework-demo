@@ -549,3 +549,60 @@ Task 15: complete (commits b56b842..dcb136f, review clean sau 1 vòng sửa — 
 **Checkpoint Phase 6 (Polish & Cross-Cutting) — HOÀN TẤT. TẤT CẢ 15 TASK CỦA tasks.md + 3 fix
 kiểm soát (T011b/T011c/T011d) đã complete, review sạch.**
 
+---
+
+## Final whole-branch review (toàn nhánh, 957c6aa..73c0950)
+
+Dispatch trên Opus (model mạnh nhất khả dụng), đọc toàn bộ ledger + toàn bộ cây nguồn ở trạng
+thái lắp ráp cuối cùng (không chỉ diff từng task). Lần dispatch đầu tiên bị rate-limit giữa
+chừng (không side-effect, agent chỉ đọc); dispatch lại thành công.
+
+**Verdict: Approved for merge.** Concurrency (AD-1/AD-21/AD-28) xác nhận đứng vững qua 4 lớp
+độc lập (CHECK constraint DB + UPDATE điều kiện đơn + `applied:false` là giá trị không phải
+exception + AD-23 khoá ở tầng kiểu qua `StockUnitOfWork = Pick<PoolClient,'query'>`). Traceability
+21/21 tiêu chí HV007b có bằng chứng thật. Không finding Critical.
+
+Ruling: R28 — 3 finding Important của final review (I-1: `withdrawStock` không chặn
+`quantity <= 0`; I-2: `StockStatus` bị khai 5 nơi độc lập + `catalog.service.ts` tự khai lại
+shape thay vì dùng `z.infer` từ `packages/shared`, khiến hàng rào `.strict()` của AD-10 không
+bao giờ chạy ở server; I-3: bốn khối comment đã lỗi thời sót lại từ chuỗi sửa T011b→c→d, đứng
+đầu là `ops/api.Dockerfile:8-12` nói ảnh "không cần build thành công" — nay sai vì T011d đã làm
+nó build+chạy thật) → **dispatch MỘT fix wave duy nhất** xử lý cả ba, phạm vi giới hạn đúng
+trong `apps/api/src/modules/stock/**`, `apps/api/src/modules/catalog/catalog.service.ts`,
+`packages/ui/src/StockStatusLabel.tsx`, `ops/api.Dockerfile`, `ops/compose.yaml`, rồi MỘT lần
+review có phạm vi hẹp trên đúng diff của fix wave đó (theo đúng hướng dẫn "Final Review" của
+superpowers:subagent-driven-development: không một-fixer-một-finding). — Vì cả ba đều có fix
+tối thiểu cụ thể, nằm trọn trong scope các task đã đóng (T009/T011/T011b/c/d), và I-1 sẽ trở
+thành finding sống (không còn latent) ngay khi feature `004` (đặt đơn hàng) gọi `withdrawStock`
+với số lượng người dùng nhập — sửa bây giờ rẻ hơn nhiều so với sau khi có caller thật.
+10 finding Minor (M-1..M-10) **không** đưa vào fix wave — review đã xác nhận verdict tổng thể
+là "Approved for merge" không phụ thuộc chúng; ghi lại dưới đây làm nợ cho `/speckit-converge`,
+không chặn merge nhánh này.
+
+**Ledger corrections do final review phát hiện (khắc phục ngay trong ghi chú này, không sửa
+lại các dòng Ruling gốc — lịch sử quyết định phải giữ nguyên):**
+- R19 (dòng trên) ghi "nợ đã trả" — **chỉ đúng một nửa**: phần dependency thật (`packages/ui`
+  → `packages/shared`) đã có, nhưng phần hợp nhất **kiểu** `StockStatus` (T011 lẽ ra phải dùng
+  `z.infer` từ `shared` thay vì tự khai) **chưa làm** — đây chính là I-2, xử lý trong fix wave.
+- R14 (bơm `API_PORT` vào `proxy`, hoãn) — `PRODUCT_IMAGE_PATH` sinh ra ở T011b có **cùng lỗ
+  hổng hệt vậy** (Caddy dùng `{$PRODUCT_IMAGE_PATH:...}`, container `proxy` không nhận biến
+  này qua `env_file`) nhưng chưa từng được ghi nợ — gộp chung với R14 làm nợ cho compose, KHÔNG
+  sửa ở nhánh này (đổi `ops/compose.yaml` ngoài scope mọi task đã đóng, để dành converge).
+- R17 (cảnh báo `NODE_ENV` không đặt ở prod) — final review chỉ ra rủi ro **ngược lại** với ghi
+  chép: `ops/api.Dockerfile` đặt `ENV NODE_ENV=production`, nhưng `ops/compose.yaml` nạp
+  `env_file: .env.example` có `NODE_ENV=development`, và `env_file` thắng `ENV` của image — nên
+  container `api` khi chạy qua compose **luôn** là `development`, không phải "quên đặt ở prod".
+  Ghi lại để converge sửa đúng hướng (compose cần override `NODE_ENV=production` tường minh cho
+  triển khai thật), R17 gốc giữ nguyên làm lịch sử.
+- R26 (thứ tự build `verify.mjs`) — phạm vi rộng hơn đã ghi: không chỉ `build`, cả `test` và
+  `lint` của `apps/*` cũng cần `packages/shared`/`packages/ui` build trước (d.ts cho `tsc
+  --noEmit`, `.js` cho Jest runtime) — `quickstart.md` đã ghi đúng đủ (nên SC-006 vẫn đạt), chỉ
+  R26 tự nó mô tả hẹp hơn thực tế.
+- Nợ mới cho converge (không chặn merge): `pg`/`@types/pg` dùng ở `apps/api` nhưng chỉ khai ở
+  root package.json (chỉ có comment nguồn, chưa từng vào ledger); `catalog.service.ts` N+1 gọi
+  `getStockStatus` từng sản phẩm một (đúng kiến trúc AD-5, nhưng cần `getStockStatusMany` theo
+  batch trước khi chạm mốc Y1 2 000 sản phẩm của SC-003); `e2e/security-headers.e2e-spec.ts`
+  chưa có assertion cho nhánh `/images/*` mà T011b thêm vào Caddyfile (header vẫn áp dụng đúng
+  ở tầng site-block, đây là lỗ hổng coverage, không phải lỗi sống); `db/schema/stock.ts`
+  `updated_at` không có `defaultNow()`, mọi đường ghi phải tự nhớ set.
+
