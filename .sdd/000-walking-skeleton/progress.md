@@ -258,3 +258,20 @@ Task 6: note cho review T010: `.strict()` chỉ chặn `quantity` lạ **tại t
 **Checkpoint Phase 2 (Foundational) — HOÀN TẤT.** T001…T007 đều complete, review sạch.
 Hạ tầng, lược đồ, hợp đồng và packages/ui đã sẵn sàng cho Phase 3.
 
+Task 8: complete (commits 96a0f8d..f2fb523, review clean — spec ✅, Approved; 4/4 test ĐỎ
+  đúng lý do "Cannot find module './stock.service'", reviewer tự chạy lại npm test + tsc để
+  xác nhận). `npm run lint`/`npm run build` không xanh cho `apps/api` — CHẤP NHẬN ĐƯỢC, đã xác
+  minh: cascade chỉ gồm TS2307 (module thiếu, đúng thiết kế) + TS18046 (suy diễn kiểu theo
+  sau), không che giấu lỗi nào khác. Contract T009 phải hiện thực nguyên văn:
+  `WithdrawStock = (unitOfWork: StockUnitOfWork, input: WithdrawStockInput) =>
+  Promise<WithdrawStockResult>`, `StockUnitOfWork = Pick<PoolClient, 'query'>`
+  (xem `apps/api/src/modules/stock/stock.contract.ts` + task-008-report.md §1).
+Task 8: minor (deferred): tiêu đề `it()` trong `stock-ledger-restrict.int-spec.ts` ghi
+  "(23503)" nhưng assertion đúng kiểm `23001` — comment giải thích đúng, chỉ tiêu đề lệch.
+Ruling: R18 — sửa `apps/api/tsconfig.build.json` để loại trừ `**/*.int-spec.ts` và
+  `**/*.race-spec.ts` (khoảng trống có sẵn từ T001) là việc của **T009**, không phải một task
+  riêng. — Vì T009 là nơi đầu tiên `npm run build` cần thật sự xanh cho `apps/api` (sau khi
+  `stock.service.ts` tồn tại), và không tách một task chỉ để sửa một dòng exclude glob. Mở
+  rộng allowed scope của T009 để bao gồm đúng một dòng này trong `tsconfig.build.json`. —
+  Nếu sai: `npm run build` vẫn cố biên dịch file test chạm DB, lỗi hiện ngay ở review T009.
+
