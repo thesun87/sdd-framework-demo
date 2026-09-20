@@ -43,6 +43,14 @@ scope) tồn tại để bắt — không phải một task-riêng, không cần
    `npm run test:regression`. Khẳng định **cả bốn exit 0** **và** output cho thấy **nửa sản
    phẩm ĐÃ CHẠY** — không còn `SKIPPED — no product workspace exists yet` ở bất kỳ lệnh nào.
    Đây là lần đầu tiên điều đó đúng trong lịch sử repo; dán output thật của cả bốn.
+**Thứ tự bắt buộc giữa mục 2 và mục 3** (controller phát hiện lúc review T011d): `npm test`
+(và `test:regression`) chạy các test chạm database của T008/T009/T010, và luật cô lập AD-28
+bắt chúng TRUNCATE + tự seed fixture riêng — chạy sau khi đã `db:seed` sẽ **xoá** Sản phẩm mẫu
+thật, thay bằng dữ liệu test. Vì vậy: chạy bốn lệnh hợp đồng (mục 2) **trước**, sau đó
+`db:seed` **lại** (mục 1's bước seed, chạy lại), **rồi mới** đi qua tám kịch bản tay (mục 3).
+Làm ngược thứ tự này sẽ thấy dữ liệu fixture của test, không phải Sản phẩm mẫu, và kịch bản
+tay sẽ sai mà không phải lỗi hệ thống.
+
 3. **Đạt lại SC-001 → SC-006** trên bản dựng sạch. Đi qua **tám kịch bản nghiệm thu tay** của
    `quickstart.md` §Kịch bản nghiệm thu chạy tay và ghi kết quả từng dòng vào report:
    trang chủ · trang chi tiết · 404 · đổi giá ở database · `quantity = 0` → "Hết hàng" và vẫn

@@ -459,3 +459,19 @@ db/seed.ts` để kiểm — cách này hoạt động, đã tự xác nhận l�
 mở fix riêng. Ghi tường minh vào brief T015: bước `db:seed` trong `quickstart.md` PHẢI đổi
 thành lệnh chạy được thật trên clone sạch (container-based, không phải `npm run db:seed` trần).
 
+Task 11d: complete (commits 5b90a5d..ba5bbd1, review clean — spec ✅, Approved; reviewer tự
+  kiểm HỆ THỐNG THẬT ĐANG CHẠY: `docker compose ps` api Up không crash loop, log khởi động
+  sạch, `packages/shared/dist` tồn tại thật trong container, `/images/...` và `/api/products`
+  đều 200 qua đúng container `api`/`proxy` thật — LẦN ĐẦU TIÊN không cần container thủ công).
+
+**Checkpoint chuỗi R22→R23→R25 — HOÀN TẤT.** `docker compose -f ops/compose.yaml up -d` chạy
+được thật, `api` healthy, ảnh sản phẩm phục vụ được qua HTTP, đúng contract. Ba lỗ hổng triển
+khai chưa task nào sở hữu (route ảnh, build packages/shared, run packages/shared) đã đóng.
+
+Ghi nhận thêm (cùng họ với ghi chú T011): review T011d tự chạy `npx jest src/modules/catalog`
+sau khi đã curl xác nhận seed thật, và điều đó (đúng AD-28) xoá seed thật, thay bằng fixture
+test — `/api/products` sau đó trả sản phẩm test, không phải "Cà phê sữa đá". Không phải lỗi
+T011d. Bổ sung cho brief T015: **thứ tự bắt buộc** — chạy bốn lệnh hợp đồng (test/lint/build/
+regression) TRƯỚC, sau đó `db:seed` lại (qua container, xem ghi chú db:seed ở trên), RỒI MỚI
+đi qua tám kịch bản nghiệm thu tay. Làm ngược thứ tự sẽ thấy dữ liệu fixture, không phải demo.
+
