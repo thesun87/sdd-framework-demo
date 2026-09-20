@@ -275,3 +275,29 @@ Ruling: R18 — sửa `apps/api/tsconfig.build.json` để loại trừ `**/*.in
   rộng allowed scope của T009 để bao gồm đúng một dòng này trong `tsconfig.build.json`. —
   Nếu sai: `npm run build` vẫn cố biên dịch file test chạm DB, lỗi hiện ngay ở review T009.
 
+Ruling: R19 — finding Important #2 của review T009 (trùng lặp `StockStatus` giữa
+`stock.public.ts` và `packages/shared`) **không** quay lại fix loop của T009 — đúng như review
+kết luận, việc sửa đòi thêm `packages/shared` làm dependency của `apps/api/package.json`, nằm
+ngoài allowed scope của T009 theo thiết kế. **Park, chuyển thành yêu cầu tường minh cho T011**:
+khi T011 nối `catalog` với `packages/shared` (đã là dependency hợp pháp ở đó), T011 phải hoặc
+(a) thêm `packages/shared` vào dependency của `apps/api` và cho `stock.public.ts` import type
+từ đó, hoặc (b) giữ khai riêng nhưng ràng bằng `z.infer` kèm comment khẳng định khớp hình dạng.
+— Nếu sai: hai enum hai giá trị trôi khỏi nhau lặng lẽ nếu `packages/shared` đổi sau này;
+rủi ro thấp ở `000` (chỉ hai giá trị, không có động lực đổi), bắt được ở review T011.
+
+Task 9: fix round 1/5 (1 addressed, 0 open — comment-only, không đổi executable line, xác
+  nhận qua diff + đọc file thật; commits bd84437..7f50b35)
+Task 9: complete (commits 3966eca..7f50b35, review clean sau 1 vòng sửa — spec ✅, Approved)
+Task 9: Ruling R19 (đã ghi ở trên) — trùng lặp StockStatus park cho T011.
+Task 9: minor (deferred): `stock.public.ts:getStockStatus` tái dùng type `StockUnitOfWork`
+  (đặt tên cho khái niệm ghi giao dịch) cho một tham số đọc thuần — không phải lỗi, chỉ hơi
+  khó đọc; alias riêng (`StockQueryable`) là cải thiện tùy chọn.
+⚠️ chưa có tooling ép AD-5 (không ESLint, `lint` = `tsc --noEmit`, không chặn import xuyên
+  module) — không phải khiếm khuyết của T009 (chưa module nào khác tồn tại để vi phạm), nhưng
+  ghi lại để T011 review kiểm tường minh: `catalog` phải gọi qua `stock.public.ts`, không
+  import `stock.repository.ts`/`stock.service.ts` trực tiếp.
+
+**Checkpoint Phase 3 (User Story 2 — 🎯 lõi rủi ro) — HOÀN TẤT.** Bất biến trung tâm
+(tồn kho không bao giờ âm dưới tải đồng thời) đã có bằng chứng chạy được trên PostgreSQL thật:
+AC-AD1, AC-AD21, AC-AD28, SC-002 đều đạt. `npm test` giờ chạy tới `*.race-spec.ts`.
+
