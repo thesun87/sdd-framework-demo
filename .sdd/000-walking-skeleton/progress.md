@@ -239,3 +239,12 @@ Task 5: minor (deferred): khoá advisory `72500001` là số chọn tay, chưa c
 Task 5: minor (deferred): báo cáo test đua không dán dòng lệnh `&`/`wait` chứng minh hai tiến
   trình thật sự chồng nhau; tính đúng của khoá đã được xác minh bằng đọc mã.
 
+Task 7: complete (commits 5792b00..dc46663, review clean — spec ✅, Approved)
+Task 7: ⚠️ của reviewer đã đóng bởi controller: `npm ls react react-dom @types/react
+  @types/react-dom --workspace=packages/ui` cho thấy cả bốn resolve đúng 19.3.0, không có
+  hoist ma; lockfile nhất quán.
+Task 7: minor (deferred): `colors.neutral`, `spacing.md/lg`, `fontSize.md/lg` khai nhưng
+  T012 (storefront) chưa dùng — phần còn lại của thang đo tối thiểu, chờ consumer.
+Task 7: minor (deferred): `RouteAnnouncer` dùng kỹ thuật `clip: rect(0,0,0,0)` cũ thay vì
+  `clip-path: inset(50%)` hiện đại hơn — cả hai đều hoạt động đúng, không phải lỗi.
+
