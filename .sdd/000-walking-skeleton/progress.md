@@ -505,3 +505,37 @@ Task 14: minor (deferred): metrics trong bộ nhớ, mất khi container restart
 **Checkpoint Phase 6 (Polish & Cross-Cutting) một phần — T014 xong.** Còn lại: T015 (chạy
 trọn quickstart trên clone sạch) — cổng nghiệm thu cuối cùng của toàn bộ feature 000.
 
+Task 15: review clean — spec ✅, Approved (reviewer xác minh tĩnh sâu: 4 lỗi quickstart đã
+  sửa đều có căn cứ thật trong mã nguồn; mọi con số trong report khớp file thật; hai clone độc
+  lập, clone #2 chạy KHÔNG vá tay nào trên quickstart.md đã sửa; disposition "không còn gì
+  chạy" xác minh trực tiếp qua `docker ps/volume/network ls`).
+
+Ruling: R26 — finding Important #1 của review T015 ("`scripts/verify.mjs` build `apps/`
+trước `packages/` là lỗ hổng cần sửa hay chấp nhận tài liệu hoá?"): **chấp nhận cách T015 đã
+làm** — tài liệu hoá bước pre-build thủ công trong `quickstart.md`, KHÔNG sửa
+`scripts/verify.mjs` ở feature này. — Vì tiêu chí nghiệm thu của `000` (SC-006) chỉ đòi bốn
+lệnh hợp đồng exit 0 với bước đã ghi — điều đó đã đúng; sắp xếp lại thứ tự build theo
+topological order trong `verify.mjs` là cải thiện glue-layer chính đáng nhưng KHÔNG chặn
+feature này. — Ghi lại cho `/speckit-converge` hoặc một chore Track C sau: cân nhắc sửa
+`discoverWorkspaces()`/thứ tự build của `scripts/verify.mjs` để tự đúng thứ tự phụ thuộc,
+không cần bước pre-build ghi tay trong quickstart.
+
+Ruling: R27 — finding Important #3 ("clone sạch ≠ máy sạch — cache Playwright/Docker layer/
+thư viện đã giải nén trên host bị kế thừa giữa hai lần chạy, SC-007 chưa chứng minh ở mức
+'máy sạch tuyệt đối'"): **chấp nhận diễn giải "clone sạch" = mã nguồn sạch**, không phải "máy
+không còn cache nào". — Vì đây là hành vi bình thường của mọi hệ thống build thật (CI runner
+cũng cache Docker layer + browser binary); SC-007 nói "dựng lại từ **kho mã** sạch", không nói
+"trên máy không cache gì". Hai lần chạy độc lập của T015 (đặc biệt clone #2 không vá tay nào
+trên quickstart.md đã sửa) là bằng chứng đủ mạnh ở đúng mức nghiêm ngặt spec yêu cầu. — Không
+yêu cầu chạy lại với `docker builder prune` + xoá cache Playwright (việc đó phá cache hữu ích
+cho phần còn lại của phiên làm việc mà không đổi kết luận).
+
+**⚠️ CẦN NGƯỜI QUYẾT — không giải quyết được trong phiên này (finding Important #2):**
+`docs/baseline/verification.md` §Prerequisites giờ **thiếu thật**: T015 chứng minh một clone
+sạch còn cần thêm `npm install` (cần mạng — mâu thuẫn với dòng "No network access" hiện có),
+bốn biến môi trường export tay, và bước pre-build `packages/shared`+`packages/ui` trước bốn
+lệnh hợp đồng. File này chỉ sửa được bởi người trên nhánh `baseline/*` (CLAUDE.md §3) — T015
+và controller đều KHÔNG được sửa. **Việc cần làm, giao cho người**: đối chiếu
+`docs/baseline/verification.md` §Prerequisites với `specs/000-walking-skeleton/quickstart.md`
+(dòng 24–77 sau khi T015 sửa) và cập nhật trên nhánh `baseline/*`.
+
