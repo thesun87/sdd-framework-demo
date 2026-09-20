@@ -13,6 +13,18 @@
 Chứng minh rằng người khác dựng lại được hệ thống này chỉ bằng những gì đã ghi. Đây là task
 duy nhất kiểm **toàn bộ** feature từ bên ngoài.
 
+## Lỗ hổng đã biết, PHẢI sửa ở task này (controller phát hiện, không phải finding chờ bạn tìm)
+
+Sau khi T011c (Ruling R23) thêm bước ghi **tệp ảnh thật** ra `PRODUCT_IMAGE_PATH` lúc
+`db:seed`, bước `npm run db:seed` **trần trên host** — đúng như `quickstart.md` ghi hôm nay —
+**thất bại** (`EACCES`/`ENOENT` tại `/data`). Lý do: `PRODUCT_IMAGE_PATH=/data/product-images`
+là **named volume**, chỉ có ý nghĩa BÊN TRONG container đã mount nó (`api`/`proxy`); host trần
+không có `/data`. **Bạn PHẢI sửa `quickstart.md`** để bước `db:seed` chạy được thật trên clone
+sạch — ví dụ đổi sang chạy trong một container nối đúng network compose + mount đúng named
+volume (mẫu đã hoạt động, xem `.sdd/000-walking-skeleton/task-011c-report.md` §2.3), hoặc một
+cách khác bạn xác minh chạy được. Đây chính xác là loại việc `quickstart.md` (T015 allowed
+scope) tồn tại để bắt — không phải một task-riêng, không cần hỏi lại.
+
 ## Requirements
 
 1. **Clone sạch**: `git clone` chính worktree/repo này sang một thư mục tạm **ngoài** cây làm

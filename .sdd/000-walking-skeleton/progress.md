@@ -444,3 +444,18 @@ Task 11c: minor (deferred): lỗi copy tệp (nếu tệp nguồn mất) rơi v�
 Task 11c: minor (deferred): report không ghi rõ cần export `DATABASE_URL`/`PRODUCT_IMAGE_PATH`/
   `NODE_ENV` để chạy lại `npx jest src/modules/catalog` độc lập ngoài quy trình đã ghi.
 
+Ghi nhận (controller phát hiện khi tự reseed sau review T011c, KHÔNG phải finding của T011c —
+T011c làm đúng yêu cầu của nó): bước `npm run db:seed` **trần trên host**, đúng như
+`quickstart.md` ghi hiện tại, giờ THẤT BẠI (`EACCES`/`ENOENT` tại `/data`) sau khi T011c thêm
+bước ghi ảnh thật ra `PRODUCT_IMAGE_PATH`. Lý do: `/data/product-images` là **named volume**,
+chỉ có ý nghĩa BÊN TRONG container đã mount nó (`api`/`proxy`), không tồn tại trên host trần.
+Trước T011c, `db:seed` chỉ ghi database nên chạy trần trên host vô hại; giờ nó cần chạy trong
+một container nối đúng network + mount đúng volume (T011c đã dùng
+`docker run --network shop-online_default -v <repo>:/repo -w /repo
+-v shop-online_product-images:/data/product-images ... node:24.21.0-bookworm-slim npx tsx
+db/seed.ts` để kiểm — cách này hoạt động, đã tự xác nhận lại).
+
+**Đây chính là loại lỗ hổng T015 tồn tại để bắt** (`quickstart.md` lệch thực tế) — **không**
+mở fix riêng. Ghi tường minh vào brief T015: bước `db:seed` trong `quickstart.md` PHẢI đổi
+thành lệnh chạy được thật trên clone sạch (container-based, không phải `npm run db:seed` trần).
+
