@@ -30,6 +30,7 @@ FROM node:24.21.0-bookworm-slim AS build
 WORKDIR /repo
 COPY . .
 COPY --from=deps /repo/node_modules ./node_modules
+RUN npm run build --workspace=packages/shared
 RUN npm run build --workspace=apps/api
 
 # ---- run: runtime tối giản, chỉ mang theo dist + node_modules đã cài ----

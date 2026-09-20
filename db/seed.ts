@@ -17,11 +17,20 @@
 // tồn kho; trạng thái ban đầu của dữ liệu mẫu không phải một thay đổi nghiệp vụ. (Tên bảng
 // cố ý không xuất hiện nguyên văn trong file này — xem acceptance criteria của task-005.)
 
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import fs from 'node:fs/promises';
+
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 import { category, product, productImage, stock } from './schema/index.js';
+
+// Thư mục chứa file này (`db/`) — dùng để định vị `db/assets/ca-phe-sua-da.jpg` không phụ
+// thuộc `cwd` lúc chạy script (Ruling R23, T011c). `import.meta.url` vì `db/seed.ts` chạy qua
+// `tsx` (ESM, `"type": "module"` ở package.json gốc) — không có `__dirname` CommonJS ở đây.
+const seedDir = path.dirname(fileURLToPath(import.meta.url));
 
 // Hàng rào chạy được — không phải một dòng comment (yêu cầu #3 của brief). Tên biến NODE_ENV
 // đã chốt ở T002.
@@ -76,6 +85,11 @@ function normalizeName(name: string): string {
 async function main(): Promise<void> {
   const pool = new Pool({ connectionString: databaseUrl });
   const db = drizzle(pool);
+
+  // Tính trước ở phạm vi `main` (không chỉ trong transaction) để bước ghi tệp ảnh ra đĩa —
+  // SAU khi transaction database đã commit — dùng lại được đúng giá trị đã ghi vào cột
+  // `product_image.path` (yêu cầu #2 của task-011c-brief.md), không tính lại hai lần.
+  const imagePath = `${productImagePath}/ca-phe-sua-da.jpg`;
 
   try {
     await db.transaction(async (tx) => {
@@ -145,8 +159,6 @@ async function main(): Promise<void> {
       // giữa các lần chạy. Nếu giá trị đổi (ví dụ đổi named volume) giữa hai lần chạy, seed
       // sẽ chèn thêm một dòng `product_image` thứ hai thay vì nhận ra đó là cùng một ảnh
       // logic — chấp nhận theo review round 1, không đổi cấu trúc khoá.
-      const imagePath = `${productImagePath}/ca-phe-sua-da.jpg`;
-
       const existingImage = await tx
         .select({ id: productImage.id })
         .from(productImage)
@@ -167,6 +179,16 @@ async function main(): Promise<void> {
 
       // KHÔNG insert vào sổ cái tồn kho ở đây — yêu cầu #5 của task-005-brief.md.
     });
+
+    // --- tệp ảnh trên đĩa (Ruling R23, T011c) ---------------------------------------------
+    // SAU khi transaction database đã commit — không phải một phần của nó, vì hệ tệp không
+    // rollback theo Postgres. Copy tệp asset tĩnh đi kèm mã nguồn (`db/assets/`, không phải
+    // dữ liệu người dùng) ra đúng đường dẫn đã ghi ở cột `product_image.path` phía trên
+    // (AD-15: ảnh trên hệ tệp, không blob). Idempotent: `fs.copyFile` ghi đè tệp đích nếu đã
+    // tồn tại, không lỗi, không tạo bản sao — an toàn cho lần chạy thứ hai/ba của `db:seed`.
+    const sourceImagePath = path.join(seedDir, 'assets', 'ca-phe-sua-da.jpg');
+    await fs.mkdir(path.dirname(imagePath), { recursive: true });
+    await fs.copyFile(sourceImagePath, imagePath);
 
     console.log('db/seed.ts: đã nạp xong dữ liệu mẫu (idempotent, không đổi khi chạy lại).');
   } finally {
