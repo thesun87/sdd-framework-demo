@@ -327,3 +327,35 @@ R20 correction: con số đúng của T008/T009 là **4 test suites / 6 tests** 
   ghi nhầm ở ruling R20 gốc) — review T010 tự chạy lại xác nhận không hồi quy dù con số báo
   cáo sai; sửa cho đúng ở đây.
 
+Ruling: R21 — dọn database dev dùng chung: T011 tự báo còn sót một dòng product fixture từ
+lúc curl thủ công sau Jest (không TRUNCATE được vì sandbox chặn lệnh đó). Controller đã kiểm
+tra (`SELECT` cho thấy 1 product tên "Sản phẩm test …", giá 0, KHÔNG có category/image, chứng
+tỏ `db:seed` sau đó không thực sự chèn được dữ liệu thật) và tự chạy TRUNCATE + `db:seed` lại.
+Kết quả xác nhận: 1 category, 1 product "Cà phê sữa đá" giá 25000, 1 product_image, 1 stock
+quantity=50, 0 stock_ledger. — Vì T012 (storefront) cần đúng một Sản phẩm thật để hiển thị,
+và dữ liệu fixture sai sẽ làm sai lệch mọi kiểm thử tay tiếp theo. — Việc dọn dẹp KHÔNG phải
+review code, không thay thế review T011; T011 vẫn phải qua review đầy đủ.
+
+Task 11: complete (commits 193d42b..39e9d13, review clean — spec ✅, Approved; 7/7 test xanh
+  (3 catalog + 4 stock, không hồi quy); `npm test`/`lint`/`build` xanh TOÀN BỘ workspace —
+  LẦN ĐẦU TIÊN đúng trong feature này). Bootstrap contract của T010 được tôn trọng: `/api`
+  qua `@Controller('api/...')`, filter lỗi qua `APP_FILTER` trong `CatalogModule` (không phải
+  `AppModule` trực tiếp — do phạm vi không cho tạo `apps/api/src/common/**`); reviewer tự chạy
+  lại qua đúng harness của T010 (`createTestApp()`) và xác nhận hoạt động thật, không chỉ qua
+  `main.ts`. `packages/shared` giờ là dependency thật (nợ R19/R20 đã trả).
+Task 11: minor (deferred): id sản phẩm dạng lỗi (`abc`, `1.5`) rơi vào cùng 404 như id không
+  tồn tại — quyết định hợp lý, T010 không kiểm ca này, hợp đồng không phân biệt 400 vs 404.
+Task 11: minor (deferred): `error-envelope.filter.ts` và `request-logging.middleware.ts` tự
+  khai interface Request/Response tối giản thay vì `@types/express` — hợp lý trong phạm vi
+  được phép, hơi trùng lặp.
+
+Ghi chú vận hành (không phải finding): mỗi lần `npm test`/`npx jest` chạy trong `apps/api`,
+các test contract (T010) TRUNCATE + tự tạo fixture riêng của chúng trên `postgres` dùng chung
+— đúng luật AD-28. Hệ quả: sau BẤT KỲ lần chạy test nào, database dev sẽ còn dữ liệu fixture
+của test, KHÔNG PHẢI dữ liệu demo của `db:seed`. Đây là hành vi ĐÚNG, không phải lỗi. Bất kỳ
+ai kiểm tay qua trình duyệt/`curl` sau khi test đã chạy PHẢI tự chạy lại
+`docker exec ... TRUNCATE ... ; npm run db:seed` trước. Đã làm lại lần này (reviewer T011 chạy
+Jest → DB còn fixture → controller TRUNCATE + reseed → xác nhận "Cà phê sữa đá" 25000₫,
+quantity=50). T012 (storefront, kiểm tay) và T015 (quickstart) đều phải tự làm bước này trước
+khi kiểm; T015 vốn đã có `db:seed` trong quy trình chạy sạch.
+
