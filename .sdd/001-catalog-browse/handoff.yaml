@@ -1,6 +1,6 @@
 feature_id: 001-catalog-browse
 track: B
-generated_at: '2026-09-21T22:59:36+07:00'
+generated_at: '2026-09-21T23:00:56+07:00'
 constitution:
   path: .specify/memory/constitution.md
   git_sha: 3a0fa5db590c4c37f5fec7564e3ded7e48f09c0a
@@ -12,7 +12,7 @@ plan:
   git_sha: 12c77c1306c43e9e5a234f955b9b9d6f4d2bf378
 tasks:
   path: specs/001-catalog-browse/tasks.md
-  git_sha: b58859f89883af471c90bf17dc03b6a6869d79c7
+  git_sha: c866512bc064f1a46e320ca88c0a647af1f93b1a
 execution:
   engine: superpowers
   mode: subagent-driven-development
