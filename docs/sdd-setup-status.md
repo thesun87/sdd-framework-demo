@@ -17,9 +17,12 @@ Appendix A of `agentic-sdd-setup-guide.md`, with the real state of this reposito
 - [x] `.claude/commands/sdd-{track,handoff,validate,change}.md`
 - [x] `scripts/sdd/{sdd_lib,sdd_handoff,sdd_validate,sdd_change}.py`
 - [x] `docs/baseline/verification.md` with a parseable ` ```commands ` block
-- [ ] pre-commit hook protecting `docs/baseline` and `constitution.md`
-      — **deliberately skipped**: no enforcement layer was requested. The rule
-      currently lives only in `CLAUDE.md` §3, which is a suggestion, not a gate.
+- [x] pre-commit hook protecting `docs/baseline` and `constitution.md`
+      — Active via `.githooks/pre-commit` and `git config core.hooksPath .githooks`.
+- [x] Antigravity (AGY) integration active
+      — `AGENTS.md` and `GEMINI.md` traffic controllers at repo root.
+      — `.agents/skills/` populated with Spec Kit (`speckit-*`), BMAD (`bmad-*`),
+        Superpowers execution skills, and SDD glue skills (`sdd-*`).
 
 ## BASELINE
 - [ ] `product-brief.md`, `prd.md` (+ sharded), `architecture.md` (+ sharded)

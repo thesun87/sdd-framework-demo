@@ -10,6 +10,7 @@
 | Node | nvm | **24.21.0** (sàn `>=24.15`) | 2026-09-19 | Tuan Nguyen |
 | PostgreSQL | docker | 18.6 | 2026-09-19 | Tuan Nguyen |
 | PyYAML | system | 6.0.1 | 2026-09-18 | Tuan Nguyen |
+| Antigravity (AGY / IDE) | Google | 2.0 | 2026-09-21 | Tuan Nguyen |
 
 > **Node đã nâng 24.13.0 → 24.21.0 ngày 2026-09-19.** `EBADENGINE` đã hết.
 > Sàn `>=24.15` không do runtime đặt (NestJS 11 chạy được từ 20.19) mà do
@@ -67,6 +68,19 @@ inside Claude Code, per project:
 
 ```text
 /plugin install superpowers@claude-plugins-official
+```
+
+For Antigravity (AGY / IDE):
+
+```bash
+specify init --here --force --non-interactive --integration agy --script sh
+
+npx --yes bmad-method@latest install --yes \
+  --directory "$(pwd)" --modules bmm --tools antigravity-cli \
+  --set core.output_folder=docs/baseline
+
+# Superpowers skills: placed into .agents/skills/
+# SDD Glue skills: .agents/skills/sdd-{track,handoff,validate,change}/
 ```
 
 ---

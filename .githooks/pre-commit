@@ -1,0 +1,9 @@
+#!/bin/sh
+branch=$(git rev-parse --abbrev-ref HEAD)
+case "$branch" in
+  baseline/*|governance/*) exit 0 ;;
+esac
+if git diff --cached --name-only | grep -qE '^docs/baseline/|^\.specify/memory/constitution\.md'; then
+  echo "BLOCKED: baseline/constitution changes require a baseline/* or governance/* branch."
+  exit 1
+fi

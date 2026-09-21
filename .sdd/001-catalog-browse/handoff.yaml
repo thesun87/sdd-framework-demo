@@ -1,0 +1,70 @@
+feature_id: 001-catalog-browse
+track: B
+generated_at: '2026-09-21T11:46:22+07:00'
+constitution:
+  path: .specify/memory/constitution.md
+  git_sha: 3a0fa5db590c4c37f5fec7564e3ded7e48f09c0a
+spec:
+  path: specs/001-catalog-browse/spec.md
+  git_sha: ae05ed23706a99f039433d3969b98d359cb1fc3f
+plan:
+  path: specs/001-catalog-browse/plan.md
+  git_sha: ae05ed23706a99f039433d3969b98d359cb1fc3f
+tasks:
+  path: specs/001-catalog-browse/tasks.md
+  git_sha: ae05ed23706a99f039433d3969b98d359cb1fc3f
+execution:
+  engine: superpowers
+  mode: subagent-driven-development
+policy:
+  allow_replan: false
+  allow_spec_change: false
+  allow_architecture_change: false
+  require_tdd: true
+  require_task_review: true
+  require_code_quality_review: true
+  require_final_verification: true
+  require_convergence: true
+  require_characterization_tests: true
+  require_regression_suite: true
+verification:
+  source: docs/baseline/verification.md
+  commands:
+    test: npm test
+    lint: npm run lint
+    regression: npm run test:regression
+    build: npm run build
+context:
+  include:
+  - constitution
+  - glossary
+  - feature_spec
+  - implementation_plan
+  - current_task
+  - relevant_dependencies
+  - codebase_context
+  - impact_analysis_relevant_sections
+  exclude:
+  - full_prd
+  - full_architecture_document
+  - unrelated_tasks
+  - unrelated_features
+  - full_chat_history
+  - unrelated_repository_context
+  - full_repository
+  - unrelated_modules
+baseline:
+  architecture:
+    path: docs/baseline/architecture.md
+    git_sha: f347fd1a23a6d3ce4941bf935c4de4963bebeddd
+  glossary:
+    path: docs/baseline/glossary.md
+    git_sha: f90da947b72720448d48e0eb69d8950d5dffd575
+  prd:
+    path: docs/baseline/prd.md
+    git_sha: f347fd1a23a6d3ce4941bf935c4de4963bebeddd
+impact_analysis:
+  path: specs/001-catalog-browse/impact-analysis.md
+  git_sha: ae05ed23706a99f039433d3969b98d359cb1fc3f
+codebase_context:
+  path: .sdd/001-catalog-browse/codebase-context.md
