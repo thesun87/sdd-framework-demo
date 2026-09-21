@@ -4,7 +4,7 @@
 
 **Input**: Feature specification from `specs/001-catalog-browse/spec.md`
 
-**Baseline**: `baseline-0001-ecommerce` — this plan derives from `docs/baseline/feature-map.md` row `001-catalog-browse`, PRD FR-1…FR-5, and architecture AD-11/AD-19/AD-20. It does not reopen the frozen Baseline.
+**Baseline**: `baseline-0001-ecommerce` — this plan derives from `docs/baseline/feature-map.md` row `001-catalog-browse`, PRD FR-1…FR-5 (refining spec requirements `FR-001` through `FR-024`), and architecture AD-11/AD-19/AD-20. It does not reopen the frozen Baseline.
 
 ## Summary
 

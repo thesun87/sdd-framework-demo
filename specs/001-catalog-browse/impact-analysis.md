@@ -24,7 +24,7 @@ Current gaps against `001-catalog-browse`:
 - No pagination, default page size, maximum page-size clamp, or total-page context.
 - Current list behaviour can deliver the whole catalog at once, which conflicts with PRD FR-3 for this feature.
 
-## 2. Affected modules and contracts
+## Affected contracts
 
 Implementation planning must account for these affected areas:
 

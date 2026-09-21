@@ -1,6 +1,7 @@
 # Tasks: Catalog Browse
 
 **Input**: Design documents from `specs/001-catalog-browse/`
+**Traceability**: Implements requirements `FR-001` through `FR-024` from `spec.md`.
 
 **Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`, `contracts/storefront-http.md`, `quickstart.md`
 
