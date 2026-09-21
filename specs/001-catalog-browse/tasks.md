@@ -83,17 +83,17 @@
 
 > Write these tests FIRST and verify they fail before implementation.
 
-- [ ] T021 [P] [US2] Add failing Product-name normalization tests in `packages/shared/src/storefront/product-name-normalization.test.ts` proving `Bình giữ nhiệt` matches `binh giu nhiet`, `Đồ uống` normalizes consistently, mixed casing does not change matches, and blank/whitespace search is treated as no search.
-- [ ] T022 [P] [US2] Add failing API search tests in `apps/api/src/modules/catalog/catalog-products-search.int-spec.ts` covering `q`, accent-insensitive Vietnamese Product-name matching, case-insensitive matching, description-only and Category-name non-matches, empty search copy conditions, cross-Category search clearing Category scope, out-of-stock Products visible, no exact Stock, and `Cache-Control: no-store`.
-- [ ] T023 [P] [US2] Add failing storefront search tests in `apps/storefront/src/pages/HomePage.test.tsx` for search input, nonblank search clearing Category scope and resetting page 1, blank search returning to all Products page 1, no-match copy `Không có sản phẩm nào khớp với «{từ khoá}».`, and no system error.
-- [ ] T024 [P] [US2] Add failing E2E search scenarios in `e2e/storefront-journey.e2e-spec.ts` for `binh giu nhiet`, different casing, description-only non-match, no-match copy, out-of-stock search result visibility, and browser back/forward over search state.
+- [x] T021 [P] [US2] Add failing Product-name normalization tests in `packages/shared/src/storefront/product-name-normalization.test.ts` proving `Bình giữ nhiệt` matches `binh giu nhiet`, `Đồ uống` normalizes consistently, mixed casing does not change matches, and blank/whitespace search is treated as no search.
+- [x] T022 [P] [US2] Add failing API search tests in `apps/api/src/modules/catalog/catalog-products-search.int-spec.ts` covering `q`, accent-insensitive Vietnamese Product-name matching, case-insensitive matching, description-only and Category-name non-matches, empty search copy conditions, cross-Category search clearing Category scope, out-of-stock Products visible, no exact Stock, and `Cache-Control: no-store`.
+- [x] T023 [P] [US2] Add failing storefront search tests in `apps/storefront/src/pages/HomePage.test.tsx` for search input, nonblank search clearing Category scope and resetting page 1, blank search returning to all Products page 1, no-match copy `Không có sản phẩm nào khớp với «{từ khoá}».`, and no system error.
+- [x] T024 [P] [US2] Add failing E2E search scenarios in `e2e/storefront-journey.e2e-spec.ts` for `binh giu nhiet`, different casing, description-only non-match, no-match copy, out-of-stock search result visibility, and browser back/forward over search state.
 
 ### Implementation for User Story 2
 
-- [ ] T025 [US2] Extract and export a single Product-name normalization helper in `packages/shared/src/storefront/product-name-normalization.ts` and `packages/shared/src/storefront/index.ts` using the existing write/backfill rule: lowercase, replace `đ` with `d`, Unicode NFD, remove combining marks, trim.
-- [ ] T026 [US2] Update `db/seed.ts` to use the shared Product-name normalization helper when populating `name_normalized`, avoiding a second inconsistent Vietnamese normalization rule.
-- [ ] T027 [US2] Implement Product-name search in `apps/api/src/modules/catalog/catalog.repository.ts` using stored `product.name_normalized` compared to a normalized query parameter; do not normalize the stored Product name on the left side of the read predicate, and do not search Product description or Category name.
-- [ ] T028 [US2] Integrate Product-name search state in `apps/storefront/src/pages/HomePage.tsx`, including search submission, blank search reset, no-match copy, Category clearing, and Product grid reuse without exact Stock disclosure.
+- [x] T025 [US2] Extract and export a single Product-name normalization helper in `packages/shared/src/storefront/product-name-normalization.ts` and `packages/shared/src/storefront/index.ts` using the existing write/backfill rule: lowercase, replace `đ` with `d`, Unicode NFD, remove combining marks, trim.
+- [x] T026 [US2] Update `db/seed.ts` to use the shared Product-name normalization helper when populating `name_normalized`, avoiding a second inconsistent Vietnamese normalization rule.
+- [x] T027 [US2] Implement Product-name search in `apps/api/src/modules/catalog/catalog.repository.ts` using stored `product.name_normalized` compared to a normalized query parameter; do not normalize the stored Product name on the left side of the read predicate, and do not search Product description or Category name.
+- [x] T028 [US2] Integrate Product-name search state in `apps/storefront/src/pages/HomePage.tsx`, including search submission, blank search reset, no-match copy, Category clearing, and Product grid reuse without exact Stock disclosure.
 
 **Checkpoint**: User Story 2 is independently functional and testable with User Story 1 preserved.
 
@@ -109,18 +109,18 @@
 
 > Write these tests FIRST and verify they fail before implementation.
 
-- [ ] T029 [P] [US3] Add failing API pagination tests in `apps/api/src/modules/catalog/catalog-products-pagination.int-spec.ts` covering `page`, `pageSize`, default page size 24, clamp above 100, values below 1 as page 1, `items.length` ≤ `pagination.pageSize`, `totalItems`, `totalPages`, empty out-of-range pages, deterministic ordering, and no full catalog response.
-- [ ] T030 [P] [US3] Add failing storefront pagination tests in `apps/storefront/src/pages/HomePage.test.tsx` for page controls, current page and total pages context, page reset on Category/search changes, preserving current scope while paging, and empty out-of-range state.
-- [ ] T031 [P] [US3] Add failing E2E pagination and performance coverage in `e2e/performance.e2e-spec.ts` for a large Product list, default 24 Products, max 100 Products, no duplicate/missing Products across pages, and usable page at the Baseline p95 target.
+- [x] T029 [P] [US3] Add failing API pagination tests in `apps/api/src/modules/catalog/catalog-products-pagination.int-spec.ts` covering `page`, `pageSize`, default page size 24, clamp above 100, values below 1 as page 1, `items.length` ≤ `pagination.pageSize`, `totalItems`, `totalPages`, empty out-of-range pages, deterministic ordering, and no full catalog response.
+- [x] T030 [P] [US3] Add failing storefront pagination tests in `apps/storefront/src/pages/HomePage.test.tsx` for page controls, current page and total pages context, page reset on Category/search changes, preserving current scope while paging, and empty out-of-range state.
+- [x] T031 [P] [US3] Add failing E2E pagination and performance coverage in `e2e/performance.e2e-spec.ts` for a large Product list, default 24 Products, max 100 Products, no duplicate/missing Products across pages, and usable page at the Baseline p95 target.
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Extend Product list repository reads in `apps/api/src/modules/catalog/catalog.repository.ts` to return only the requested page plus matching count for all-products, Category, and search scopes, with stable deterministic ordering by Product id and no full-catalog response.
-- [ ] T033 [US3] Extend Product list service and controller response assembly in `apps/api/src/modules/catalog/catalog.service.ts` and `apps/api/src/modules/catalog/catalog.controller.ts` to return `pagination.page` as `Effective current page, minimum 1`, `pagination.pageSize` as `Effective page size after default/clamp`, `pagination.totalItems` as `Count of Products in the current all-products, Category, or search result set`, and `pagination.totalPages` as `Number of pages for current result set; may be 0 when there are no results`.
-- [ ] T034 [US3] Implement URL query-string support for Category/search/page deep links in `apps/storefront/src/router/router.ts` and `apps/storefront/src/router/usePathname.ts`, preserving browser back/forward behaviour and route announcements.
-- [ ] T035 [US3] Create accessible Product list pagination controls in `apps/storefront/src/components/PaginationControls.tsx` with current page, total pages, disabled bounds, and text-visible navigation state.
-- [ ] T036 [US3] Integrate pagination metadata, page changes, page reset rules, and URL state in `apps/storefront/src/pages/HomePage.tsx` for all-products, Category, and search scopes.
-- [ ] T037 [US3] Update storefront API request encoding in `apps/storefront/src/api/client.ts` so `fetchProducts` sends `categoryId`, `q`, `page`, and `pageSize`, while preserving `cache: "no-store"` and schema validation.
+- [x] T032 [US3] Extend Product list repository reads in `apps/api/src/modules/catalog/catalog.repository.ts` to return only the requested page plus matching count for all-products, Category, and search scopes, with stable deterministic ordering by Product id and no full-catalog response.
+- [x] T033 [US3] Extend Product list service and controller response assembly in `apps/api/src/modules/catalog/catalog.service.ts` and `apps/api/src/modules/catalog/catalog.controller.ts` to return `pagination.page` as `Effective current page, minimum 1`, `pagination.pageSize` as `Effective page size after default/clamp`, `pagination.totalItems` as `Count of Products in the current all-products, Category, or search result set`, and `pagination.totalPages` as `Number of pages for current result set; may be 0 when there are no results`.
+- [x] T034 [US3] Implement URL query-string support for Category/search/page deep links in `apps/storefront/src/router/router.ts` and `apps/storefront/src/router/usePathname.ts`, preserving browser back/forward behaviour and route announcements.
+- [x] T035 [US3] Create accessible Product list pagination controls in `apps/storefront/src/components/PaginationControls.tsx` with current page, total pages, disabled bounds, and text-visible navigation state.
+- [x] T036 [US3] Integrate pagination metadata, page changes, page reset rules, and URL state in `apps/storefront/src/pages/HomePage.tsx` for all-products, Category, and search scopes.
+- [x] T037 [US3] Update storefront API request encoding in `apps/storefront/src/api/client.ts` so `fetchProducts` sends `categoryId`, `q`, `page`, and `pageSize`, while preserving `cache: "no-store"` and schema validation.
 
 **Checkpoint**: User Story 3 is independently functional and testable with User Stories 1 and 2 preserved.
 
@@ -136,14 +136,14 @@
 
 > Write these tests FIRST and verify they fail before implementation.
 
-- [ ] T038 [P] [US4] Extend Product detail API regression tests in `apps/api/src/modules/catalog/catalog-product-detail.int-spec.ts` for detail opened after browse/search, `Cache-Control: no-store`, no exact Stock fields, fresh Stock status after Stock changes, and 404 shared error envelope without stack traces.
-- [ ] T039 [P] [US4] Extend storefront detail tests in `apps/storefront/src/pages/ProductDetailPage.test.tsx` for Product name, description, integer VND price, ordered image list, text-visible Stock status, no exact Stock display, and not-found rendering.
-- [ ] T040 [P] [US4] Extend E2E Product detail journeys in `e2e/storefront-journey.e2e-spec.ts` for opening the same Product from all Products, Category result, and search result, then navigating back/forward without stale Stock status.
+- [x] T038 [P] [US4] Extend Product detail API regression tests in `apps/api/src/modules/catalog/catalog-product-detail.int-spec.ts` for detail opened after browse/search, `Cache-Control: no-store`, no exact Stock fields, fresh Stock status after Stock changes, and 404 shared error envelope without stack traces.
+- [x] T039 [P] [US4] Extend storefront detail tests in `apps/storefront/src/pages/ProductDetailPage.test.tsx` for Product name, description, integer VND price, ordered image list, text-visible Stock status, no exact Stock display, and not-found rendering.
+- [x] T040 [P] [US4] Extend E2E Product detail journeys in `e2e/storefront-journey.e2e-spec.ts` for opening the same Product from all Products, Category result, and search result, then navigating back/forward without stale Stock status.
 
 ### Implementation for User Story 4
 
-- [ ] T041 [US4] Preserve Product card detail links and accessible Product summary rendering in `apps/storefront/src/components/ProductCard.tsx` for Products reached from all-products, Category, and search results, without adding Cart, Order, or exact Stock UI.
-- [ ] T042 [US4] Preserve Product detail fetch/render behaviour in `apps/storefront/src/pages/ProductDetailPage.tsx` so Product detail includes name, description, price, images, and Stock status, while missing Product remains not found and exact Stock remains absent.
+- [x] T041 [US4] Preserve Product card detail links and accessible Product summary rendering in `apps/storefront/src/components/ProductCard.tsx` for Products reached from all-products, Category, and search results, without adding Cart, Order, or exact Stock UI.
+- [x] T042 [US4] Preserve Product detail fetch/render behaviour in `apps/storefront/src/pages/ProductDetailPage.tsx` so Product detail includes name, description, price, images, and Stock status, while missing Product remains not found and exact Stock remains absent.
 
 **Checkpoint**: User Story 4 is independently functional and testable with User Stories 1–3 preserved.
 
@@ -153,10 +153,10 @@
 
 **Purpose**: Regression guards and final verification across the completed feature.
 
-- [ ] T043 [P] Strengthen shared response guard assertions in `apps/api/src/modules/catalog/catalog-response-assertions.ts` so Product list, Category list, and Product detail tests fail if `quantity`, `stock`, or any numeric exact Stock disclosure appears in Guest/Customer-visible responses.
-- [ ] T044 [P] Extend security header and cache regression coverage in `e2e/security-headers.e2e-spec.ts` for `GET /api/categories`, paginated `GET /api/products`, searched Product lists, and Product detail responses containing `stockStatus`.
-- [ ] T045 [P] Update route announcement and Stock status accessibility tests in `packages/ui/src/RouteAnnouncer.test.tsx` and `packages/ui/src/StockStatusLabel.test.tsx` for Category/search/page navigation and text-visible `Còn hàng` / `Hết hàng` status.
-- [ ] T046 Run the four-command verification contract from `docs/baseline/verification.md` and validate `specs/001-catalog-browse/quickstart.md`: `npm test`, `npm run lint`, `npm run test:regression`, and `npm run build`, confirming Product workspaces ran and were not skipped.
+- [x] T043 [P] Strengthen shared response guard assertions in `apps/api/src/modules/catalog/catalog-response-assertions.ts` so Product list, Category list, and Product detail tests fail if `quantity`, `stock`, or any numeric exact Stock disclosure appears in Guest/Customer-visible responses.
+- [x] T044 [P] Extend security header and cache regression coverage in `e2e/security-headers.e2e-spec.ts` for `GET /api/categories`, paginated `GET /api/products`, searched Product lists, and Product detail responses containing `stockStatus`.
+- [x] T045 [P] Update route announcement and Stock status accessibility tests in `packages/ui/src/RouteAnnouncer.test.tsx` and `packages/ui/src/StockStatusLabel.test.tsx` for Category/search/page navigation and text-visible `Còn hàng` / `Hết hàng` status.
+- [x] T046 Run the four-command verification contract from `docs/baseline/verification.md` and validate `specs/001-catalog-browse/quickstart.md`: `npm test`, `npm run lint`, `npm run test:regression`, and `npm run build`, confirming Product workspaces ran and were not skipped.
 
 ---
 

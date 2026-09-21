@@ -134,3 +134,29 @@ test.describe("SC-004 — header an toàn trên CẢ HAI đường dẫn", () =>
     assertSecurityHeaders(headers);
   });
 });
+
+test.describe("AD-20 & AD-29 — Cache-Control: no-store và bảo mật trên API catalog", () => {
+  test("GET /api/categories trả về Cache-Control: no-store", async ({ request }) => {
+    const res = await request.get("/api/categories");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["cache-control"]).toBe("no-store");
+  });
+
+  test("GET /api/products có phân trang trả về Cache-Control: no-store", async ({ request }) => {
+    const res = await request.get("/api/products?page=1&limit=5");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["cache-control"]).toBe("no-store");
+  });
+
+  test("GET /api/products tìm kiếm trả về Cache-Control: no-store", async ({ request }) => {
+    const res = await request.get("/api/products?q=ca");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["cache-control"]).toBe("no-store");
+  });
+
+  test("GET /api/products/:id chi tiết sản phẩm trả về Cache-Control: no-store", async ({ request }) => {
+    const res = await request.get("/api/products/1");
+    expect(res.headers()["cache-control"]).toBe("no-store");
+  });
+});
+

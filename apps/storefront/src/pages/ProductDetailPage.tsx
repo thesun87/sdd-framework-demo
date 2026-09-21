@@ -81,11 +81,16 @@ export function ProductDetailPage({ id }: DetailPageProps) {
       <Link to="/">← Trang chủ</Link>
       <h1>{product.name}</h1>
       {sortedImages.length > 0 ? (
-        <img
-          src={sortedImages[0].path}
-          alt={product.name}
-          style={{ maxWidth: "100%", height: "auto", borderRadius: "4px" }}
-        />
+        <div data-testid="product-images" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          {sortedImages.map((img, idx) => (
+            <img
+              key={img.path}
+              src={img.path}
+              alt={idx === 0 ? product.name : `${product.name} - ảnh ${idx + 1}`}
+              style={{ maxWidth: "100%", height: "auto", borderRadius: "4px" }}
+            />
+          ))}
+        </div>
       ) : null}
       <p style={{ fontSize: "20px", fontWeight: "bold" }}>{formatPriceVnd(product.price)}</p>
       <StockStatusLabel status={product.stockStatus} />

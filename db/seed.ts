@@ -26,6 +26,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 import { category, product, productImage, stock } from './schema/index.js';
+import { storefront } from 'shared';
 
 // Thư mục chứa file này (`db/`) — dùng để định vị `db/assets/ca-phe-sua-da.jpg` không phụ
 // thuộc `cwd` lúc chạy script (Ruling R23, T011c). `import.meta.url` vì `db/seed.ts` chạy qua
@@ -71,15 +72,7 @@ const productImagePath = process.env.PRODUCT_IMAGE_PATH ?? '/data/product-images
  * `name_normalized` khác nhau sẽ làm tra cứu/so khớp không nhất quán.
  */
 function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/đ/g, 'd')
-    .normalize('NFD')
-    // Escape Unicode tuong minh (U+0300 - U+036F), KHONG phai ky tu dau ket hop go truc tiep
-    // trong ma nguon - ky tu go truc tiep vo hinh, de vo khi diff/mo lai bang editor khac/
-    // doi encoding (fix round 1, review T005).
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim();
+  return storefront.normalizeProductName(name);
 }
 
 async function main(): Promise<void> {

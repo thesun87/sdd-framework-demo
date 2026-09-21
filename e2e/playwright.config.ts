@@ -3,6 +3,14 @@
 // nhất (AD-8), không trỏ vào Vite dev server và không trỏ thẳng vào API. Bằng chứng header
 // an toàn (SC-004) chỉ có nghĩa khi request thật sự đi qua lớp phòng thủ mà proxy phát ra.
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync } from "node:fs";
+
+const LOCAL_LIBS = "/home/tuannguyen/.local/playwright-libs/usr/lib/x86_64-linux-gnu";
+if (existsSync(LOCAL_LIBS)) {
+  process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH
+    ? `${LOCAL_LIBS}:${process.env.LD_LIBRARY_PATH}`
+    : LOCAL_LIBS;
+}
 
 const PROXY_BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost";
 
@@ -12,6 +20,7 @@ export default defineConfig({
   // Playwright, nên phải khai `testMatch` tường minh, nếu không hai file này bị bỏ qua
   // hoàn toàn mà `playwright test --pass-with-no-tests` vẫn báo xanh (dương tính giả).
   testMatch: "**/*.e2e-spec.ts",
+  globalSetup: "./global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,

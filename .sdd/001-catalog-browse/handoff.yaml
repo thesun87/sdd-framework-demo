@@ -1,6 +1,6 @@
 feature_id: 001-catalog-browse
 track: B
-generated_at: '2026-09-21T22:15:30+07:00'
+generated_at: '2026-09-21T22:59:36+07:00'
 constitution:
   path: .specify/memory/constitution.md
   git_sha: 3a0fa5db590c4c37f5fec7564e3ded7e48f09c0a

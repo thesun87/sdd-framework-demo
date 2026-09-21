@@ -22,7 +22,12 @@ import {
   assertRawBodyNeverContainsQuantity,
   pickDistinctiveQuantity,
 } from './catalog-response-assertions';
-import { createTestApp } from './catalog-test-support';
+import {
+  createTestApp,
+  seedCatalogProduct,
+  seedCatalogStock,
+  seedCategory,
+} from './catalog-test-support';
 
 /** Id chắc chắn không tồn tại — `TRUNCATE ... RESTART IDENTITY` mỗi test khiến id luôn bắt
  *  đầu lại từ nhỏ, nên một số đủ lớn không bao giờ trùng một Product vừa seed trong test. */
@@ -110,5 +115,32 @@ describe('GET /api/products/:id', () => {
     expect(res.text).not.toMatch(/node_modules/i);
     expect(res.text).not.toMatch(/\.ts:\d+/);
     expect(res.text).not.toMatch(/\.js:\d+/);
+  });
+
+  it('mở chi tiết sản phẩm thuộc danh mục và có ảnh sản phẩm — hợp đồng đầy đủ (FR-017, FR-018, US4)', async () => {
+    const cat = await seedCategory(pool, { name: 'Gia dụng' });
+    const pid = await seedCatalogProduct(pool, {
+      name: 'Bình giữ nhiệt Lock&Lock 500ml',
+      description: 'Giữ nóng 8h, giữ lạnh 12h',
+      price: 250000,
+      categoryId: cat,
+    });
+    await seedCatalogStock(pool, pid, 10);
+
+    const res = await request(app.getHttpServer()).get(`/api/products/${pid}`);
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('no-store');
+
+    const parsed = storefront.ProductDetailSchema.safeParse(res.body);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.id).toBe(pid);
+      expect(parsed.data.name).toBe('Bình giữ nhiệt Lock&Lock 500ml');
+      expect(parsed.data.description).toBe('Giữ nóng 8h, giữ lạnh 12h');
+      expect(parsed.data.price).toBe(250000);
+      expect(Number.isInteger(parsed.data.price)).toBe(true);
+      expect(parsed.data.stockStatus).toBe('in_stock');
+    }
+    assertNoForbiddenQuantityKey(res.body);
   });
 });

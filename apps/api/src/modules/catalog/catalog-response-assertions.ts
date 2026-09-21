@@ -35,7 +35,7 @@ function collectAllKeysDeep(value: unknown, acc: string[] = []): string[] {
 
 /** Biến thể tên trường có thể được dùng để lén lộ con số tồn kho — khớp không phân biệt hoa/thường. */
 const FORBIDDEN_KEY_PATTERN =
-  /quantity|inventory|stockcount|stock_count|availableunits|units_?available|remainingstock|remaining_stock|instockcount|qty\b/i;
+  /(quantity|inventory|availableunits|units_?available|remainingstock|remaining_stock|instockcount|\bqty\b)|stock(?!_?status)/i;
 
 /**
  * Khẳng định KHÔNG có bất kỳ khoá nào (ở bất kỳ độ sâu nào của response đã parse) mang tên
@@ -74,9 +74,12 @@ export function assertRawBodyNeverContainsQuantity(rawText: string, quantity: nu
   // Quét thêm chính từ khoá "quantity"/"inventory" ở dạng chuỗi thô (không qua JSON.parse) —
   // bắt được cả trường hợp response không phải JSON hợp lệ hoặc khoá nằm trong một cấu trúc
   // bất ngờ (vd. escaped trong một chuỗi khác).
-  if (/quantity|inventory/i.test(rawText)) {
+  if (
+    /quantity|inventory|stock_count|stockcount|available_units|remaining_stock/i.test(rawText) ||
+    /"stock"\s*:/i.test(rawText)
+  ) {
     throw new Error(
-      `Thân response thô chứa từ khoá "quantity"/"inventory" — cấm tuyệt đối theo FR-007/AD-19. ` +
+      `Thân response thô chứa từ khoá tồn kho bị cấm — cấm tuyệt đối theo FR-007/AD-19. ` +
         `Thân response: ${rawText}`,
     );
   }

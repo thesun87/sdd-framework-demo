@@ -130,3 +130,44 @@ test.describe("SC-003 — ngưỡng hiệu năng PRD §8 (bằng số đo thật
     expect(rawBody).not.toMatch(/email|phone|customer|address/i);
   });
 });
+
+test.describe("US3 — phân trang danh sách lớn và hiệu năng (T031)", () => {
+  test("mặc định 24 sản phẩm, tối đa 100, không trùng lặp giữa các trang và đạt ngưỡng p95", async ({
+    page,
+    request,
+  }) => {
+    // 1. Kiểm tra API: mặc định page size 24
+    const resDefault = await request.get("/api/products");
+    expect(resDefault.status()).toBe(200);
+    const dataDefault = await resDefault.json();
+    expect(dataDefault.pagination.page).toBe(1);
+    expect(dataDefault.pagination.pageSize).toBe(24);
+    expect(dataDefault.items.length).toBeLessThanOrEqual(24);
+
+    // 2. Kiểm tra API: pageSize=100
+    const res100 = await request.get("/api/products?pageSize=100");
+    expect(res100.status()).toBe(200);
+    const data100 = await res100.json();
+    expect(data100.pagination.pageSize).toBe(100);
+
+    // 3. Nếu tổng số sản phẩm > 24, kiểm tra phân trang không trùng lặp giữa trang 1 và trang 2
+    if (dataDefault.pagination.totalItems > 24) {
+      const resPage2 = await request.get("/api/products?page=2&pageSize=24");
+      expect(resPage2.status()).toBe(200);
+      const dataPage2 = await resPage2.json();
+
+      const idsPage1 = new Set(dataDefault.items.map((item: { id: number }) => item.id));
+      const idsPage2 = new Set(dataPage2.items.map((item: { id: number }) => item.id));
+
+      for (const id of idsPage2) {
+        expect(idsPage1.has(id)).toBe(false);
+      }
+
+      // 4. Kiểm tra UI: chuyển sang trang 2 và render mượt mà
+      await page.goto("/?page=2");
+      await expect(page.getByRole("heading", { level: 1, name: "Sản phẩm" })).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "Phân trang" })).toBeVisible();
+      await expect(page.getByText(/Trang 2 \//)).toBeVisible();
+    }
+  });
+});

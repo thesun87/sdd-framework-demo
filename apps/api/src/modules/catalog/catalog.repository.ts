@@ -31,6 +31,7 @@
 // `product`) cần tính `name_normalized`, PHẢI dùng đúng hàm `normalizeName` của T005
 // (task-005-report.md, `db/seed.ts`) — không phát minh quy tắc thứ hai.
 import type { Pool } from 'pg';
+import { storefront } from 'shared';
 
 export interface ProductSummaryRow {
   readonly id: number;
@@ -105,13 +106,8 @@ export async function findProductSummaries(
     conditions.push(`p.category_id = $${params.length}`);
   }
 
-  if (options.q !== undefined && options.q.trim().length > 0) {
-    const normalized = options.q
-      .toLowerCase()
-      .replace(/đ/g, 'd')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .trim();
+  if (options.q !== undefined && !storefront.isSearchQueryBlank(options.q)) {
+    const normalized = storefront.normalizeProductName(options.q);
     params.push(`%${normalized}%`);
     conditions.push(`p.name_normalized LIKE $${params.length}`);
   }

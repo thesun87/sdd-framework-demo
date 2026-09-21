@@ -204,4 +204,76 @@ test.describe("US1 — duyệt danh mục phẳng (E2E)", () => {
   });
 });
 
+test.describe("US2 — tìm kiếm tên sản phẩm không phân biệt dấu (E2E)", () => {
+  test("tìm kiếm 'binh giu nhiet' hiển thị sản phẩm tiếng Việt có dấu, hỗ trợ hoa thường và giữ sản phẩm hết hàng", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const searchInput = page.getByRole("searchbox", { name: "Tìm kiếm sản phẩm" });
+    const searchButton = page.getByRole("button", { name: "Tìm" });
+
+    // 1. Tìm bằng từ không dấu: 'binh giu nhiet'
+    await searchInput.fill("binh giu nhiet");
+    await searchButton.click();
+
+    await expect(page).toHaveURL(/q=binh%20giu%20nhiet/);
+    await expect(page.getByRole("heading", { name: "Bình giữ nhiệt", exact: true })).toBeVisible();
+
+    // 2. Tìm bằng chữ hoa có dấu: 'BÌNH GIỮ NHIỆT'
+    await searchInput.fill("BÌNH GIỮ NHIỆT");
+    await searchButton.click();
+    await expect(page.getByRole("heading", { name: "Bình giữ nhiệt", exact: true })).toBeVisible();
+
+    // 3. Tìm từ khoá không khớp: hiển thị câu thông báo no-match
+    await searchInput.fill("từ khoá không tồn tại 12345");
+    await searchButton.click();
+    await expect(
+      page.getByText("Không có sản phẩm nào khớp với «từ khoá không tồn tại 12345»."),
+    ).toBeVisible();
+
+    // 4. Kiểm tra điều hướng back/forward qua lịch sử tìm kiếm
+    await page.goBack();
+    await expect(page.getByRole("heading", { name: "Bình giữ nhiệt", exact: true })).toBeVisible();
+    await page.goForward();
+    await expect(
+      page.getByText("Không có sản phẩm nào khớp với «từ khoá không tồn tại 12345»."),
+    ).toBeVisible();
+  });
+});
+
+test.describe("US4 — mở chi tiết sản phẩm từ duyệt danh mục hoặc tìm kiếm (T040)", () => {
+  test("mở chi tiết sản phẩm từ tất cả sản phẩm, từ danh mục và từ tìm kiếm, điều hướng back/forward", async ({
+    page,
+  }) => {
+    // 1. Mở từ kết quả tìm kiếm
+    await page.goto("/?q=binh%20giu%20nhiet");
+    const searchCard = page.locator('a[href^="/products/"]').first();
+    await expect(searchCard).toBeVisible();
+    await searchCard.click();
+
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Bình giữ nhiệt/);
+    await expect(page.getByText(/(Còn hàng|Hết hàng)/)).toBeVisible();
+
+    // Quay lại
+    await page.goBack();
+    await expect(page).toHaveURL(/q=binh%20giu%20nhiet/);
+
+    // 2. Mở từ danh mục
+    await page.goto("/?categoryId=1");
+    const catCard = page.locator('a[href^="/products/"]').first();
+    if (await catCard.isVisible()) {
+      await catCard.click();
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.getByText(/(Còn hàng|Hết hàng)/)).toBeVisible();
+      await page.goBack();
+      await expect(page).toHaveURL(/categoryId=1/);
+    }
+
+    // 3. Sản phẩm không tồn tại trả về thông báo rõ ràng
+    await page.goto("/products/999999999");
+    await expect(page.getByRole("heading", { level: 1, name: "Không tìm thấy sản phẩm" })).toBeVisible();
+  });
+});
+
 

@@ -22,4 +22,18 @@ describe("RouteAnnouncer", () => {
     const region = screen.getByRole("status");
     expect(region.textContent).toBe("Đã chuyển đến trang Giỏ hàng");
   });
+
+  it("thông báo thay đổi khi lọc danh mục, tìm kiếm, hoặc chuyển trang", () => {
+    const { rerender } = render(<RouteAnnouncer message="Đang ở trang chủ" />);
+    const region = screen.getByRole("status");
+
+    rerender(<RouteAnnouncer message="Đã lọc danh mục Đồ gia dụng" />);
+    expect(region.textContent).toBe("Đã lọc danh mục Đồ gia dụng");
+
+    rerender(<RouteAnnouncer message="Kết quả tìm kiếm cho «cà phê»" />);
+    expect(region.textContent).toBe("Kết quả tìm kiếm cho «cà phê»");
+
+    rerender(<RouteAnnouncer message="Đang ở trang 2" />);
+    expect(region.textContent).toBe("Đang ở trang 2");
+  });
 });

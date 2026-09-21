@@ -44,4 +44,30 @@ describe("ProductDetailPage — FR-003: tối giản, không scope creep", () =>
 
     await waitFor(() => expect(screen.getByText(/không tồn tại/i)).toBeTruthy());
   });
+
+  it("hiển thị danh sách ảnh có thứ tự, trạng thái hết hàng và không để lộ số lượng tồn kho", async () => {
+    const outOfStockDetail: storefront.ProductDetail = {
+      id: 2,
+      name: "Bình giữ nhiệt 500ml",
+      description: "Inox 304 cao cấp",
+      price: 150000,
+      images: [
+        { path: "/images/binh-1.jpg", position: 0 },
+        { path: "/images/binh-2.jpg", position: 1 },
+      ],
+      stockStatus: "out_of_stock",
+    };
+    vi.spyOn(client, "fetchProductDetail").mockResolvedValue({ kind: "ok", data: outOfStockDetail });
+
+    render(<ProductDetailPage id="2" />);
+
+    await waitFor(() => expect(screen.getByText("Bình giữ nhiệt 500ml")).toBeTruthy());
+    expect(screen.getByText("150.000₫")).toBeTruthy();
+    expect(screen.getByText("Hết hàng")).toBeTruthy();
+    const imgs = screen.getAllByRole("img");
+    expect(imgs.length).toBe(2);
+
+    expect(screen.queryByText(/tồn kho:/i)).toBeNull();
+    expect(screen.queryByText(/số lượng:/i)).toBeNull();
+  });
 });
