@@ -106,78 +106,142 @@ async function main(): Promise<void> {
       // chưa có khoá advisory nào khác được dùng ở đâu trong repo này).
       await tx.execute(sql`SELECT pg_advisory_xact_lock(72500001)`);
 
-      // --- category ---------------------------------------------------------------------
-      const categoryName = 'Đồ uống';
-      const categoryNameNormalized = normalizeName(categoryName);
+      // --- categories ------------------------------------------------------------------
+      // Ba danh mục: Đồ uống (có sản phẩm), Đồ gia dụng (>24 sản phẩm), Thời trang (0 sản phẩm)
+      const categoriesData = [
+        { name: 'Đồ uống' },
+        { name: 'Đồ gia dụng' },
+        { name: 'Thời trang' },
+      ];
 
-      const existingCategory = await tx
-        .select({ id: category.id })
-        .from(category)
-        .where(eq(category.nameNormalized, categoryNameNormalized))
-        .limit(1);
+      const categoryMap = new Map<string, number>();
 
-      let categoryId: number;
-      if (existingCategory.length > 0) {
-        categoryId = existingCategory[0].id;
-      } else {
-        const inserted = await tx
-          .insert(category)
-          .values({ name: categoryName, nameNormalized: categoryNameNormalized })
-          .returning({ id: category.id });
-        categoryId = inserted[0].id;
+      for (const cat of categoriesData) {
+        const catNormalized = normalizeName(cat.name);
+        const existing = await tx
+          .select({ id: category.id })
+          .from(category)
+          .where(eq(category.nameNormalized, catNormalized))
+          .limit(1);
+
+        if (existing.length > 0) {
+          categoryMap.set(cat.name, existing[0].id);
+        } else {
+          const inserted = await tx
+            .insert(category)
+            .values({ name: cat.name, nameNormalized: catNormalized })
+            .returning({ id: category.id });
+          categoryMap.set(cat.name, inserted[0].id);
+        }
       }
 
-      // --- product ------------------------------------------------------------------------
-      const productName = 'Cà phê sữa đá';
-      const productNameNormalized = normalizeName(productName);
+      const doUongId = categoryMap.get('Đồ uống')!;
+      const doGiaDungId = categoryMap.get('Đồ gia dụng')!;
 
-      const existingProduct = await tx
-        .select({ id: product.id })
-        .from(product)
-        .where(eq(product.nameNormalized, productNameNormalized))
-        .limit(1);
-
-      let productId: number;
-      if (existingProduct.length > 0) {
-        productId = existingProduct[0].id;
-      } else {
-        const inserted = await tx
-          .insert(product)
-          .values({
-            categoryId,
-            name: productName,
-            nameNormalized: productNameNormalized,
-            description: 'Cà phê phin truyền thống pha cùng sữa đặc, phục vụ lạnh với đá viên.',
-            price: 25000, // VND nguyên, đã gồm VAT — không numeric thập phân, không float.
-          })
-          .returning({ id: product.id });
-        productId = inserted[0].id;
+      // --- products helper ---------------------------------------------------------------
+      interface SeedProductItem {
+        name: string;
+        categoryId: number | null;
+        description: string;
+        price: number;
+        stockQuantity: number;
+        hasImage: boolean;
       }
 
-      // --- product_image --------------------------------------------------------------------
-      // Khoá tra-tồn-tại gồm cả PRODUCT_IMAGE_PATH đã resolve: giả định biến này ỔN ĐỊNH
-      // giữa các lần chạy. Nếu giá trị đổi (ví dụ đổi named volume) giữa hai lần chạy, seed
-      // sẽ chèn thêm một dòng `product_image` thứ hai thay vì nhận ra đó là cùng một ảnh
-      // logic — chấp nhận theo review round 1, không đổi cấu trúc khoá.
-      const existingImage = await tx
-        .select({ id: productImage.id })
-        .from(productImage)
-        .where(and(eq(productImage.productId, productId), eq(productImage.path, imagePath)))
-        .limit(1);
+      const productsToSeed: SeedProductItem[] = [
+        // 1. Sản phẩm gốc thuộc Đồ uống
+        {
+          name: 'Cà phê sữa đá',
+          categoryId: doUongId,
+          description: 'Cà phê phin truyền thống pha cùng sữa đặc, phục vụ lạnh với đá viên.',
+          price: 25000,
+          stockQuantity: 50,
+          hasImage: true,
+        },
+        // 2. Sản phẩm không có Category (category_id = null)
+        {
+          name: 'Sổ tay ghi chép',
+          categoryId: null,
+          description: 'Sổ tay bìa cứng 200 trang phục vụ ghi chép công việc hàng ngày.',
+          price: 45000,
+          stockQuantity: 20,
+          hasImage: false,
+        },
+        // 3. Sản phẩm tiếng Việt có dấu "Bình giữ nhiệt" thuộc Đồ gia dụng
+        {
+          name: 'Bình giữ nhiệt',
+          categoryId: doGiaDungId,
+          description: 'Bình giữ nhiệt inox 304 dung tích 500ml, giữ nhiệt nóng lạnh 12 giờ.',
+          price: 189000,
+          stockQuantity: 35,
+          hasImage: true,
+        },
+        // 4. Sản phẩm hết hàng (stock = 0)
+        {
+          name: 'Bình giữ nhiệt Mini 350ml',
+          categoryId: doGiaDungId,
+          description: 'Bình giữ nhiệt nhỏ gọn tiện lợi mang theo khi đi làm hoặc du lịch.',
+          price: 129000,
+          stockQuantity: 0,
+          hasImage: true,
+        },
+      ];
 
-      if (existingImage.length === 0) {
-        // Ảnh đại diện là bản ghi có `position` nhỏ nhất — 0 cho ảnh mẫu duy nhất này.
-        await tx.insert(productImage).values({ productId, path: imagePath, position: 0 });
+      // Thêm 24 sản phẩm khác vào Đồ gia dụng để Đồ gia dụng có tổng cộng 26 sản phẩm (> 24)
+      for (let i = 1; i <= 24; i++) {
+        productsToSeed.push({
+          name: `Dụng cụ nhà bếp tiện ích #${i}`,
+          categoryId: doGiaDungId,
+          description: `Bộ dụng cụ làm bếp đa năng món số ${i}, thép không gỉ.`,
+          price: 50000 + i * 5000,
+          stockQuantity: 15,
+          hasImage: false,
+        });
       }
 
-      // --- stock -------------------------------------------------------------------------
-      // PK = product_id → ON CONFLICT DO NOTHING là idempotent Ở TẦNG DATABASE.
-      await tx
-        .insert(stock)
-        .values({ productId, quantity: 50, updatedAt: new Date().toISOString() })
-        .onConflictDoNothing({ target: stock.productId });
+      for (const item of productsToSeed) {
+        const prodNormalized = normalizeName(item.name);
+        const existingProd = await tx
+          .select({ id: product.id })
+          .from(product)
+          .where(eq(product.nameNormalized, prodNormalized))
+          .limit(1);
 
-      // KHÔNG insert vào sổ cái tồn kho ở đây — yêu cầu #5 của task-005-brief.md.
+        let pId: number;
+        if (existingProd.length > 0) {
+          pId = existingProd[0].id;
+        } else {
+          const inserted = await tx
+            .insert(product)
+            .values({
+              categoryId: item.categoryId,
+              name: item.name,
+              nameNormalized: prodNormalized,
+              description: item.description,
+              price: item.price,
+            })
+            .returning({ id: product.id });
+          pId = inserted[0].id;
+        }
+
+        if (item.hasImage) {
+          const existingImg = await tx
+            .select({ id: productImage.id })
+            .from(productImage)
+            .where(and(eq(productImage.productId, pId), eq(productImage.path, imagePath)))
+            .limit(1);
+
+          if (existingImg.length === 0) {
+            await tx.insert(productImage).values({ productId: pId, path: imagePath, position: 0 });
+          }
+        }
+
+        // --- stock ---
+        await tx
+          .insert(stock)
+          .values({ productId: pId, quantity: item.stockQuantity, updatedAt: new Date().toISOString() })
+          .onConflictDoNothing({ target: stock.productId });
+      }
     });
 
     // --- tệp ảnh trên đĩa (Ruling R23, T011c) ---------------------------------------------

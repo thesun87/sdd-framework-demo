@@ -58,13 +58,80 @@ export const ProductDetailSchema = z
 export type ProductDetail = z.infer<typeof ProductDetailSchema>;
 
 /**
- * Response của `GET /api/products` — bọc trong `{ items }`, KHÔNG phải mảng trần
- * (contracts/storefront-http.md).
+ * Phân trang cho danh sách sản phẩm (data-model.md §Pagination).
+ */
+export const PaginationSchema = z
+  .object({
+    page: z.int().positive(),
+    pageSize: z.int().positive(),
+    totalItems: z.int().nonnegative(),
+    totalPages: z.int().nonnegative(),
+  })
+  .strict();
+
+export type Pagination = z.infer<typeof PaginationSchema>;
+
+/**
+ * Hằng số và helper giới hạn phân trang (FR-012, FR-013).
+ */
+export const DEFAULT_PAGE = 1;
+export const DEFAULT_PAGE_SIZE = 24;
+export const MAX_PAGE_SIZE = 100;
+
+export function clampPageSize(size?: number): number {
+  if (!size || size < 1) return DEFAULT_PAGE_SIZE;
+  if (size > MAX_PAGE_SIZE) return MAX_PAGE_SIZE;
+  return Math.floor(size);
+}
+
+/**
+ * Thông tin danh mục rút gọn dùng cho sidebar danh mục phẳng (data-model.md §CategorySummary).
+ */
+export const CategorySummarySchema = z
+  .object({
+    id: z.int().positive(),
+    name: z.string().min(1),
+    productCount: z.int().nonnegative(),
+  })
+  .strict();
+
+export type CategorySummary = z.infer<typeof CategorySummarySchema>;
+
+/**
+ * Response của `GET /api/categories` — bọc trong `{ items }`.
+ */
+export const CategoriesListResponseSchema = z
+  .object({
+    items: z.array(CategorySummarySchema),
+  })
+  .strict();
+
+export type CategoriesListResponse = z.infer<typeof CategoriesListResponseSchema>;
+
+/**
+ * Tham số query cho danh sách sản phẩm (data-model.md §ProductListQuery).
+ */
+export const ProductListQuerySchema = z
+  .object({
+    categoryId: z.int().positive().optional(),
+    q: z.string().optional(),
+    page: z.int().positive().optional(),
+    pageSize: z.int().positive().optional(),
+  })
+  .strict();
+
+export type ProductListQuery = z.infer<typeof ProductListQuerySchema>;
+
+/**
+ * Response của `GET /api/products` — bọc trong `{ items, pagination }`, KHÔNG phải mảng trần
+ * (contracts/storefront-http.md). `.strict()` bảo đảm từ chối exact Stock disclosure fields.
  */
 export const ProductsListResponseSchema = z
   .object({
     items: z.array(ProductSummarySchema),
+    pagination: PaginationSchema.optional(),
   })
   .strict();
 
 export type ProductsListResponse = z.infer<typeof ProductsListResponseSchema>;
+

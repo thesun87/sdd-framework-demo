@@ -157,3 +157,28 @@ test.describe("WCAG 2.1 AA (@axe-core/playwright)", () => {
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
   });
 });
+
+test.describe("Feature 001 — Giả định seed data", () => {
+  test("seed data chứa đầy đủ danh mục, sản phẩm không danh mục, tiếng Việt có dấu và hết hàng", async ({
+    request,
+  }) => {
+    const res = await request.get("/api/products");
+    expect(res.ok()).toBe(true);
+    const data = (await res.json()) as { items: Array<{ name: string; stockStatus: string }> };
+    const items = data.items || [];
+    expect(items.length).toBeGreaterThan(0);
+
+    // Có sản phẩm hết hàng
+    const outOfStock = items.find((p) => p.stockStatus === "out_of_stock");
+    expect(outOfStock).toBeDefined();
+
+    // Có sản phẩm tiếng Việt có dấu "Bình giữ nhiệt"
+    const accented = items.find((p) => p.name.includes("Bình giữ nhiệt"));
+    expect(accented).toBeDefined();
+
+    // Có sản phẩm không thuộc danh mục (Sổ tay ghi chép)
+    const uncategorized = items.find((p) => p.name === "Sổ tay ghi chép");
+    expect(uncategorized).toBeDefined();
+  });
+});
+

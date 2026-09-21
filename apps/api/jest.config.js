@@ -18,7 +18,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   rootDir: 'src',
-  testRegex: '\\.(int|race)-spec\\.ts$',
+  testRegex: '\\.(spec|int|race)(-spec)?\\.ts$',
   maxWorkers: 1,
   testTimeout: 30_000,
   // T010 — cho phép Jest require() được `packages/shared` (AD-10: schema hợp đồng HTTP

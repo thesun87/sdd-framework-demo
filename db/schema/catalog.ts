@@ -5,7 +5,7 @@
 // Không cột trạng thái "Ngừng bán" trên `product` — đó là FR-26, thuộc feature `009`.
 
 import { sql } from 'drizzle-orm';
-import { bigint, check, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { bigint, check, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 export const category = pgTable('category', {
   id: bigint('id', { mode: 'number' }).primaryKey().generatedByDefaultAsIdentity(),
@@ -32,7 +32,11 @@ export const product = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [check('product_price_non_negative', sql`${table.price} >= 0`)],
+  (table) => [
+    check('product_price_non_negative', sql`${table.price} >= 0`),
+    index('product_category_id_idx').on(table.categoryId),
+    index('product_name_normalized_idx').on(table.nameNormalized),
+  ],
 );
 
 export const productImage = pgTable('product_image', {

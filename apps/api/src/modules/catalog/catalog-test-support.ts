@@ -47,6 +47,7 @@
 // ─────────────────────────────────────────────────────────────────────────────────────────
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { Pool } from 'pg';
 
 import { AppModule } from '../../app.module';
 
@@ -56,3 +57,104 @@ export async function createTestApp(): Promise<INestApplication> {
   await app.init();
   return app;
 }
+
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/đ/g, 'd')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+export interface SeedCategoryInput {
+  readonly name?: string;
+  readonly nameNormalized?: string;
+}
+
+/**
+ * Tạo một `category` tối thiểu cho integration test.
+ */
+export async function seedCategory(pool: Pool, input: SeedCategoryInput = {}): Promise<number> {
+  const name = input.name ?? `Danh mục test ${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const nameNormalized = input.nameNormalized ?? normalizeName(name);
+  const result = await pool.query<{ id: number }>(
+    `INSERT INTO category (name, name_normalized)
+     VALUES ($1, $2)
+     RETURNING id`,
+    [name, nameNormalized],
+  );
+  return result.rows[0].id;
+}
+
+export interface SeedCatalogProductInput {
+  readonly name?: string;
+  readonly nameNormalized?: string;
+  readonly categoryId?: number | null;
+  readonly description?: string;
+  readonly price?: number;
+}
+
+/**
+ * Tạo một `product` cho catalog test hỗ trợ nullable `category_id`.
+ * NULL means the Product appears in all Products and search, but in no specific Category.
+ */
+export async function seedCatalogProduct(
+  pool: Pool,
+  input: SeedCatalogProductInput = {},
+): Promise<number> {
+  const name = input.name ?? `Sản phẩm test ${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const nameNormalized = input.nameNormalized ?? normalizeName(name);
+  const categoryId = input.categoryId === undefined ? null : input.categoryId;
+  const description = input.description ?? '';
+  const price = input.price ?? 10000;
+
+  const result = await pool.query<{ id: number }>(
+    `INSERT INTO product (category_id, name, name_normalized, description, price)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id`,
+    [categoryId, name, nameNormalized, description, price],
+  );
+  return result.rows[0].id;
+}
+
+export interface SeedProductImageInput {
+  readonly path?: string;
+  readonly position?: number;
+}
+
+/**
+ * Tạo một `product_image` cho product.
+ */
+export async function seedProductImage(
+  pool: Pool,
+  productId: number,
+  input: SeedProductImageInput = {},
+): Promise<number> {
+  const path = input.path ?? `/test-images/product-${productId}.jpg`;
+  const position = input.position ?? 0;
+  const result = await pool.query<{ id: number }>(
+    `INSERT INTO product_image (product_id, path, position)
+     VALUES ($1, $2, $3)
+     RETURNING id`,
+    [productId, path, position],
+  );
+  return result.rows[0].id;
+}
+
+/**
+ * Gán tồn kho cho một product trong integration test.
+ */
+export async function seedCatalogStock(
+  pool: Pool,
+  productId: number,
+  quantity: number,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO stock (product_id, quantity, updated_at)
+     VALUES ($1, $2, now())
+     ON CONFLICT (product_id) DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = now()`,
+    [productId, quantity],
+  );
+}
+

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  CategorySummarySchema,
+  CategoriesListResponseSchema,
+  PaginationSchema,
   ProductDetailSchema,
+  ProductListQuerySchema,
   ProductSummarySchema,
   ProductsListResponseSchema,
   StockStatusSchema,
@@ -95,8 +99,18 @@ describe("ProductDetailSchema", () => {
 });
 
 describe("ProductsListResponseSchema", () => {
-  it("bọc trong { items }, không phải mảng trần", () => {
-    const result = ProductsListResponseSchema.safeParse({ items: [validSummary] });
+  const validPagination = {
+    page: 1,
+    pageSize: 24,
+    totalItems: 1,
+    totalPages: 1,
+  };
+
+  it("bọc trong { items, pagination }, không phải mảng trần", () => {
+    const result = ProductsListResponseSchema.safeParse({
+      items: [validSummary],
+      pagination: validPagination,
+    });
     expect(result.success).toBe(true);
   });
 
@@ -104,4 +118,100 @@ describe("ProductsListResponseSchema", () => {
     const result = ProductsListResponseSchema.safeParse([validSummary]);
     expect(result.success).toBe(false);
   });
+
+  it("từ chối nếu response chứa trường số lượng tồn kho quantity", () => {
+    const result = ProductsListResponseSchema.safeParse({
+      items: [validSummary],
+      pagination: validPagination,
+      quantity: 50,
+    });
+    expect(result.success).toBe(false);
+  });
 });
+
+describe("CategorySummarySchema", () => {
+  const validCategory = {
+    id: 1,
+    name: "Đồ gia dụng",
+    productCount: 26,
+  };
+
+  it("chấp nhận danh mục hợp lệ với id, name, productCount", () => {
+    const result = CategorySummarySchema.safeParse(validCategory);
+    expect(result.success).toBe(true);
+  });
+
+  it("chấp nhận danh mục rỗng có productCount = 0", () => {
+    const result = CategorySummarySchema.safeParse({ ...validCategory, productCount: 0 });
+    expect(result.success).toBe(true);
+  });
+
+  it("từ chối productCount âm hoặc số thập phân", () => {
+    expect(CategorySummarySchema.safeParse({ ...validCategory, productCount: -1 }).success).toBe(false);
+    expect(CategorySummarySchema.safeParse({ ...validCategory, productCount: 1.5 }).success).toBe(false);
+  });
+
+  it("từ chối khi có trường lạ (strict)", () => {
+    expect(CategorySummarySchema.safeParse({ ...validCategory, extra: "invalid" }).success).toBe(false);
+  });
+});
+
+describe("CategoriesListResponseSchema", () => {
+  it("chấp nhận danh sách bọc trong items", () => {
+    const result = CategoriesListResponseSchema.safeParse({
+      items: [{ id: 1, name: "Đồ uống", productCount: 5 }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("từ chối mảng trần", () => {
+    expect(CategoriesListResponseSchema.safeParse([{ id: 1, name: "Đồ uống", productCount: 5 }]).success).toBe(false);
+  });
+});
+
+describe("ProductListQuerySchema", () => {
+  it("chấp nhận query rỗng", () => {
+    const result = ProductListQuerySchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+
+  it("chấp nhận query hợp lệ với categoryId, q, page, pageSize", () => {
+    const result = ProductListQuerySchema.safeParse({
+      categoryId: 2,
+      q: "binh giu nhiet",
+      page: 1,
+      pageSize: 24,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("từ chối categoryId không phải số nguyên dương", () => {
+    expect(ProductListQuerySchema.safeParse({ categoryId: -1 }).success).toBe(false);
+    expect(ProductListQuerySchema.safeParse({ categoryId: 0 }).success).toBe(false);
+  });
+});
+
+describe("PaginationSchema", () => {
+  const validPagination = {
+    page: 1,
+    pageSize: 24,
+    totalItems: 100,
+    totalPages: 5,
+  };
+
+  it("chấp nhận metadata phân trang hợp lệ", () => {
+    expect(PaginationSchema.safeParse(validPagination).success).toBe(true);
+  });
+
+  it("từ chối page hoặc pageSize <= 0", () => {
+    expect(PaginationSchema.safeParse({ ...validPagination, page: 0 }).success).toBe(false);
+    expect(PaginationSchema.safeParse({ ...validPagination, pageSize: 0 }).success).toBe(false);
+  });
+
+  it("chấp nhận totalPages = 0 khi danh sách rỗng", () => {
+    expect(
+      PaginationSchema.safeParse({ page: 1, pageSize: 24, totalItems: 0, totalPages: 0 }).success,
+    ).toBe(true);
+  });
+});
+

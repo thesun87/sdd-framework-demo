@@ -6,17 +6,58 @@
 // lại bất kỳ response API nào (AD-20 nằm ở `api/client.ts`, không phải ở đây).
 
 export type Route =
-  | { type: "home" }
+  | { type: "home"; categoryId?: number; q?: string; page?: number }
   | { type: "product-detail"; id: string }
   | { type: "not-found" };
 
-const PRODUCT_DETAIL_PATTERN = /^\/products\/([^/]+)\/?$/;
+const PRODUCT_DETAIL_PATTERN = /^\/products\/([^/?#]+)\/?$/;
 
-/** Diễn giải một `pathname` thành route — thuần hàm, dễ test không cần DOM. */
-export function parseRoute(pathname: string): Route {
-  if (pathname === "/") {
-    return { type: "home" };
+/** Diễn giải một `pathname` (kèm query nếu có) thành route — thuần hàm, dễ test không cần DOM. */
+export function parseRoute(pathAndQuery: string): Route {
+  const [pathname, search] = pathAndQuery.split("?");
+
+  if (pathname === "/" || pathname === "") {
+    let categoryId: number | undefined;
+    let q: string | undefined;
+    let page: number | undefined;
+
+    if (search) {
+      const params = new URLSearchParams(search);
+      const rawCat = params.get("categoryId");
+      if (rawCat) {
+        const parsed = Number.parseInt(rawCat, 10);
+        if (Number.isInteger(parsed) && parsed > 0) {
+          categoryId = parsed;
+        }
+      }
+
+      const rawQ = params.get("q");
+      if (rawQ) {
+        const trimmed = rawQ.trim();
+        if (trimmed.length > 0) {
+          q = trimmed;
+          // Nonblank search runs across all products and clears category scope
+          categoryId = undefined;
+        }
+      }
+
+      const rawPage = params.get("page");
+      if (rawPage) {
+        const parsed = Number.parseInt(rawPage, 10);
+        if (Number.isInteger(parsed) && parsed >= 1) {
+          page = parsed;
+        }
+      }
+    }
+
+    return {
+      type: "home",
+      ...(categoryId !== undefined ? { categoryId } : {}),
+      ...(q !== undefined ? { q } : {}),
+      ...(page !== undefined ? { page } : {}),
+    };
   }
+
   const match = pathname.match(PRODUCT_DETAIL_PATTERN);
   if (match) {
     return { type: "product-detail", id: decodeURIComponent(match[1]) };
