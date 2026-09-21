@@ -35,7 +35,13 @@ export function App() {
   return (
     <>
       <RouteAnnouncer message={announcement} />
-      {route.type === "home" && <HomePage />}
+      {route.type === "home" && (
+        <HomePage
+          categoryId={route.categoryId}
+          q={route.q}
+          page={route.page}
+        />
+      )}
       {route.type === "product-detail" && <ProductDetailPage id={route.id} />}
       {route.type === "not-found" && (
         <main>

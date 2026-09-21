@@ -15,7 +15,13 @@ import type { Pool } from 'pg';
 import type { storefront } from 'shared';
 
 import { getStockStatus } from '../stock/stock.public';
-import { findAllProductSummaries, findProductById, findProductImages } from './catalog.repository';
+import {
+  findAllCategories,
+  findProductById,
+  findProductImages,
+  findProductSummaries,
+} from './catalog.repository';
+import type { ProductListParsedQuery } from './catalog-query';
 import { ENV, type AppEnv } from './env.provider';
 import { PG_POOL } from './pg-pool.provider';
 
@@ -83,12 +89,26 @@ export class CatalogService {
     return diskPath === null ? null : this.toImageUrl(diskPath);
   }
 
-  /** `GET /api/products` — con số tồn kho chính xác KHÔNG BAO GIỜ đi qua object này
-   *  (FR-007/AD-19): chỉ `stockStatus` (`in_stock`/`out_of_stock`) suy từ `stock.public.ts`. */
-  async listProducts(): Promise<ProductSummaryView[]> {
-    const rows = await findAllProductSummaries(this.pool);
-    return Promise.all(
-      rows.map(async (row): Promise<ProductSummaryView> => ({
+  /** `GET /api/categories` — danh sách danh mục phẳng kèm số lượng sản phẩm (FR-001, FR-005). */
+  async listCategories(): Promise<storefront.CategoriesListResponse> {
+    const rows = await findAllCategories(this.pool);
+    return {
+      items: rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        productCount: r.productCount,
+      })),
+    };
+  }
+
+  /** `GET /api/products` — hỗ trợ lọc theo danh mục, tìm kiếm và phân trang (FR-002, FR-003, FR-011).
+   *  Con số tồn kho chính xác KHÔNG BAO GIỜ đi qua object này (FR-020/AD-19):
+   *  chỉ `stockStatus` (`in_stock`/`out_of_stock`) suy từ `stock.public.ts`. */
+  async listProducts(query?: ProductListParsedQuery): Promise<storefront.ProductsListResponse> {
+    const parsed = query ?? { page: 1, pageSize: 24 };
+    const paginated = await findProductSummaries(this.pool, parsed);
+    const items = await Promise.all(
+      paginated.items.map(async (row): Promise<ProductSummaryView> => ({
         id: row.id,
         name: row.name,
         price: row.price,
@@ -96,6 +116,16 @@ export class CatalogService {
         stockStatus: await getStockStatus(this.pool, row.id),
       })),
     );
+    const totalPages = paginated.totalItems === 0 ? 0 : Math.ceil(paginated.totalItems / parsed.pageSize);
+    return {
+      items,
+      pagination: {
+        page: parsed.page,
+        pageSize: parsed.pageSize,
+        totalItems: paginated.totalItems,
+        totalPages,
+      },
+    };
   }
 
   /** `GET /api/products/:id` — `undefined` khi không có Sản phẩm nào khớp `productId`;

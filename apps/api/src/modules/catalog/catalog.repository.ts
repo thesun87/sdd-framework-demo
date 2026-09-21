@@ -51,12 +51,112 @@ export interface ProductImageRow {
   readonly position: number;
 }
 
+export interface CategorySummaryRow {
+  readonly id: number;
+  readonly name: string;
+  readonly productCount: number;
+}
+
+export interface FindProductSummariesOptions {
+  categoryId?: number;
+  q?: string;
+  page: number;
+  pageSize: number;
+}
+
+export interface PaginatedProductSummaries {
+  items: ProductSummaryRow[];
+  totalItems: number;
+}
+
 /**
- * `GET /api/products` — không phân trang ở `000` (contracts/storefront-http.md). Ảnh đại
- * diện là `product_image` có `position` nhỏ nhất (UX §571, data-model.md); subquery tương
- * quan trả `NULL` tự nhiên khi product chưa có ảnh nào — đúng `imagePath: null` mà
- * Requirement #5 đòi hỏi, không phải chuỗi rỗng. Dùng subquery (không `JOIN`) để một product
- * không có nhiều ảnh chỉ sinh đúng một dòng kết quả.
+ * `GET /api/categories` — danh sách danh mục phẳng kèm số lượng sản phẩm (FR-005).
+ * Đếm toàn bộ sản phẩm thuộc danh mục bất kể tình trạng tồn kho.
+ */
+export async function findAllCategories(pool: Pool): Promise<CategorySummaryRow[]> {
+  const result = await pool.query<{ id: number; name: string; productCount: string | number }>(
+    `SELECT c.id,
+            c.name,
+            COUNT(p.id)::int AS "productCount"
+       FROM category c
+  LEFT JOIN product p ON p.category_id = c.id
+      GROUP BY c.id, c.name
+      ORDER BY c.id ASC`,
+  );
+  return result.rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    productCount: Number(r.productCount),
+  }));
+}
+
+/**
+ * `GET /api/products` — hỗ trợ lọc theo categoryId, q, và phân trang page/pageSize (FR-002, FR-003, FR-011).
+ */
+export async function findProductSummaries(
+  pool: Pool,
+  options: FindProductSummariesOptions,
+): Promise<PaginatedProductSummaries> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  if (options.categoryId !== undefined) {
+    params.push(options.categoryId);
+    conditions.push(`p.category_id = $${params.length}`);
+  }
+
+  if (options.q !== undefined && options.q.trim().length > 0) {
+    const normalized = options.q
+      .toLowerCase()
+      .replace(/đ/g, 'd')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+    params.push(`%${normalized}%`);
+    conditions.push(`p.name_normalized LIKE $${params.length}`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const countResult = await pool.query<{ total: string | number }>(
+    `SELECT COUNT(*)::int AS total FROM product p ${whereClause}`,
+    params,
+  );
+  const totalItems = Number(countResult.rows[0]?.total ?? 0);
+
+  const queryParams = [...params];
+  const offset = (options.page - 1) * options.pageSize;
+  queryParams.push(options.pageSize);
+  const limitPlaceholder = `$${queryParams.length}`;
+  queryParams.push(offset);
+  const offsetPlaceholder = `$${queryParams.length}`;
+
+  const itemsResult = await pool.query<ProductSummaryRow>(
+    `SELECT p.id,
+            p.name,
+            p.price,
+            (
+              SELECT pi.path
+                FROM product_image pi
+               WHERE pi.product_id = p.id
+               ORDER BY pi.position ASC
+               LIMIT 1
+            ) AS "imagePath"
+       FROM product p
+       ${whereClause}
+      ORDER BY p.id ASC
+      LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}`,
+    queryParams,
+  );
+
+  return {
+    items: itemsResult.rows,
+    totalItems,
+  };
+}
+
+/**
+ * `GET /api/products` — không phân trang ở `000` (contracts/storefront-http.md). Giữ lại cho tương thích ngược.
  */
 export async function findAllProductSummaries(pool: Pool): Promise<ProductSummaryRow[]> {
   const result = await pool.query<ProductSummaryRow>(

@@ -182,3 +182,26 @@ test.describe("Feature 001 — Giả định seed data", () => {
   });
 });
 
+test.describe("US1 — duyệt danh mục phẳng (E2E)", () => {
+  test("hiển thị sidebar danh mục phẳng với 'Tất cả sản phẩm', chọn danh mục lọc sản phẩm và xử lý danh mục rỗng", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    // Sidebar có 'Tất cả sản phẩm' và các danh mục từ seed
+    const allLink = page.getByRole("link", { name: /Tất cả sản phẩm/ });
+    await expect(allLink).toBeVisible();
+
+    const doGiaDung = page.getByRole("link", { name: /Đồ gia dụng/ });
+    await expect(doGiaDung).toBeVisible();
+
+    // Bấm vào danh mục 'Thời trang' (danh mục rỗng trong seed)
+    const thoiTrang = page.getByRole("link", { name: /Thời trang/ });
+    await expect(thoiTrang).toBeVisible();
+    await thoiTrang.click();
+
+    await expect(page).toHaveURL(/categoryId=/);
+    await expect(page.getByText("Danh mục này chưa có sản phẩm nào.")).toBeVisible();
+  });
+});
+
+

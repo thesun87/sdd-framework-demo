@@ -12,6 +12,7 @@ import { APP_FILTER } from '@nestjs/core';
 
 import { CatalogController } from './catalog.controller';
 import { CatalogService } from './catalog.service';
+import { CategoriesController } from './categories.controller';
 import { envProvider } from './env.provider';
 import { ErrorEnvelopeFilter } from './error-envelope.filter';
 import { HealthController } from './health.controller';
@@ -22,7 +23,7 @@ import { requestLoggingMiddleware } from './request-logging.middleware';
 @Module({
   // `MetricsController` (T014, Ruling R9) — `/api/internal/metrics`, không liên kết từ
   // storefront, chỉ đo thời lượng (xem metrics.controller.ts).
-  controllers: [CatalogController, HealthController, MetricsController],
+  controllers: [CatalogController, CategoriesController, HealthController, MetricsController],
   providers: [
     envProvider,
     pgPoolProvider,

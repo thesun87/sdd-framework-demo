@@ -74,7 +74,8 @@ function notify(): void {
 
 /** Điều hướng lập trình (dùng bởi `<Link>`), tương đương "chuyển trang" của SPA. */
 export function navigate(path: string): void {
-  if (path === window.location.pathname) return;
+  const current = window.location.pathname + window.location.search;
+  if (path === current) return;
   window.history.pushState({}, "", path);
   notify();
 }
@@ -90,5 +91,5 @@ export function subscribe(listener: Listener): () => void {
 }
 
 export function getPathname(): string {
-  return window.location.pathname;
+  return window.location.pathname + window.location.search;
 }

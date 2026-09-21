@@ -7,9 +7,10 @@
 //
 // Kiểu trả về dùng THẲNG type suy ra từ schema `packages/shared` (AD-10) — không khai lại
 // interface cho hình dạng HTTP.
-import { Controller, Get, Header, Param } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query } from '@nestjs/common';
 import { storefront } from 'shared';
 
+import { parseProductListQuery } from './catalog-query';
 import { CatalogService } from './catalog.service';
 import { ProductNotFoundException } from './product-not-found.exception';
 
@@ -21,14 +22,15 @@ export class CatalogController {
   // nào được phép cache nó.
   @Get()
   @Header('Cache-Control', 'no-store')
-  async list(): Promise<storefront.ProductsListResponse> {
-    const items = await this.catalogService.listProducts();
+  async list(@Query() query: Record<string, unknown>): Promise<storefront.ProductsListResponse> {
+    const parsedQuery = parseProductListQuery(query);
+    const response = await this.catalogService.listProducts(parsedQuery);
     // Fix wave I-2 (final whole-branch review, R28) — chạy response THẬT qua `.parse()` của
     // schema `packages/shared` trước khi trả ra khỏi controller. Đây là điểm DUY NHẤT response
     // rời server, nên là đúng nơi kích hoạt hàng rào `.strict()` (AD-10) Ở TẦNG SẢN XUẤT, không
     // chỉ trong test: nếu một trường lạ (ví dụ `quantity`, FR-007/AD-19) lỡ lọt vào object này,
     // `.parse()` ném lỗi thay vì âm thầm serialise nó ra HTTP.
-    return storefront.ProductsListResponseSchema.parse({ items });
+    return storefront.ProductsListResponseSchema.parse(response);
   }
 
   @Get(':id')

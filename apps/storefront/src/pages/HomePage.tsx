@@ -1,28 +1,62 @@
 import { useEffect, useState } from "react";
 import type { storefront } from "shared";
-import { fetchProducts } from "../api/client.js";
+import { fetchCategories, fetchProducts } from "../api/client.js";
+import { CategorySidebar } from "../components/CategorySidebar.js";
 import { ProductCard } from "../components/ProductCard.js";
 
 type ViewState =
   | { status: "loading" }
-  | { status: "ready"; items: storefront.ProductSummary[] }
+  | { status: "ready"; items: storefront.ProductSummary[]; pagination?: storefront.Pagination }
   | { status: "error"; message: string };
 
+export interface HomePageProps {
+  categoryId?: number;
+  q?: string;
+  page?: number;
+}
+
 /**
- * Trang chủ — lưới sản phẩm. Gọi lại API mỗi lần component được dựng (mount), KHÔNG giữ
- * kết quả trong bất kỳ state/module nào sống qua lần dựng khác — đúng đường "đơn giản nhất
- * là đường đúng" mà AD-20 đòi hỏi (brief mục 7).
+ * Trang chủ — duyệt danh mục phẳng và lưới sản phẩm.
+ * Gọi lại API mỗi lần component được dựng hoặc filter thay đổi (AD-20).
  */
-export function HomePage() {
+export function HomePage(props?: HomePageProps) {
+  const [categories, setCategories] = useState<storefront.CategorySummary[]>([]);
   const [state, setState] = useState<ViewState>({ status: "loading" });
 
   useEffect(() => {
     let cancelled = false;
+    fetchCategories().then((res) => {
+      if (!cancelled && res.kind === "ok") {
+        setCategories(res.data.items);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     setState({ status: "loading" });
-    fetchProducts().then((result) => {
+
+    const trimmedQ = props?.q?.trim();
+    // Clarification 1: Nonblank search clears category scope.
+    // Selecting category clears search keywords.
+    const effectiveQ = props?.categoryId !== undefined ? undefined : trimmedQ;
+    const effectiveCategoryId = effectiveQ ? undefined : props?.categoryId;
+
+    fetchProducts({
+      ...(effectiveCategoryId !== undefined ? { categoryId: effectiveCategoryId } : {}),
+      ...(effectiveQ ? { q: effectiveQ } : {}),
+      ...(props?.page !== undefined ? { page: props.page } : {}),
+    }).then((result) => {
       if (cancelled) return;
       if (result.kind === "ok") {
-        setState({ status: "ready", items: result.data.items });
+        setState({
+          status: "ready",
+          items: result.data.items,
+          pagination: result.data.pagination,
+        });
       } else if (result.kind === "error") {
         setState({ status: "error", message: result.message });
       } else {
@@ -31,56 +65,46 @@ export function HomePage() {
         setState({ status: "error", message: "Phản hồi không như mong đợi." });
       }
     });
+
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  if (state.status === "loading") {
-    return (
-      <main>
-        <h1>Sản phẩm</h1>
-        <p aria-live="polite">Đang tải…</p>
-      </main>
-    );
-  }
-
-  if (state.status === "error") {
-    return (
-      <main>
-        <h1>Sản phẩm</h1>
-        <p role="alert">Đã có lỗi xảy ra: {state.message}</p>
-      </main>
-    );
-  }
-
-  // Lưới rỗng là DANH SÁCH RỖNG, không phải lỗi — không role="alert", không icon lỗi,
-  // không nút thử lại (spec.md §Edge Cases, brief mục 5).
-  if (state.items.length === 0) {
-    return (
-      <main>
-        <h1>Sản phẩm</h1>
-        <p>Danh mục này chưa có sản phẩm nào.</p>
-      </main>
-    );
-  }
+  }, [props?.categoryId, props?.q, props?.page]);
 
   return (
-    <main>
+    <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "16px" }}>
       <h1>Sản phẩm</h1>
-      <ul
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-          gap: "16px",
-          padding: 0,
-          margin: 0,
-        }}
-      >
-        {state.items.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </ul>
+      <div style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
+        <CategorySidebar
+          categories={categories}
+          selectedCategoryId={props?.categoryId}
+        />
+        <section style={{ flex: 1, minWidth: 0 }} aria-label="Danh sách sản phẩm">
+          {state.status === "loading" && <p aria-live="polite">Đang tải…</p>}
+          {state.status === "error" && (
+            <p role="alert">Đã có lỗi xảy ra: {state.message}</p>
+          )}
+          {state.status === "ready" && state.items.length === 0 && (
+            <p>Danh mục này chưa có sản phẩm nào.</p>
+          )}
+          {state.status === "ready" && state.items.length > 0 && (
+            <ul
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                gap: "16px",
+                padding: 0,
+                margin: 0,
+              }}
+            >
+              {state.items.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </main>
   );
 }
+

@@ -59,3 +59,74 @@ describe("HomePage — lưới rỗng là danh sách rỗng, không phải lỗi
     expect(screen.queryByText("Danh mục này chưa có sản phẩm nào.")).toBeNull();
   });
 });
+
+const SAMPLE_CATEGORIES: storefront.CategoriesListResponse = {
+  items: [
+    { id: 1, name: "Đồ gia dụng", productCount: 24 },
+    { id: 2, name: "Thời trang", productCount: 0 },
+  ],
+};
+
+describe("HomePage — FR-001/FR-005: sidebar danh mục phẳng và số lượng sản phẩm", () => {
+  it("render danh sách danh mục phẳng với 'Tất cả sản phẩm' và số lượng sản phẩm", async () => {
+    vi.spyOn(client, "fetchCategories").mockResolvedValue({
+      kind: "ok",
+      data: SAMPLE_CATEGORIES,
+    });
+    vi.spyOn(client, "fetchProducts").mockResolvedValue({
+      kind: "ok",
+      data: { items: [OUT_OF_STOCK_PRODUCT] },
+    });
+
+    render(<HomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Tất cả sản phẩm")).toBeTruthy();
+      expect(screen.getByText("Đồ gia dụng")).toBeTruthy();
+      expect(screen.getByText("24")).toBeTruthy();
+      expect(screen.getByText("Thời trang")).toBeTruthy();
+      expect(screen.getByText("0")).toBeTruthy();
+    });
+  });
+
+  it("chọn danh mục lọc sản phẩm theo categoryId", async () => {
+    const fetchProductsSpy = vi.spyOn(client, "fetchProducts").mockResolvedValue({
+      kind: "ok",
+      data: { items: [OUT_OF_STOCK_PRODUCT] },
+    });
+    vi.spyOn(client, "fetchCategories").mockResolvedValue({
+      kind: "ok",
+      data: SAMPLE_CATEGORIES,
+    });
+
+    render(<HomePage categoryId={1} />);
+
+    await waitFor(() => {
+      expect(fetchProductsSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ categoryId: 1 }),
+      );
+    });
+  });
+
+  it("chọn danh mục xoá từ khoá tìm kiếm theo Clarification 1", async () => {
+    const fetchProductsSpy = vi.spyOn(client, "fetchProducts").mockResolvedValue({
+      kind: "ok",
+      data: { items: [] },
+    });
+    vi.spyOn(client, "fetchCategories").mockResolvedValue({
+      kind: "ok",
+      data: SAMPLE_CATEGORIES,
+    });
+
+    render(<HomePage categoryId={2} />);
+
+    await waitFor(() => {
+      expect(fetchProductsSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ categoryId: 2 }),
+      );
+      const lastCall = fetchProductsSpy.mock.calls[0][0];
+      expect(lastCall?.q).toBeUndefined();
+    });
+  });
+});
+

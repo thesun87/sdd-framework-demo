@@ -23,7 +23,12 @@ import {
   assertRawBodyNeverContainsQuantity,
   pickDistinctiveQuantity,
 } from './catalog-response-assertions';
-import { createTestApp } from './catalog-test-support';
+import {
+  createTestApp,
+  seedCatalogProduct,
+  seedCatalogStock,
+  seedCategory,
+} from './catalog-test-support';
 
 describe('GET /api/products', () => {
   let app: INestApplication;
@@ -110,5 +115,73 @@ describe('GET /api/products', () => {
       ? secondParsed.data.items.find((item) => item.id === productId)
       : undefined;
     expect(secondItem?.stockStatus).toBe('out_of_stock');
+  });
+
+  it('lọc theo categoryId chỉ trả về sản phẩm thuộc danh mục đó (FR-002, FR-003)', async () => {
+    const cat1 = await seedCategory(pool, { name: 'Danh mục 1' });
+    const cat2 = await seedCategory(pool, { name: 'Danh mục 2' });
+
+    const p1 = await seedCatalogProduct(pool, { name: 'Sản phẩm Cat 1', categoryId: cat1 });
+    await seedCatalogStock(pool, p1, 10);
+
+    const p2 = await seedCatalogProduct(pool, { name: 'Sản phẩm Cat 2', categoryId: cat2 });
+    await seedCatalogStock(pool, p2, 5);
+
+    const res = await request(app.getHttpServer()).get(`/api/products?categoryId=${cat1}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('no-store');
+    const parsed = storefront.ProductsListResponseSchema.safeParse(res.body);
+    expect(parsed.success).toBe(true);
+
+    if (parsed.success) {
+      const ids = parsed.data.items.map((i) => i.id);
+      expect(ids).toContain(p1);
+      expect(ids).not.toContain(p2);
+    }
+  });
+
+  it('sản phẩm không có danh mục chỉ xuất hiện ở tất cả sản phẩm, không nằm trong danh mục cụ thể (FR-004)', async () => {
+    const cat = await seedCategory(pool, { name: 'Thời trang' });
+    const pCat = await seedCatalogProduct(pool, { name: 'Áo sơ mi', categoryId: cat });
+    await seedCatalogStock(pool, pCat, 10);
+
+    const pNoCat = await seedCatalogProduct(pool, { name: 'Sổ tay không danh mục', categoryId: null });
+    await seedCatalogStock(pool, pNoCat, 8);
+
+    // Khi gọi tất cả sản phẩm: cả 2 đều xuất hiện
+    const allRes = await request(app.getHttpServer()).get('/api/products');
+    const allParsed = storefront.ProductsListResponseSchema.safeParse(allRes.body);
+    expect(allParsed.success).toBe(true);
+    if (allParsed.success) {
+      const allIds = allParsed.data.items.map((i) => i.id);
+      expect(allIds).toContain(pCat);
+      expect(allIds).toContain(pNoCat);
+    }
+
+    // Khi lọc theo categoryId: sản phẩm không danh mục KHÔNG xuất hiện
+    const catRes = await request(app.getHttpServer()).get(`/api/products?categoryId=${cat}`);
+    const catParsed = storefront.ProductsListResponseSchema.safeParse(catRes.body);
+    expect(catParsed.success).toBe(true);
+    if (catParsed.success) {
+      const catIds = catParsed.data.items.map((i) => i.id);
+      expect(catIds).toContain(pCat);
+      expect(catIds).not.toContain(pNoCat);
+    }
+  });
+
+  it('sản phẩm hết hàng trong danh mục vẫn hiển thị với nhãn out_of_stock (FR-022)', async () => {
+    const cat = await seedCategory(pool, { name: 'Gia dụng' });
+    const pOos = await seedCatalogProduct(pool, { name: 'Bình giữ nhiệt hết hàng', categoryId: cat });
+    await seedCatalogStock(pool, pOos, 0);
+
+    const res = await request(app.getHttpServer()).get(`/api/products?categoryId=${cat}`);
+    const parsed = storefront.ProductsListResponseSchema.safeParse(res.body);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      const item = parsed.data.items.find((i) => i.id === pOos);
+      expect(item).toBeDefined();
+      expect(item?.stockStatus).toBe('out_of_stock');
+    }
   });
 });

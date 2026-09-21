@@ -3,7 +3,7 @@
 // (a) fetch được GỌI LẠI ở mỗi lần gọi — không có gì chặn trước để trả kết quả cũ, và
 // (b) kết quả trả về phản ánh đúng response MỚI NHẤT, không phải response đầu tiên.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchProductDetail, fetchProducts } from "./client.js";
+import { fetchCategories, fetchProductDetail, fetchProducts } from "./client.js";
 
 function jsonResponse(body: unknown, init: { status?: number } = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -60,6 +60,49 @@ describe("fetchProducts — không cache stockStatus qua các lần gọi", () =
       "/api/products",
       expect.objectContaining({ cache: "no-store" }),
     );
+  });
+
+  it("gửi đúng query string khi truyền categoryId, q, page, pageSize", () => {
+    fetchMock.mockResolvedValue(jsonResponse(IN_STOCK_LIST));
+
+    void fetchProducts({ categoryId: 3, page: 2, pageSize: 12 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/products?categoryId=3&page=2&pageSize=12",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+  });
+});
+
+describe("fetchCategories — danh mục phẳng", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("gọi /api/categories với cache: 'no-store' và parse CategoriesListResponseSchema", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        items: [{ id: 1, name: "Đồ gia dụng", productCount: 5 }],
+      }),
+    );
+
+    const result = await fetchCategories();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/categories",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+    expect(result.kind).toBe("ok");
+    if (result.kind === "ok") {
+      expect(result.data.items).toEqual([{ id: 1, name: "Đồ gia dụng", productCount: 5 }]);
+    }
   });
 });
 

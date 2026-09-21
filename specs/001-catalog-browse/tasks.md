@@ -55,19 +55,19 @@
 
 > Write these tests FIRST and verify they fail before implementation.
 
-- [ ] T011 [P] [US1] Add failing API contract tests for `GET /api/categories` in `apps/api/src/modules/catalog/catalog-categories.int-spec.ts`, covering flat `items[]`, `productCount` including out-of-stock Products, empty Categories with `productCount: 0`, no persisted **Tất cả sản phẩm** Category, public Guest access, and no exact Stock fields.
-- [ ] T012 [P] [US1] Add failing API tests for Category-scoped Product lists in `apps/api/src/modules/catalog/catalog-products-list.int-spec.ts`, covering all Products, one Category, uncategorized Products appearing in all Products and search but not in a specific Category, out-of-stock Products visible, `Cache-Control: no-store`, and strict absence of exact Stock.
-- [ ] T013 [P] [US1] Add failing storefront browse tests in `apps/storefront/src/pages/HomePage.test.tsx` for initial **Tất cả sản phẩm**, flat Category list, Category counts, Category selection clearing search state, empty Category copy `Danh mục này chưa có sản phẩm nào.`, and text-visible Stock status.
-- [ ] T014 [P] [US1] Add failing E2E browse scenario in `e2e/storefront-journey.e2e-spec.ts` for Guest access to all Products, populated Category, empty Category, uncategorized Product visibility, and out-of-stock Product visibility.
+- [x] T011 [P] [US1] Add failing API contract tests for `GET /api/categories` in `apps/api/src/modules/catalog/catalog-categories.int-spec.ts`, covering flat `items[]`, `productCount` including out-of-stock Products, empty Categories with `productCount: 0`, no persisted **Tất cả sản phẩm** Category, public Guest access, and no exact Stock fields.
+- [x] T012 [P] [US1] Add failing API tests for Category-scoped Product lists in `apps/api/src/modules/catalog/catalog-products-list.int-spec.ts`, covering all Products, one Category, uncategorized Products appearing in all Products and search but not in a specific Category, out-of-stock Products visible, `Cache-Control: no-store`, and strict absence of exact Stock.
+- [x] T013 [P] [US1] Add failing storefront browse tests in `apps/storefront/src/pages/HomePage.test.tsx` for initial **Tất cả sản phẩm**, flat Category list, Category counts, Category selection clearing search state, empty Category copy `Danh mục này chưa có sản phẩm nào.`, and text-visible Stock status.
+- [x] T014 [P] [US1] Add failing E2E browse scenario in `e2e/storefront-journey.e2e-spec.ts` for Guest access to all Products, populated Category, empty Category, uncategorized Product visibility, and out-of-stock Product visibility.
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Implement Category read queries in `apps/api/src/modules/catalog/catalog.repository.ts` for flat Categories where Category `id` is `Internal positive integer identity`, Category `name` is `Required display name`, Category has `no parent or child Category in v1`, and Category count reflects Products visible in that Category regardless of Stock status.
-- [ ] T016 [US1] Extend catalog service browse behaviour in `apps/api/src/modules/catalog/catalog.service.ts` so all Products, one Category, Product `imagePath`, and Stock status are composed without direct `stock` or Stock ledger table reads.
-- [ ] T017 [US1] Add public `GET /api/categories` handling in `apps/api/src/modules/catalog/categories.controller.ts` and register it in `apps/api/src/modules/catalog/catalog.module.ts`, with no login redirect and no exact Stock fields.
-- [ ] T018 [US1] Extend storefront API calls in `apps/storefront/src/api/client.ts` to fetch Categories and Product lists with optional `categoryId`, validating responses through `packages/shared` schemas and using `cache: "no-store"`.
-- [ ] T019 [US1] Create accessible Category navigation in `apps/storefront/src/components/CategorySidebar.tsx` with **Tất cả sản phẩm** as a UI root, flat Category entries, product counts, selected state, and text that does not introduce non-canonical Category synonyms.
-- [ ] T020 [US1] Integrate Category navigation and scoped Product grid rendering in `apps/storefront/src/pages/HomePage.tsx`, preserving Guest access, out-of-stock Product visibility, uncategorized Product semantics, and the empty Category copy.
+- [x] T015 [US1] Implement Category read queries in `apps/api/src/modules/catalog/catalog.repository.ts` for flat Categories where Category `id` is `Internal positive integer identity`, Category `name` is `Required display name`, Category has `no parent or child Category in v1`, and Category count reflects Products visible in that Category regardless of Stock status.
+- [x] T016 [US1] Extend catalog service browse behaviour in `apps/api/src/modules/catalog/catalog.service.ts` so all Products, one Category, Product `imagePath`, and Stock status are composed without direct `stock` or Stock ledger table reads.
+- [x] T017 [US1] Add public `GET /api/categories` handling in `apps/api/src/modules/catalog/categories.controller.ts` and register it in `apps/api/src/modules/catalog/catalog.module.ts`, with no login redirect and no exact Stock fields.
+- [x] T018 [US1] Extend storefront API calls in `apps/storefront/src/api/client.ts` to fetch Categories and Product lists with optional `categoryId`, validating responses through `packages/shared` schemas and using `cache: "no-store"`.
+- [x] T019 [US1] Create accessible Category navigation in `apps/storefront/src/components/CategorySidebar.tsx` with **Tất cả sản phẩm** as a UI root, flat Category entries, product counts, selected state, and text that does not introduce non-canonical Category synonyms.
+- [x] T020 [US1] Integrate Category navigation and scoped Product grid rendering in `apps/storefront/src/pages/HomePage.tsx`, preserving Guest access, out-of-stock Product visibility, uncategorized Product semantics, and the empty Category copy.
 
 **Checkpoint**: User Story 1 is independently functional and testable.
 

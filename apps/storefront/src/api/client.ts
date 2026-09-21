@@ -35,11 +35,53 @@ function fetchNoStore(path: string): Promise<Response> {
   });
 }
 
-/** `GET /api/products` — lưới trang chủ. */
-export async function fetchProducts(): Promise<FetchResult<ProductsListResponse>> {
+/** `GET /api/categories` — danh sách danh mục phẳng cho sidebar. */
+export async function fetchCategories(): Promise<FetchResult<storefront.CategoriesListResponse>> {
   let response: Response;
   try {
-    response = await fetchNoStore("/api/products");
+    response = await fetchNoStore("/api/categories");
+  } catch {
+    return { kind: "error", message: "Không thể kết nối tới máy chủ." };
+  }
+  if (!response.ok) {
+    return { kind: "error", message: `Máy chủ trả lỗi (HTTP ${response.status}).` };
+  }
+  const json: unknown = await response.json();
+  const parsed = storefront.CategoriesListResponseSchema.safeParse(json);
+  if (!parsed.success) {
+    return { kind: "error", message: "Dữ liệu danh mục từ máy chủ không đúng định dạng." };
+  }
+  return { kind: "ok", data: parsed.data };
+}
+
+/** `GET /api/products` — lưới trang chủ. */
+export async function fetchProducts(
+  query?: storefront.ProductListQuery,
+): Promise<FetchResult<ProductsListResponse>> {
+  let url = "/api/products";
+  if (query) {
+    const params = new URLSearchParams();
+    if (query.categoryId !== undefined) {
+      params.set("categoryId", String(query.categoryId));
+    }
+    if (query.q !== undefined && query.q.trim().length > 0) {
+      params.set("q", query.q.trim());
+    }
+    if (query.page !== undefined) {
+      params.set("page", String(query.page));
+    }
+    if (query.pageSize !== undefined) {
+      params.set("pageSize", String(query.pageSize));
+    }
+    const qs = params.toString();
+    if (qs.length > 0) {
+      url = `${url}?${qs}`;
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetchNoStore(url);
   } catch {
     return { kind: "error", message: "Không thể kết nối tới máy chủ." };
   }
