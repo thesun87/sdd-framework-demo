@@ -75,9 +75,9 @@
 
 **Independent Test**: Log in, call `POST /api/auth/logout`, verify session row is deleted in PostgreSQL, cookie is expired (`Max-Age=0`), and subsequent `GET /api/auth/me` returns Guest state.
 
-- [ ] T013 [P] [US3] Add failing API integration tests in `apps/api/src/modules/identity/auth-logout.int-spec.ts` for session deletion and cookie clearing (FR-011).
-- [ ] T014 [US3] Implement logout endpoint in `identity.service.ts` and `identity.controller.ts` (FR-011).
-- [ ] T015 [US3] Connect logout button in `apps/storefront/src/components/AuthHeader.tsx` to call logout API and update storefront state to Guest.
+- [x] T013 [P] [US3] Add failing API integration tests in `apps/api/src/modules/identity/auth-logout.int-spec.ts` for session deletion and cookie clearing (FR-011).
+- [x] T014 [US3] Implement logout endpoint in `identity.service.ts` and `identity.controller.ts` (FR-011).
+- [x] T015 [US3] Connect logout button in `apps/storefront/src/components/AuthHeader.tsx` to call logout API and update storefront state to Guest.
 
 **Checkpoint**: User Stories 1, 2, and 3 functional.
 

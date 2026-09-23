@@ -37,4 +37,33 @@ describe("AuthHeader — trạng thái tài khoản trên storefront", () => {
       expect(screen.getByText("khach@example.com")).toBeTruthy();
     });
   });
+
+  it("bấm nút Đăng xuất gọi api logout và chuyển về trạng thái Guest (FR-011)", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        account: { id: 1, email: "khach@example.com", role: "customer" },
+      },
+    });
+    const logoutSpy = vi.spyOn(authClient, "logout").mockResolvedValueOnce({
+      kind: "ok",
+      data: { success: true },
+    });
+
+    const { fireEvent } = await import("@testing-library/react");
+    render(<AuthHeader />);
+
+    await waitFor(() => {
+      expect(screen.getByText("khach@example.com")).toBeTruthy();
+    });
+
+    const logoutBtn = screen.getByRole("button", { name: "Đăng xuất" });
+    fireEvent.click(logoutBtn);
+
+    await waitFor(() => {
+      expect(logoutSpy).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("link", { name: "Đăng nhập" })).toBeTruthy();
+      expect(screen.queryByText("khach@example.com")).toBeNull();
+    });
+  });
 });
