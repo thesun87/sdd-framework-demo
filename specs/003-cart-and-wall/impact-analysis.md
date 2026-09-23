@@ -99,7 +99,7 @@
 - **Không đụng**: `db/schema/**`, `db/migrations/**` (AD-17: không bảng giỏ), `apps/backoffice`,
   `apps/api/src/modules/identity/**` (trừ khi plan chứng minh cần), `ops/Caddyfile`.
 
-## 4. Affected contracts
+## Affected contracts
 
 - **API mới (Trang bán hàng)**: một đường đọc theo lô cho các dòng giỏ, ví dụ
   `POST /api/cart/lines/status` hoặc `GET /api/products?ids=…` — hình dạng và path do
