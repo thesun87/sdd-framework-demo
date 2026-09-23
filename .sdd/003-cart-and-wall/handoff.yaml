@@ -1,0 +1,70 @@
+feature_id: 003-cart-and-wall
+track: B
+generated_at: '2026-09-23T22:28:06+07:00'
+constitution:
+  path: .specify/memory/constitution.md
+  git_sha: e810319c63d7ceee3e272530e4c6395002b32824
+spec:
+  path: specs/003-cart-and-wall/spec.md
+  git_sha: 37c439b0cebae30c4cfec9ccd277309030f1341f
+plan:
+  path: specs/003-cart-and-wall/plan.md
+  git_sha: 37c439b0cebae30c4cfec9ccd277309030f1341f
+tasks:
+  path: specs/003-cart-and-wall/tasks.md
+  git_sha: 37c439b0cebae30c4cfec9ccd277309030f1341f
+execution:
+  engine: superpowers
+  mode: subagent-driven-development
+policy:
+  allow_replan: false
+  allow_spec_change: false
+  allow_architecture_change: false
+  require_tdd: true
+  require_task_review: true
+  require_code_quality_review: true
+  require_final_verification: true
+  require_convergence: true
+  require_characterization_tests: true
+  require_regression_suite: true
+verification:
+  source: docs/baseline/verification.md
+  commands:
+    test: npm test
+    lint: npm run lint
+    regression: npm run test:regression
+    build: npm run build
+context:
+  include:
+  - constitution
+  - glossary
+  - feature_spec
+  - implementation_plan
+  - current_task
+  - relevant_dependencies
+  - codebase_context
+  - impact_analysis_relevant_sections
+  exclude:
+  - full_prd
+  - full_architecture_document
+  - unrelated_tasks
+  - unrelated_features
+  - full_chat_history
+  - unrelated_repository_context
+  - full_repository
+  - unrelated_modules
+baseline:
+  architecture:
+    path: docs/baseline/architecture.md
+    git_sha: 78ba21cb431cd9c871915ba07f43b41a669042c8
+  glossary:
+    path: docs/baseline/glossary.md
+    git_sha: 78ba21cb431cd9c871915ba07f43b41a669042c8
+  prd:
+    path: docs/baseline/prd.md
+    git_sha: 78ba21cb431cd9c871915ba07f43b41a669042c8
+impact_analysis:
+  path: specs/003-cart-and-wall/impact-analysis.md
+  git_sha: 37c439b0cebae30c4cfec9ccd277309030f1341f
+codebase_context:
+  path: .sdd/003-cart-and-wall/codebase-context.md
