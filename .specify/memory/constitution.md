@@ -1,10 +1,20 @@
+<!--
+Sync Impact Report — v1.0.1 → v1.1.0 (MINOR), 2026-09-23
+- Thêm: §VII "Người quyết, agent được thực hiện thay khi có phê duyệt".
+- Sửa: §I (baseline_id không còn ghi cứng), §III (ai sửa verification.md), §IV (bảng sở hữu),
+  Quy ước nhánh (cột "Ai được ghi"), Governance bước 3 (tách người phê duyệt / bên thực hiện).
+- Không gỡ nguyên tắc nào. Quyền QUYẾT ĐỊNH vẫn chỉ thuộc người có tên; chỉ quyền THỰC HIỆN mở rộng.
+- Artifact phải bám theo: CLAUDE.md §3 (cập nhật cùng nhánh). Baseline không đổi.
+- Phê duyệt: Tuan Nguyen, 2026-09-23 ("Sửa lại hiến pháp những chỗ có human thì chỉ cần human
+  approve thì AI được quyền làm thay"). Thực hiện: agent Claude Code.
+-->
 # Shop Online Constitution
 
 ## Core Principles
 
 ### I. Baseline tối thượng (NON-NEGOTIABLE)
 
-Baseline đã đóng băng (`docs/baseline/**` tại `baseline_id: baseline-0001-ecommerce`)
+Baseline đã đóng băng (`docs/baseline/**` tại `baseline_id` hiện hành ghi trong `docs/baseline/baseline-freeze.yaml`)
 là nguồn sự thật duy nhất về *sản phẩm phải làm gì* và *kiến trúc cho phép làm thế nào*.
 
 - `spec.md` là artifact **dẫn xuất**: nó được phép tinh chỉnh và phân rã một `FR-xxx`
@@ -45,7 +55,7 @@ Sau đó không artifact hạ nguồn nào còn kiểm chứng được, vì kh�
 - Agent chạy bốn lệnh đó **nguyên văn**. Một task **KHÔNG** được tự đặt lệnh test riêng để
   báo xanh.
 - Khi một bất biến cần test mà lệnh hiện tại không chạy tới, **sửa `verification.md`**
-  (trên nhánh `baseline/*`, do người) — không bỏ test, không viết lệnh cục bộ.
+  (trên nhánh `baseline/*`, do người hoặc do agent theo §VII) — không bỏ test, không viết lệnh cục bộ.
 - Mỗi lệnh có hai nửa: nửa **glue** (`scripts/`, `tests/`) luôn chạy; nửa **sản phẩm**
   (`apps/*`, `packages/*`, `e2e/`) chạy theo workspace thật sự tồn tại. Kể từ khi feature 000
   merge, một lần chạy báo `SKIPPED` ở nửa sản phẩm là **thất bại**, không phải thành công —
@@ -64,7 +74,7 @@ Sau đó không artifact hạ nguồn nào còn kiểm chứng được, vì kh�
   Chiều phụ thuộc giữa các module là **luật** (đồ thị ở `architecture.md` § Design Paradigm);
   thêm một mũi tên tạo chu trình là một thay đổi kiến trúc, không phải một task.
 - Bảng sở hữu artifact được ép, không phải gợi ý: `docs/baseline/**` chỉ sửa trên `baseline/*`
-  bởi người; file này chỉ sửa trên `governance/*`; `specs/<feature>/spec.md` và `plan.md` chỉ do
+  bởi người hoặc bởi agent theo §VII; file này chỉ sửa trên `governance/*`; `specs/<feature>/spec.md` và `plan.md` chỉ do
   lệnh Spec Kit ghi.
 
 ### V. Từ vựng đóng
@@ -94,6 +104,32 @@ mới sai. Lưu ý giới hạn đã biết: constitution được `/speckit-pla
   Nest 11 mà hệ này chạy.
 - Migration: `drizzle-kit generate` + `migrate`. **`push` bị cấm** (AD-25), không có ngoại lệ
   cho môi trường local.
+
+### VII. Người quyết, agent được thực hiện thay khi có phê duyệt
+
+Mọi chỗ trong baseline, file này hay `CLAUDE.md` ghi một việc là "của người" — sửa
+`docs/baseline/**`, đóng băng baseline, sửa `feature-map.md` hay `verification.md`, tu chính
+file này — tách thành hai phần: **quyết định** và **thực hiện**.
+
+- **Quyết định luôn thuộc một người có tên.** Nội dung thay đổi, lựa chọn giữa các phương án,
+  và việc chấp nhận một rủi ro không bao giờ do agent tự đưa ra.
+- **Thực hiện được giao cho agent** khi đủ cả bốn điều kiện:
+  1. Một người có tên đã **phê duyệt tường minh đúng thay đổi đó** trong phiên làm việc. Một
+     phê duyệt chung chung từ trước ("cứ làm hết") không đủ cho một thay đổi chưa được nêu ra.
+  2. Agent làm trên **đúng nhánh** luật yêu cầu (`baseline/*`, `governance/*`) và theo đúng thủ
+     tục của việc đó (đóng băng lại, tăng `baseline_id`, Sync Impact Report…). Phê duyệt không
+     miễn trừ thủ tục.
+  3. **Ghi vết:** commit message và bản ghi liên quan (`baseline-freeze.yaml`, Sync Impact
+     Report) ghi `approved_by: <tên người>` và `executed_by: agent`. Các trường `frozen_by`,
+     `approved_by` luôn là tên người, không bao giờ là agent.
+  4. Gặp một lựa chọn mà người chưa đưa ra, agent **DỪNG và hỏi** — không lấp bằng phán đoán
+     của mình rồi coi như đã được duyệt.
+- Nguyên tắc này **không** nới cổng nào khác: TDD, bốn lệnh kiểm chứng, phạm vi task, và luật
+  "`spec.md`/`plan.md` chỉ do lệnh Spec Kit ghi" giữ nguyên.
+
+*Lý do:* giá trị của việc "người làm" nằm ở chỗ một người chịu trách nhiệm cho quyết định,
+không nằm ở việc tay người gõ phím. Giữ người ở quyết định và ghi vết ai làm gì thì giữ được
+trách nhiệm đó, mà không bắt người chép tay những bản sửa agent đã soạn sẵn.
 
 ## Ràng buộc kỹ thuật
 
@@ -160,8 +196,8 @@ review. Các lệnh bị cấm liệt kê ở `CLAUDE.md` §1 là cấm tuyệt 
 
 | Tiền tố | Dùng cho | Ai được ghi |
 | --- | --- | --- |
-| `baseline/*` | `docs/baseline/**` | Người (+ BMAD trên nhánh này) |
-| `governance/*` | `.specify/memory/constitution.md` | Người |
+| `baseline/*` | `docs/baseline/**` | Người, hoặc agent khi người đã duyệt (§VII); BMAD trên nhánh này |
+| `governance/*` | `.specify/memory/constitution.md` | Người, hoặc agent khi người đã duyệt (§VII) |
 | `NNN-slug` | Một feature — khớp tên thư mục `specs/<feature>/` | Spec Kit + Superpowers |
 | `chore/*` | Nâng cấp bộ công cụ, cấu hình repo | Bất kỳ |
 
@@ -210,7 +246,8 @@ của file này, phải sửa bằng một bản tu chính.
 
 1. Đề xuất nêu rõ: nguyên tắc nào đổi, vì sao, và điều gì hỏng nếu giữ nguyên.
 2. Thực hiện trên nhánh `governance/*`. Không bao giờ trên feature branch.
-3. Người có tên phê duyệt. Không phải "the team", không phải một agent.
+3. Người có tên phê duyệt. Không phải "the team", không phải một agent. Việc sửa file, commit
+   và merge có thể do agent thực hiện theo §VII.
 4. Nếu bản tu chính làm lệch một artifact baseline, sửa baseline **trước** và đóng băng lại;
    file này bám theo baseline, không kéo baseline theo nó.
 5. Merge kèm Sync Impact Report trong mô tả MR.
@@ -227,4 +264,4 @@ vượt mức phải được biện minh tại chỗ trong `plan.md`, nêu rõ 
 và vì sao. Hướng dẫn vận hành lúc chạy nằm ở `CLAUDE.md`; nó diễn giải file này và không được
 mâu thuẫn với nó.
 
-**Version**: 1.0.1 | **Ratified**: 2026-09-19 | **Last Amended**: 2026-09-19
+**Version**: 1.1.0 | **Ratified**: 2026-09-19 | **Last Amended**: 2026-09-23
