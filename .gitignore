@@ -32,3 +32,6 @@ node_modules/
 dist/
 e2e/test-results/
 e2e/playwright-report/
+# Playwright chạy từ gốc repo cũng sinh hai thư mục này ở gốc.
+/test-results/
+/playwright-report/
