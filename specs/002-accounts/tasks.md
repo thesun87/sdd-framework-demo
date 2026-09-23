@@ -61,9 +61,9 @@
 
 **Independent Test**: Register an account, log in with valid credentials via `POST /api/auth/login`, verify session cookie is set, verify invalid credentials return HTTP 401 anti-disclosure message, and verify `GET /api/auth/me` returns the Customer.
 
-- [ ] T010 [P] [US2] Add failing API integration tests in `apps/api/src/modules/identity/auth-login.int-spec.ts` for valid login, invalid credentials anti-disclosure (401), sliding idle expiration check, and `GET /api/auth/me` (FR-006, FR-007, FR-009, FR-014).
-- [ ] T011 [US2] Implement login and current-user endpoints in `identity.service.ts` and `identity.controller.ts` with session persistence in PostgreSQL (FR-006, FR-007, FR-009).
-- [ ] T012 [P] [US2] Add storefront login page in `apps/storefront/src/pages/LoginPage.tsx` and header auth state in `apps/storefront/src/components/AuthHeader.tsx` with tests in `apps/storefront/src/pages/LoginPage.test.tsx`.
+- [x] T010 [P] [US2] Add failing API integration tests in `apps/api/src/modules/identity/auth-login.int-spec.ts` for valid login, invalid credentials anti-disclosure (401), sliding idle expiration check, and `GET /api/auth/me` (FR-006, FR-007, FR-009, FR-014).
+- [x] T011 [US2] Implement login and current-user endpoints in `identity.service.ts` and `identity.controller.ts` with session persistence in PostgreSQL (FR-006, FR-007, FR-009).
+- [x] T012 [P] [US2] Add storefront login page in `apps/storefront/src/pages/LoginPage.tsx` and header auth state in `apps/storefront/src/components/AuthHeader.tsx` with tests in `apps/storefront/src/pages/LoginPage.test.tsx`.
 
 **Checkpoint**: User Stories 1 and 2 functional and independently testable.
 
