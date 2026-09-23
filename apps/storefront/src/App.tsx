@@ -4,6 +4,7 @@ import { parseRoute, type Route } from "./router/router.js";
 import { usePathname } from "./router/usePathname.js";
 import { HomePage } from "./pages/HomePage.js";
 import { ProductDetailPage } from "./pages/ProductDetailPage.js";
+import { RegisterPage } from "./pages/RegisterPage.js";
 
 /** Nội dung đọc cho screen reader mỗi lần route đổi — SPA không có ranh giới tải trang nào
  * làm việc này thay (brief mục 10); `RouteAnnouncer` (packages/ui) chỉ hiển thị, storefront
@@ -14,6 +15,10 @@ function announcementFor(route: Route): string {
       return "Đã chuyển đến trang chủ.";
     case "product-detail":
       return "Đã chuyển đến trang chi tiết sản phẩm.";
+    case "register":
+      return "Đã chuyển đến trang đăng ký tài khoản.";
+    case "login":
+      return "Đã chuyển đến trang đăng nhập.";
     case "not-found":
       return "Không tìm thấy trang.";
   }
@@ -43,6 +48,7 @@ export function App() {
         />
       )}
       {route.type === "product-detail" && <ProductDetailPage id={route.id} />}
+      {route.type === "register" && <RegisterPage />}
       {route.type === "not-found" && (
         <main>
           <h1>Không tìm thấy trang</h1>

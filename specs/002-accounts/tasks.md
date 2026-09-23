@@ -21,8 +21,8 @@
 
 **Purpose**: Prepare reusable fixture data and test helpers for accounts and authentication.
 
-- [ ] T001 [P] Extend database seed in `db/seed.ts` to pre-seed the single Shop owner account with role `shop_owner` from environment variables `SHOP_OWNER_EMAIL` and `SHOP_OWNER_PASSWORD` (FR-012, FR-013).
-- [ ] T002 [P] Create auth test fixtures and helpers in `apps/api/src/modules/identity/identity-test-support.ts` and `apps/storefront/src/test/authFixtures.ts` for accounts, passwords, sessions, and cookies.
+- [x] T001 [P] Extend database seed in `db/seed.ts` to pre-seed the single Shop owner account with role `shop_owner` from environment variables `SHOP_OWNER_EMAIL` and `SHOP_OWNER_PASSWORD` (FR-012, FR-013).
+- [x] T002 [P] Create auth test fixtures and helpers in `apps/api/src/modules/identity/identity-test-support.ts` and `apps/storefront/src/test/authFixtures.ts` for accounts, passwords, sessions, and cookies.
 
 ---
 
@@ -32,10 +32,10 @@
 
 **⚠️ CRITICAL**: No user story implementation can begin until this phase is complete.
 
-- [ ] T003 [P] Add failing shared schema tests in `packages/shared/src/storefront/auth.test.ts` and implement Zod schemas in `packages/shared/src/storefront/auth.ts` and `packages/shared/src/index.ts` for `AccountSummary`, `RegisterRequest`, `LoginRequest`, `AuthResponse`, and `CurrentUserResponse` (FR-002, FR-005).
-- [ ] T004 [P] Add append-only database schema in `db/schema/identity.ts` and generate migrations in `db/migrations/` for `account`, `session`, and `failed_login_attempt` tables (FR-008, FR-010, FR-014).
-- [ ] T005 [P] Implement `scrypt` password hashing and verification in `apps/api/src/modules/identity/password-hasher.ts` with unit tests in `apps/api/src/modules/identity/password-hasher.spec.ts` using constant-time comparison (FR-008).
-- [ ] T006 Implement identity repository in `apps/api/src/modules/identity/identity.repository.ts` for account creation, lookup by normalized email, session CRUD, and failed attempt counting.
+- [x] T003 [P] Add failing shared schema tests in `packages/shared/src/storefront/auth.test.ts` and implement Zod schemas in `packages/shared/src/storefront/auth.ts` and `packages/shared/src/index.ts` for `AccountSummary`, `RegisterRequest`, `LoginRequest`, `AuthResponse`, and `CurrentUserResponse` (FR-002, FR-005).
+- [x] T004 [P] Add append-only database schema in `db/schema/identity.ts` and generate migrations in `db/migrations/` for `account`, `session`, and `failed_login_attempt` tables (FR-008, FR-010, FR-014).
+- [x] T005 [P] Implement `scrypt` password hashing and verification in `apps/api/src/modules/identity/password-hasher.ts` with unit tests in `apps/api/src/modules/identity/password-hasher.spec.ts` using constant-time comparison (FR-008).
+- [x] T006 Implement identity repository in `apps/api/src/modules/identity/identity.repository.ts` for account creation, lookup by normalized email, session CRUD, and failed attempt counting.
 
 **Checkpoint**: Foundation ready — user story implementation can now proceed.
 
@@ -47,9 +47,9 @@
 
 **Independent Test**: Call `POST /api/auth/register` with valid credentials, verify HTTP 201 + `Set-Cookie: shop_session=...`, verify account row created with hashed password, and verify `/api/auth/me` returns the new Customer.
 
-- [ ] T007 [P] [US1] Add failing API integration tests in `apps/api/src/modules/identity/auth-register.int-spec.ts` for successful registration, duplicate email rejection (409), password length validation (400), and immediate session cookie issuance (FR-001, FR-002, FR-003, FR-004, FR-005).
-- [ ] T008 [US1] Implement registration endpoint and service logic in `apps/api/src/modules/identity/identity.service.ts` and `apps/api/src/modules/identity/identity.controller.ts` with cookie setting `shop_session` (FR-001, FR-004).
-- [ ] T009 [P] [US1] Add storefront registration page in `apps/storefront/src/pages/RegisterPage.tsx` and auth client methods in `apps/storefront/src/api/auth-client.ts`, with tests in `apps/storefront/src/pages/RegisterPage.test.tsx`.
+- [x] T007 [P] [US1] Add failing API integration tests in `apps/api/src/modules/identity/auth-register.int-spec.ts` for successful registration, duplicate email rejection (409), password length validation (400), and immediate session cookie issuance (FR-001, FR-002, FR-003, FR-004, FR-005).
+- [x] T008 [US1] Implement registration endpoint and service logic in `apps/api/src/modules/identity/identity.service.ts` and `apps/api/src/modules/identity/identity.controller.ts` with cookie setting `shop_session` (FR-001, FR-004).
+- [x] T009 [P] [US1] Add storefront registration page in `apps/storefront/src/pages/RegisterPage.tsx` and auth client methods in `apps/storefront/src/api/auth-client.ts`, with tests in `apps/storefront/src/pages/RegisterPage.test.tsx`.
 
 **Checkpoint**: User Story 1 functional and independently testable.
 

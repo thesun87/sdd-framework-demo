@@ -21,11 +21,13 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
+import { randomBytes, scrypt } from 'node:crypto';
+
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-import { category, product, productImage, stock } from './schema/index.js';
+import { account, category, product, productImage, stock } from './schema/index.js';
 import { storefront } from 'shared';
 
 // Thư mục chứa file này (`db/`) — dùng để định vị `db/assets/ca-phe-sua-da.jpg` không phụ
@@ -73,6 +75,20 @@ const productImagePath = process.env.PRODUCT_IMAGE_PATH ?? '/data/product-images
  */
 function normalizeName(name: string): string {
   return storefront.normalizeProductName(name);
+}
+
+/**
+ * Băm mật khẩu tài khoản seed bằng crypto.scrypt (D-1, FR-008).
+ */
+async function hashSeedPassword(password: string): Promise<string> {
+  const salt = randomBytes(16);
+  const derivedKey = await new Promise<Buffer>((resolve, reject) => {
+    scrypt(password, salt, 64, { N: 16384, r: 8, p: 1 }, (err, key) => {
+      if (err) reject(err);
+      else resolve(key as Buffer);
+    });
+  });
+  return `scrypt$N=16384$${salt.toString('hex')}$${derivedKey.toString('hex')}`;
 }
 
 async function main(): Promise<void> {
@@ -234,6 +250,25 @@ async function main(): Promise<void> {
           .insert(stock)
           .values({ productId: pId, quantity: item.stockQuantity, updatedAt: new Date().toISOString() })
           .onConflictDoNothing({ target: stock.productId });
+      }
+
+      // --- Shop owner account (FR-012, FR-013, FR-33) -----------------------------------
+      const shopOwnerEmail = (process.env.SHOP_OWNER_EMAIL ?? 'owner@example.com').trim().toLowerCase();
+      const shopOwnerPassword = process.env.SHOP_OWNER_PASSWORD ?? 'ShopOwner123!';
+
+      const existingOwner = await tx
+        .select({ id: account.id })
+        .from(account)
+        .where(eq(account.role, 'shop_owner'))
+        .limit(1);
+
+      if (existingOwner.length === 0) {
+        const passwordHash = await hashSeedPassword(shopOwnerPassword);
+        await tx.insert(account).values({
+          email: shopOwnerEmail,
+          passwordHash,
+          role: 'shop_owner',
+        });
       }
     });
 

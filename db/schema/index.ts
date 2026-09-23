@@ -3,3 +3,4 @@
 
 export * from './catalog.js';
 export * from './stock.js';
+export * from './identity.js';
