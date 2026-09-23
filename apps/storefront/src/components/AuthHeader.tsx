@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import type { storefront } from "shared";
 import { getCurrentUser, logout } from "../api/auth-client.js";
 import { navigate } from "../router/router.js";
+import { usePathname } from "../router/usePathname.js";
 
 export interface AuthHeaderProps {
   onLogout?: () => void;
 }
 
 export function AuthHeader({ onLogout }: AuthHeaderProps) {
+  const pathname = usePathname();
   const [account, setAccount] = useState<storefront.AccountSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -24,7 +26,7 @@ export function AuthHeader({ onLogout }: AuthHeaderProps) {
 
   useEffect(() => {
     fetchAuth();
-  }, []);
+  }, [pathname]);
 
   const handleLogout = async () => {
     await logout();

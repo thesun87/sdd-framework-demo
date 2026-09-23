@@ -110,9 +110,9 @@
 
 **Purpose**: Module wiring, E2E journey, and four-command verification.
 
-- [ ] T019 Register `IdentityModule` in `apps/api/src/app.module.ts` and verify logging middleware and error envelope filters apply to all auth routes.
-- [ ] T020 [P] Create Playwright E2E journey in `e2e/auth-journey.e2e-spec.ts` testing registration, login, navigation across storefront with persistent session, logout, and rate limiting lockout.
-- [ ] T021 Run and verify all four commands from `docs/baseline/verification.md`: `npm test`, `npm run lint`, `npm run test:regression`, `npm run build`.
+- [x] T019 Register `IdentityModule` in `apps/api/src/app.module.ts` and verify logging middleware and error envelope filters apply to all auth routes.
+- [x] T020 [P] Create Playwright E2E journey in `e2e/auth-journey.e2e-spec.ts` testing registration, login, navigation across storefront with persistent session, logout, and rate limiting lockout.
+- [x] T021 Run and verify all four commands from `docs/baseline/verification.md`: `npm test`, `npm run lint`, `npm run test:regression`, `npm run build`.
 
 ---
 
