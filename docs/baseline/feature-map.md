@@ -1,10 +1,11 @@
 # Feature Map
 
-**Human-owned.** Agents read this; they never write it.
+**Human-owned.** Agents read this; they write it only to execute a change a named
+human has explicitly approved (constitution §VII, `approved_by` + `executed_by` recorded).
 
 > **Ngoại lệ đã ghi nhận:** bảng dưới đây do `bmad-architecture` soạn ngày
 > 2026-09-19 và được Tuan Nguyen duyệt trước khi ghi. Mọi thay đổi sau này quay
-> về luật trên: người sửa, agent đọc.
+> về luật trên: người quyết, agent chỉ ghi khi người đã duyệt (constitution §VII).
 
 Each entry is a vertical slice stated as an *outcome*, not a solution.
 Rules (setup guide Appendix B #4):

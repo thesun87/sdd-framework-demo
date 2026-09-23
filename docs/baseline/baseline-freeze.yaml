@@ -6,11 +6,12 @@
 #
 # Do not set status to `frozen` until a named human has actually read and
 # accepted every artifact listed under `artifacts`.
-baseline_id: baseline-0001-ecommerce
+baseline_id: baseline-0002-ecommerce
 status: frozen          # draft | frozen | superseded
-frozen_at: 2026-09-19 16:04:00
+frozen_at: 2026-09-23 18:00:00
 frozen_by: Tuan Nguyen # a real human name — not "the team", not an agent
-supersedes: null
+supersedes: baseline-0001-ecommerce
+executed_by: agent (Claude Code), on approval of Tuan Nguyen 2026-09-23 — constitution §VII
 
 artifacts:
   product_brief: docs/baseline/product-brief.md
