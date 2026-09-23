@@ -102,7 +102,7 @@
 
 **Independent Test**: Verify seed creates the Shop owner account. Attempt registration with `role: "shop_owner"` and verify rejection or forced `customer` role.
 
-- [ ] T018 [P] [US5] Add API integration tests in `apps/api/src/modules/identity/auth-shop-owner.int-spec.ts` verifying Shop owner login, role disclosure on `/api/auth/me`, and rejection of public admin registration (FR-012, FR-013).
+- [x] T018 [P] [US5] Add API integration tests in `apps/api/src/modules/identity/auth-shop-owner.int-spec.ts` verifying Shop owner login, role disclosure on `/api/auth/me`, and rejection of public admin registration (FR-012, FR-013).
 
 ---
 
