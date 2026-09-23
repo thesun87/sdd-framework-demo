@@ -2,7 +2,7 @@
 title: "PRD: Shop Online"
 status: curated
 created: 2026-09-18
-updated: 2026-09-19
+updated: 2026-09-23
 curated_from: 'planning-artifacts/prds/prd-sdd-framework-demo-2026-09-18/prd.md'
 curated_at: '2026-09-19'
 curated_by: 'Claude Opus 5, theo chỉ đạo của Tuan Nguyen'
@@ -37,6 +37,7 @@ người quyết định phạm vi (Tuan Nguyen) ghi nhận ngày 2026-09-19, ho
 | §9.3 | Gỡ `[ASSUMPTION]`; mốc 12 tháng được chốt; thêm đường xoá theo yêu cầu | Q3a, Q3b |
 | §11.1 | Năm câu chặn đã đóng | Q3, Q4, Q5, Q9, Q10 |
 | §12 | Gỡ các giả định đã thành quyết định | — |
+| §4.3 FR-6 | *(2026-09-23, `baseline-0002`)* Dòng vượt tồn kho được đánh dấu bằng trạng thái cấp dòng, **không** nêu "số lượng còn bán được" — khớp AD-19 | Quyết định D1, `specs/003-cart-and-wall/impact-analysis.md`; ADR-0001 |
 
 **Chưa giải quyết, cố ý:** ba xung đột mà `architecture.md` nêu ra vẫn còn — FR-8 so với
 quyết định giỏ hàng ở `localStorage`, `verification.md` không chạy tới code sản phẩm, và
@@ -214,7 +215,7 @@ Khách chưa đăng ký và khách hàng thêm sản phẩm vào giỏ, đổi s
 - Thêm một sản phẩm đã có trong giỏ làm tăng số lượng dòng đó, không tạo dòng thứ hai.
 - Đặt số lượng về 0 tương đương xoá dòng.
 - Số lượng âm hoặc không phải số nguyên bị từ chối.
-- **Số lượng vượt tồn kho hiện tại được phép** — giỏ hàng không giữ chỗ (FR-7) nên nó cũng không phán xét; việc kiểm tra thuộc về FR-14. Nhưng giỏ **phải đánh dấu đúng những dòng** đang vượt tồn kho, nêu rõ số lượng còn bán được.
+- **Số lượng vượt tồn kho hiện tại được phép** — giỏ hàng không giữ chỗ (FR-7) nên nó cũng không phán xét; việc kiểm tra thuộc về FR-14. Nhưng giỏ **phải đánh dấu đúng những dòng** đang vượt tồn kho, bằng một **trạng thái cấp dòng** do máy chủ tính từ (sản phẩm, số lượng) — **không nêu con số tồn kho** (`architecture.md` AD-19, ADR-0001).
 - Giỏ hiển thị tổng tiền hàng; **chưa** gồm phí giao hàng (phí chỉ tồn tại sau khi đơn được đặt — FR-20).
 
 **Sản phẩm thay đổi khi đang nằm trong giỏ:**

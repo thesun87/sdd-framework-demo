@@ -1,6 +1,7 @@
 # Verification Contract
 
-**Human-owned.** This is the single source of truth for "is it done?".
+**Human-owned** — changed only on a human's decision; an agent may execute an approved
+change (constitution §VII). This is the single source of truth for "is it done?".
 `scripts/sdd/sdd_handoff.py` parses the fenced block below into
 `handoff.yaml → verification.commands`, and the validator enforces it:
 
