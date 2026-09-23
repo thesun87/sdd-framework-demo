@@ -89,8 +89,8 @@
 
 **Independent Test**: Send 10 failed login attempts on an identifier within 15 minutes. Verify the 11th attempt returns HTTP 429 even with correct password. Verify successful login resets the failed counter.
 
-- [ ] T016 [P] [US4] Add failing API integration tests in `apps/api/src/modules/identity/auth-rate-limit.int-spec.ts` for 10-attempt lockout trigger, lockout duration, and reset upon successful login (FR-010).
-- [ ] T017 [US4] Implement sliding rate limit check in `identity.service.ts` recording and querying `failed_login_attempt` in PostgreSQL (FR-010).
+- [x] T016 [P] [US4] Add failing API integration tests in `apps/api/src/modules/identity/auth-rate-limit.int-spec.ts` for 10-attempt lockout trigger, lockout duration, and reset upon successful login (FR-010).
+- [x] T017 [US4] Implement sliding rate limit check in `identity.service.ts` recording and querying `failed_login_attempt` in PostgreSQL (FR-010).
 
 **Checkpoint**: Brute-force protection verified.
 
