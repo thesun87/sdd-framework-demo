@@ -12,8 +12,9 @@
 import { Module } from '@nestjs/common';
 
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { IdentityModule } from './modules/identity/identity.module';
 
 @Module({
-  imports: [CatalogModule],
+  imports: [CatalogModule, IdentityModule],
 })
 export class AppModule {}

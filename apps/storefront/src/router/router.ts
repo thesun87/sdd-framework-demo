@@ -8,6 +8,8 @@
 export type Route =
   | { type: "home"; categoryId?: number; q?: string; page?: number }
   | { type: "product-detail"; id: string }
+  | { type: "register" }
+  | { type: "login" }
   | { type: "not-found" };
 
 const PRODUCT_DETAIL_PATTERN = /^\/products\/([^/?#]+)\/?$/;
@@ -56,6 +58,14 @@ export function parseRoute(pathAndQuery: string): Route {
       ...(q !== undefined ? { q } : {}),
       ...(page !== undefined ? { page } : {}),
     };
+  }
+
+  if (pathname === "/register") {
+    return { type: "register" };
+  }
+
+  if (pathname === "/login") {
+    return { type: "login" };
   }
 
   const match = pathname.match(PRODUCT_DETAIL_PATTERN);
