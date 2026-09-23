@@ -75,14 +75,20 @@ In Track C, use `superpowers:systematic-debugging`,
 ## 3. Files you must never modify
 
 - `docs/baseline/**` — the frozen product baseline. Human + BMAD only,
-  and only on a `baseline/*` branch.
-- `.specify/memory/constitution.md` — governance branch only.
+  and only on a `baseline/*` branch — **or** an agent executing a change a named
+  human explicitly approved, per constitution §VII.
+- `.specify/memory/constitution.md` — governance branch only; same §VII rule.
 - `specs/<feature>/spec.md`, `plan.md` — Spec Kit commands only.
 - `specs/<feature>/tasks.md` — Spec Kit only, except convergence-appended tasks.
 - `_bmad/**`, `.specify/scripts/**`, `.specify/templates/**` — installer-managed.
 
 If implementation conflicts with any of these, STOP and report the conflict.
 Do not resolve a requirement or architecture disagreement by editing code or docs.
+
+**Constitution §VII:** the human *decides*; the agent may *execute* a human-owned
+change once a named human has approved that specific change. Execute it on the
+right branch, follow its full procedure, record `approved_by: <human>` and
+`executed_by: agent`, and stop to ask at any choice the human has not made.
 
 ## 4. Naming
 
