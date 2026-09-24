@@ -48,4 +48,13 @@ describe("App — RouteAnnouncer thật sự được nối vào điều hướn
     // Điều hướng thật (History API), không chỉ đổi state cục bộ.
     expect(window.location.pathname).toBe("/products/1");
   });
+
+  it('đổi nội dung vùng role="status" khi điều hướng tới /cart', async () => {
+    window.history.pushState({}, "", "/cart");
+    render(<App />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Đã chuyển đến trang giỏ hàng."),
+    );
+  });
 });

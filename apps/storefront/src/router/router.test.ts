@@ -40,6 +40,10 @@ describe("parseRoute", () => {
     expect(parseRoute("/products/1")).toEqual({ type: "product-detail", id: "1" });
   });
 
+  it("'/cart' là trang giỏ hàng", () => {
+    expect(parseRoute("/cart")).toEqual({ type: "cart" });
+  });
+
   it("đường dẫn không khớp là not-found", () => {
     expect(parseRoute("/khong-ton-tai")).toEqual({ type: "not-found" });
   });

@@ -6,6 +6,7 @@ import { HomePage } from "./pages/HomePage.js";
 import { ProductDetailPage } from "./pages/ProductDetailPage.js";
 import { RegisterPage } from "./pages/RegisterPage.js";
 import { LoginPage } from "./pages/LoginPage.js";
+import { CartPage } from "./pages/CartPage.js";
 import { AuthHeader } from "./components/AuthHeader.js";
 
 /** Nội dung đọc cho screen reader mỗi lần route đổi — SPA không có ranh giới tải trang nào
@@ -21,6 +22,8 @@ function announcementFor(route: Route): string {
       return "Đã chuyển đến trang đăng ký tài khoản.";
     case "login":
       return "Đã chuyển đến trang đăng nhập.";
+    case "cart":
+      return "Đã chuyển đến trang giỏ hàng.";
     case "not-found":
       return "Không tìm thấy trang.";
   }
@@ -53,6 +56,7 @@ export function App() {
       {route.type === "product-detail" && <ProductDetailPage id={route.id} />}
       {route.type === "register" && <RegisterPage />}
       {route.type === "login" && <LoginPage />}
+      {route.type === "cart" && <CartPage />}
       {route.type === "not-found" && (
         <main>
           <h1>Không tìm thấy trang</h1>

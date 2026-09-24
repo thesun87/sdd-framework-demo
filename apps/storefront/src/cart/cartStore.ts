@@ -204,6 +204,8 @@ class CartStore {
     if (current.unavailable) return;
 
     const updated = current.lines.filter((l) => l.productId !== productId);
+    if (updated.length === current.lines.length) return;
+
     if (writeToStorage(updated)) {
       this.notify();
     } else {
@@ -219,6 +221,8 @@ class CartStore {
 
     const toDrop = new Set(productIds);
     const updated = current.lines.filter((l) => !toDrop.has(l.productId));
+    if (updated.length === current.lines.length) return;
+
     if (writeToStorage(updated)) {
       this.notify();
     } else {
