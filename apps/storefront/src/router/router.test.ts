@@ -44,6 +44,36 @@ describe("parseRoute", () => {
     expect(parseRoute("/cart")).toEqual({ type: "cart" });
   });
 
+  it("'/place-order' là trang đặt đơn", () => {
+    expect(parseRoute("/place-order")).toEqual({ type: "place-order" });
+  });
+
+  it("'/login?returnTo=/place-order' phân giải returnTo an toàn", () => {
+    expect(parseRoute("/login?returnTo=/place-order")).toEqual({
+      type: "login",
+      returnTo: "/place-order",
+    });
+  });
+
+  it("'/login?returnTo=//evil.com' loại bỏ returnTo không an toàn", () => {
+    expect(parseRoute("/login?returnTo=//evil.com")).toEqual({
+      type: "login",
+    });
+  });
+
+  it("'/register?returnTo=/place-order' phân giải returnTo an toàn", () => {
+    expect(parseRoute("/register?returnTo=/place-order")).toEqual({
+      type: "register",
+      returnTo: "/place-order",
+    });
+  });
+
+  it("'/register?returnTo=https://evil.com' loại bỏ returnTo không an toàn", () => {
+    expect(parseRoute("/register?returnTo=https://evil.com")).toEqual({
+      type: "register",
+    });
+  });
+
   it("đường dẫn không khớp là not-found", () => {
     expect(parseRoute("/khong-ton-tai")).toEqual({ type: "not-found" });
   });

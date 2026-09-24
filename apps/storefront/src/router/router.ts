@@ -5,12 +5,15 @@
 // Đây KHÔNG phải nơi cache dữ liệu — router chỉ theo dõi `location.pathname`, không giữ
 // lại bất kỳ response API nào (AD-20 nằm ở `api/client.ts`, không phải ở đây).
 
+import { safeReturnPath } from "./safeReturnPath.js";
+
 export type Route =
   | { type: "home"; categoryId?: number; q?: string; page?: number }
   | { type: "product-detail"; id: string }
-  | { type: "register" }
-  | { type: "login" }
+  | { type: "register"; returnTo?: string }
+  | { type: "login"; returnTo?: string }
   | { type: "cart" }
+  | { type: "place-order" }
   | { type: "not-found" };
 
 const PRODUCT_DETAIL_PATTERN = /^\/products\/([^/?#]+)\/?$/;
@@ -62,15 +65,29 @@ export function parseRoute(pathAndQuery: string): Route {
   }
 
   if (pathname === "/register") {
-    return { type: "register" };
+    const params = search ? new URLSearchParams(search) : null;
+    const returnTo = safeReturnPath(params?.get("returnTo"));
+    return {
+      type: "register",
+      ...(returnTo ? { returnTo } : {}),
+    };
   }
 
   if (pathname === "/login") {
-    return { type: "login" };
+    const params = search ? new URLSearchParams(search) : null;
+    const returnTo = safeReturnPath(params?.get("returnTo"));
+    return {
+      type: "login",
+      ...(returnTo ? { returnTo } : {}),
+    };
   }
 
   if (pathname === "/cart") {
     return { type: "cart" };
+  }
+
+  if (pathname === "/place-order") {
+    return { type: "place-order" };
   }
 
   const match = pathname.match(PRODUCT_DETAIL_PATTERN);
