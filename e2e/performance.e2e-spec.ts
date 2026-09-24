@@ -10,6 +10,8 @@
 // File này là file MỚI DUY NHẤT được thêm vào `e2e/` (Ruling R8b) — không sửa
 // `security-headers.e2e-spec.ts`/`storefront-journey.e2e-spec.ts` (T013 sở hữu).
 import { test, expect } from "@playwright/test";
+import pg from "pg";
+const { Pool } = pg;
 
 /**
  * p95 kiểu "nearest-rank": sắp tăng dần rồi lấy phần tử ở vị trí ceil(0.95 * n) − 1 (0-based).
@@ -169,5 +171,109 @@ test.describe("US3 — phân trang danh sách lớn và hiệu năng (T031)", ()
       await expect(page.getByRole("navigation", { name: "Phân trang" })).toBeVisible();
       await expect(page.getByText(/Trang 2 \//)).toBeVisible();
     }
+  });
+});
+
+test.describe.serial("SC-007 — hiệu năng giỏ hàng 20 dòng (PRD §8, SC-007)", () => {
+  const databaseUrl = process.env.DATABASE_URL ?? "postgres://app:app@localhost:5432/shop";
+  let pool: pg.Pool;
+  let fixtureProductIds: number[] = [];
+
+  test.beforeAll(async () => {
+    pool = new Pool({ connectionString: databaseUrl });
+    fixtureProductIds = [];
+    for (let i = 1; i <= 20; i++) {
+      const name = `Fixture Perf Product ${i} ${Date.now()}`;
+      const res = await pool.query<{ id: number }>(
+        `INSERT INTO product (name, name_normalized, description, price)
+         VALUES ($1, $1, '', 10000)
+         RETURNING id`,
+        [name],
+      );
+      const pid = Number(res.rows[0].id);
+      fixtureProductIds.push(pid);
+      await pool.query(
+        `INSERT INTO stock (product_id, quantity, updated_at)
+         VALUES ($1, 50, now())`,
+        [pid],
+      );
+    }
+  });
+
+  test.afterAll(async () => {
+    if (fixtureProductIds.length > 0) {
+      await pool.query(`DELETE FROM stock WHERE product_id = ANY($1)`, [fixtureProductIds]);
+      await pool.query(`DELETE FROM product WHERE id = ANY($1)`, [fixtureProductIds]);
+    }
+    await pool.end();
+  });
+
+  test("30 lần điều hướng tới /cart với giỏ hàng 20 dòng đạt p95 ≤ 1500ms", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+
+    const cartPayload = {
+      v: 1,
+      lines: fixtureProductIds.map((id) => ({ productId: id, quantity: 1 })),
+    };
+    await page.goto("/");
+    await page.evaluate(
+      (payload) => localStorage.setItem("shop_cart", JSON.stringify(payload)),
+      cartPayload,
+    );
+
+    const durationsMs: number[] = [];
+    for (let i = 0; i < 30; i += 1) {
+      const startedAt = Date.now();
+      const response = await page.goto("/cart", { waitUntil: "load" });
+      durationsMs.push(Date.now() - startedAt);
+      expect(response?.status()).toBe(200);
+      await expect(page.getByRole("heading", { level: 1, name: "Giỏ hàng" })).toBeVisible();
+    }
+
+    const measuredP95 = p95(durationsMs);
+    // eslint-disable-next-line no-console
+    console.log(
+      `[SC-007][trang giỏ hàng 20 dòng] n=${durationsMs.length} p95=${measuredP95.toFixed(1)}ms ` +
+        `min=${Math.min(...durationsMs).toFixed(1)}ms max=${Math.max(...durationsMs).toFixed(1)}ms`,
+    );
+
+    expect(
+      measuredP95,
+      `p95 giỏ hàng 20 dòng đo được ${measuredP95.toFixed(1)}ms, vượt ngưỡng 1500ms`,
+    ).toBeLessThanOrEqual(1500);
+  });
+
+  test("50 lần gọi POST /api/cart-lines/status với 20 dòng đạt p95 ≤ 400ms", async ({
+    request,
+  }) => {
+    test.setTimeout(60_000);
+
+    const payload = {
+      lines: fixtureProductIds.map((id) => ({ productId: id, quantity: 1 })),
+    };
+
+    const durationsMs: number[] = [];
+    for (let i = 0; i < 50; i += 1) {
+      const startedAt = Date.now();
+      const response = await request.post("/api/cart-lines/status", {
+        data: payload,
+      });
+      durationsMs.push(Date.now() - startedAt);
+      expect(response.status()).toBe(200);
+    }
+
+    const measuredP95 = p95(durationsMs);
+    // eslint-disable-next-line no-console
+    console.log(
+      `[SC-007][POST /api/cart-lines/status 20 dòng] n=${durationsMs.length} p95=${measuredP95.toFixed(1)}ms ` +
+        `min=${Math.min(...durationsMs).toFixed(1)}ms max=${Math.max(...durationsMs).toFixed(1)}ms`,
+    );
+
+    expect(
+      measuredP95,
+      `p95 API POST /api/cart-lines/status 20 dòng đo được ${measuredP95.toFixed(1)}ms, vượt ngưỡng 400ms`,
+    ).toBeLessThanOrEqual(400);
   });
 });
