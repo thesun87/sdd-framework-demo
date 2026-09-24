@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { storefront } from "shared";
+import { QuantityStepper } from "ui";
 import { useCart } from "../cart/useCart.js";
 import { useCurrentAccount } from "../api/useCurrentAccount.js";
 import { fetchCartLineStatuses } from "../api/cart-client.js";
@@ -8,11 +9,12 @@ import { Link } from "../router/Link.js";
 
 export function CartPage() {
   const role = useCurrentAccount();
-  const { lines, unavailable, dropUnknown } = useCart();
+  const { lines, unavailable, dropUnknown, setQuantity, remove } = useCart();
   const [lineStatuses, setLineStatuses] = useState<
     Map<number, storefront.CartLineStatusResponseItem>
   >(new Map());
   const [checkError, setCheckError] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
 
   useEffect(() => {
     // Khi đang xác thực tài khoản hoặc là chủ shop thì không kiểm tra giỏ hàng (FR-018)
@@ -87,10 +89,32 @@ export function CartPage() {
     );
   }
 
+  const liveRegion = (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      style={{
+        position: "absolute",
+        width: "1px",
+        height: "1px",
+        padding: 0,
+        margin: "-1px",
+        overflow: "hidden",
+        clip: "rect(0, 0, 0, 0)",
+        whiteSpace: "nowrap",
+        border: 0,
+      }}
+    >
+      {announcement}
+    </div>
+  );
+
   // Giỏ hàng rỗng
   if (lines.length === 0) {
     return (
       <main style={{ maxWidth: "800px", margin: "0 auto", padding: "24px 16px" }}>
+        {liveRegion}
         <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "16px" }}>Giỏ hàng</h1>
         <p style={{ margin: "16px 0" }}>Giỏ hàng của bạn đang trống.</p>
         <Link
@@ -116,8 +140,25 @@ export function CartPage() {
     }
   }
 
+  const handleQuantityChange = (productId: number, newQty: number, productName: string) => {
+    if (newQty <= 0) {
+      remove(productId);
+      setAnnouncement(`Đã xoá ${productName} khỏi giỏ hàng.`);
+    } else {
+      setQuantity(productId, newQty);
+      setAnnouncement(`Đã cập nhật số lượng ${productName}.`);
+    }
+  };
+
+  const handleRemove = (productId: number, productName: string) => {
+    remove(productId);
+    setAnnouncement(`Đã xoá ${productName} khỏi giỏ hàng.`);
+  };
+
   return (
     <main style={{ maxWidth: "800px", margin: "0 auto", padding: "24px 16px" }}>
+      {liveRegion}
+
       <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>Giỏ hàng</h1>
 
       {checkError && (
@@ -132,6 +173,7 @@ export function CartPage() {
           const product = status?.product;
           const currentPrice = product?.price ?? 0;
           const lineTotal = currentPrice * line.quantity;
+          const productName = product?.name ?? `Sản phẩm #${line.productId}`;
 
           return (
             <li
@@ -158,7 +200,7 @@ export function CartPage() {
               ) : (
                 <div
                   role="img"
-                  aria-label={`${product?.name ?? "Sản phẩm"} — chưa có ảnh`}
+                  aria-label={`${productName} — chưa có ảnh`}
                   style={{
                     width: "80px",
                     height: "80px",
@@ -170,12 +212,40 @@ export function CartPage() {
 
               <div style={{ flex: 1 }}>
                 <h2 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 4px" }}>
-                  {product?.name ?? `Sản phẩm #${line.productId}`}
+                  {productName}
                 </h2>
                 <div style={{ color: "#4B5563", fontSize: "14px", margin: "0 0 8px" }}>
                   Đơn giá: {formatPriceVnd(currentPrice)}
                 </div>
-                <div style={{ fontSize: "14px" }}>Số lượng: {line.quantity}</div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px" }}>
+                  <QuantityStepper
+                    value={line.quantity}
+                    productName={productName}
+                    onChange={(newQty) => handleQuantityChange(line.productId, newQty, productName)}
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Xoá ${productName} khỏi giỏ hàng`}
+                    onClick={() => handleRemove(line.productId, productName)}
+                    style={{
+                      minWidth: "44px",
+                      minHeight: "44px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "none",
+                      border: "none",
+                      color: "#DC2626",
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                      fontSize: "14px",
+                      padding: "8px",
+                    }}
+                  >
+                    Xoá
+                  </button>
+                </div>
               </div>
 
               <div style={{ textAlign: "right", minWidth: "120px" }}>

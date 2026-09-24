@@ -5,3 +5,7 @@ export type { StockStatus, StockStatusLabelProps } from "./StockStatusLabel.js";
 
 export { RouteAnnouncer } from "./RouteAnnouncer.js";
 export type { RouteAnnouncerProps } from "./RouteAnnouncer.js";
+
+export { QuantityStepper } from "./QuantityStepper.js";
+export type { QuantityStepperProps } from "./QuantityStepper.js";
+

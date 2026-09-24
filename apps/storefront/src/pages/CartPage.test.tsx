@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CartPage } from "./CartPage.js";
 import { cartStore } from "../cart/cartStore.js";
 import * as cartClient from "../api/cart-client.js";
@@ -239,5 +239,115 @@ describe("CartPage (T007 - US1)", () => {
     await screen.findByText("Cà phê sữa đá");
     expect(screen.getAllByText("60.000₫").length).toBe(2);
     expect(screen.getByText(/30\.000₫/)).toBeTruthy();
+  });
+});
+
+describe("CartPage — chỉnh sửa số lượng và xoá dòng (T008 - US2)", () => {
+  it("chỉnh sửa số lượng tăng/giảm re-check qua API và phát thông báo aria-live 'Đã cập nhật số lượng {tên}.'", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    const fetchSpy = vi.spyOn(cartClient, "fetchCartLineStatuses").mockResolvedValue({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOkFixture({
+            productId: 1,
+            lineStatus: "ok",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByText("Cà phê sữa đá");
+
+    // Bấm nút tăng số lượng
+    const incBtn = screen.getByRole("button", { name: /Tăng số lượng Cà phê sữa đá/ });
+    fireEvent.click(incBtn);
+
+    // cartStore được cập nhật thành 3
+    expect(cartStore.getSnapshot().lines).toEqual([{ productId: 1, quantity: 3 }]);
+
+    // fetchCartLineStatuses được gọi lại với quantity = 3
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith([{ productId: 1, quantity: 3 }]);
+    });
+
+    // Thông báo aria-live
+    expect(await screen.findByText("Đã cập nhật số lượng Cà phê sữa đá.")).toBeTruthy();
+  });
+
+  it("chỉnh sửa số lượng về 0 xoá dòng khỏi giỏ hàng và thông báo 'Đã xoá {tên} khỏi giỏ hàng.'", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 1);
+
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockResolvedValue({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOkFixture({
+            productId: 1,
+            lineStatus: "ok",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByText("Cà phê sữa đá");
+
+    // Giảm số lượng từ 1 về 0
+    const decBtn = screen.getByRole("button", { name: /Giảm số lượng Cà phê sữa đá/ });
+    fireEvent.click(decBtn);
+
+    // Dòng bị xoá khỏi giỏ
+    expect(cartStore.getSnapshot().lines).toEqual([]);
+    // Thông báo xoá
+    expect(await screen.findByText("Đã xoá Cà phê sữa đá khỏi giỏ hàng.")).toBeTruthy();
+  });
+
+  it("bấm nút Xoá không hiện hộp thoại xác nhận (FR-005) và thông báo 'Đã xoá {tên} khỏi giỏ hàng.'", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockResolvedValue({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOkFixture({
+            productId: 1,
+            lineStatus: "ok",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    const confirmSpy = vi.spyOn(window, "confirm");
+
+    render(<CartPage />);
+    await screen.findByText("Cà phê sữa đá");
+
+    const deleteBtn = screen.getByRole("button", { name: /Xoá Cà phê sữa đá/i });
+    fireEvent.click(deleteBtn);
+
+    // Không có confirm dialog nào
+    expect(confirmSpy).not.toHaveBeenCalled();
+    // Giỏ hàng trống
+    expect(cartStore.getSnapshot().lines).toEqual([]);
+    // Thông báo xoá
+    expect(await screen.findByText("Đã xoá Cà phê sữa đá khỏi giỏ hàng.")).toBeTruthy();
   });
 });
