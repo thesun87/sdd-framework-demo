@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { App } from "./App.js";
 import * as client from "./api/client.js";
+import * as authClient from "./api/auth-client.js";
 
 afterEach(() => {
   cleanup();
@@ -55,6 +56,34 @@ describe("App — RouteAnnouncer thật sự được nối vào điều hướn
 
     await waitFor(() =>
       expect(screen.getByRole("status").textContent).toBe("Đã chuyển đến trang giỏ hàng."),
+    );
+  });
+
+  it('thông báo "Bạn cần một tài khoản để đặt đơn." khi Guest điều hướng tới /place-order (T013, US5)', async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    window.history.pushState({}, "", "/place-order");
+    render(<App />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Bạn cần một tài khoản để đặt đơn."),
+    );
+  });
+
+  it('thông báo "Đã chuyển đến trang đặt đơn." khi Customer điều hướng tới /place-order (T013, US5)', async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: {
+        account: { id: 1, email: "khach@example.com", role: "customer" },
+      },
+    });
+    window.history.pushState({}, "", "/place-order");
+    render(<App />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Đã chuyển đến trang đặt đơn."),
     );
   });
 });

@@ -7,12 +7,14 @@ import { ProductDetailPage } from "./pages/ProductDetailPage.js";
 import { RegisterPage } from "./pages/RegisterPage.js";
 import { LoginPage } from "./pages/LoginPage.js";
 import { CartPage } from "./pages/CartPage.js";
+import { PlaceOrderPage } from "./pages/PlaceOrderPage.js";
 import { AuthHeader } from "./components/AuthHeader.js";
+import { useCurrentAccount, type CurrentAccountRole } from "./api/useCurrentAccount.js";
 
 /** Nội dung đọc cho screen reader mỗi lần route đổi — SPA không có ranh giới tải trang nào
  * làm việc này thay (brief mục 10); `RouteAnnouncer` (packages/ui) chỉ hiển thị, storefront
  * PHẢI tự tính nội dung mới và truyền lại prop `message`. */
-function announcementFor(route: Route): string {
+function announcementFor(route: Route, role: CurrentAccountRole): string {
   switch (route.type) {
     case "home":
       return "Đã chuyển đến trang chủ.";
@@ -25,7 +27,9 @@ function announcementFor(route: Route): string {
     case "cart":
       return "Đã chuyển đến trang giỏ hàng.";
     case "place-order":
-      return "Đã chuyển đến trang đặt đơn.";
+      return role === "guest"
+        ? "Bạn cần một tài khoản để đặt đơn."
+        : "Đã chuyển đến trang đặt đơn.";
     case "not-found":
       return "Không tìm thấy trang.";
   }
@@ -34,15 +38,14 @@ function announcementFor(route: Route): string {
 export function App() {
   const pathname = usePathname();
   const route = parseRoute(pathname);
+  const role = useCurrentAccount();
   const [announcement, setAnnouncement] = useState("");
 
-  // Chạy sau MỖI lần `pathname` đổi, kể cả lần dựng đầu tiên — khớp đúng nghĩa đen của brief
-  // mục 10 ("mỗi lần đổi route phải thông báo"), không có "lần đầu ngoại lệ".
+  // Chạy sau MỖI lần `pathname` hoặc `role` đổi, kể cả lần dựng đầu tiên — khớp đúng nghĩa đen của brief
+  // mục 10 ("mỗi lần đổi route phải thông báo").
   useEffect(() => {
-    setAnnouncement(announcementFor(route));
-    // Cố ý chỉ phụ thuộc `pathname`: `route` được suy ra THUẦN từ nó (`parseRoute`), thêm
-    // `route` vào mảng phụ thuộc sẽ tạo object mới mỗi render và chạy lại effect vô ích.
-  }, [pathname]);
+    setAnnouncement(announcementFor(route, role));
+  }, [pathname, role]);
 
   return (
     <>
@@ -59,6 +62,7 @@ export function App() {
       {route.type === "register" && <RegisterPage returnTo={route.returnTo} />}
       {route.type === "login" && <LoginPage returnTo={route.returnTo} />}
       {route.type === "cart" && <CartPage />}
+      {route.type === "place-order" && <PlaceOrderPage />}
       {route.type === "not-found" && (
         <main>
           <h1>Không tìm thấy trang</h1>
