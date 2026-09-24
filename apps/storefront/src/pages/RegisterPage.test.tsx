@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { RegisterPage } from "./RegisterPage.js";
 import * as authClient from "../api/auth-client.js";
 import * as router from "../router/router.js";
+import { cartStore } from "../cart/cartStore.js";
 
 afterEach(() => {
   cleanup();
@@ -87,5 +88,69 @@ describe("RegisterPage — FR-001, FR-002, FR-003, FR-005", () => {
       expect(alert).toBeTruthy();
       expect(alert.textContent).toContain("Email này đã được đăng ký tài khoản.");
     });
+  });
+
+  it("điều hướng về returnTo khi đăng ký thành công nếu có prop returnTo (US5-3, US5-6)", async () => {
+    vi.spyOn(authClient, "register").mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        account: { id: 1, email: "khach@example.com", role: "customer" },
+      },
+    });
+    const navigateSpy = vi.spyOn(router, "navigate").mockImplementation(() => {});
+
+    render(<RegisterPage returnTo="/place-order" />);
+
+    fireEvent.change(screen.getByLabelText(/Email/i), {
+      target: { value: "khach@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText(/Mật khẩu/i), {
+      target: { value: "MatKhau123!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Đăng ký" }));
+
+    await waitFor(() => {
+      expect(navigateSpy).toHaveBeenCalledWith("/place-order");
+    });
+  });
+
+  it("liên kết Đăng nhập giữ nguyên tham số returnTo khi có prop returnTo (US5-3)", () => {
+    const navigateSpy = vi.spyOn(router, "navigate").mockImplementation(() => {});
+    render(<RegisterPage returnTo="/place-order" />);
+
+    const link = screen.getByRole("link", { name: /Đăng nhập/i });
+    expect(link.getAttribute("href")).toBe("/login?returnTo=/place-order");
+
+    fireEvent.click(link);
+    expect(navigateSpy).toHaveBeenCalledWith("/login?returnTo=/place-order");
+  });
+
+  it("đăng ký thất bại không làm thay đổi giỏ hàng (FR-013, US4-1)", async () => {
+    localStorage.clear();
+    cartStore._reset();
+    cartStore.add(20, 1);
+    expect(cartStore.getSnapshot().lines).toEqual([{ productId: 20, quantity: 1 }]);
+
+    vi.spyOn(authClient, "register").mockResolvedValueOnce({
+      kind: "error",
+      code: "EMAIL_ALREADY_EXISTS",
+      message: "Email này đã được đăng ký tài khoản.",
+    });
+
+    render(<RegisterPage returnTo="/place-order" />);
+
+    fireEvent.change(screen.getByLabelText(/Email/i), {
+      target: { value: "da-co@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText(/Mật khẩu/i), {
+      target: { value: "MatKhau123!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Đăng ký" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeTruthy();
+    });
+
+    expect(cartStore.getSnapshot().lines).toEqual([{ productId: 20, quantity: 1 }]);
   });
 });

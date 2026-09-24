@@ -24,6 +24,8 @@ function announcementFor(route: Route): string {
       return "Đã chuyển đến trang đăng nhập.";
     case "cart":
       return "Đã chuyển đến trang giỏ hàng.";
+    case "place-order":
+      return "Đã chuyển đến trang đặt đơn.";
     case "not-found":
       return "Không tìm thấy trang.";
   }
@@ -54,8 +56,8 @@ export function App() {
         />
       )}
       {route.type === "product-detail" && <ProductDetailPage id={route.id} />}
-      {route.type === "register" && <RegisterPage />}
-      {route.type === "login" && <LoginPage />}
+      {route.type === "register" && <RegisterPage returnTo={route.returnTo} />}
+      {route.type === "login" && <LoginPage returnTo={route.returnTo} />}
       {route.type === "cart" && <CartPage />}
       {route.type === "not-found" && (
         <main>

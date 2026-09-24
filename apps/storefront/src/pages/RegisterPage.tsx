@@ -5,9 +5,10 @@ import { navigate } from "../router/router.js";
 
 export interface RegisterPageProps {
   onSuccess?: (account: storefront.AccountSummary) => void;
+  returnTo?: string;
 }
 
-export function RegisterPage({ onSuccess }: RegisterPageProps) {
+export function RegisterPage({ onSuccess, returnTo }: RegisterPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export function RegisterPage({ onSuccess }: RegisterPageProps) {
         if (onSuccess) {
           onSuccess(result.data.account);
         } else {
-          navigate("/");
+          navigate(returnTo ?? "/");
         }
       } else {
         setErrorMessage(result.message);
@@ -169,10 +170,10 @@ export function RegisterPage({ onSuccess }: RegisterPageProps) {
         <p className="auth-footer" style={{ marginTop: "20px", textAlign: "center", fontSize: "14px" }}>
           Đã có tài khoản?{" "}
           <a
-            href="/login"
+            href={returnTo ? `/login?returnTo=${returnTo}` : "/login"}
             onClick={(e) => {
               e.preventDefault();
-              navigate("/login");
+              navigate(returnTo ? `/login?returnTo=${returnTo}` : "/login");
             }}
             style={{ color: "#2563eb", textDecoration: "underline" }}
           >
