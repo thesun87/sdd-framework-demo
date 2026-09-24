@@ -125,3 +125,25 @@ export async function readStockQuantity(
   );
   return result.rows[0]?.quantity;
 }
+
+/**
+ * Đọc `quantity` hiện tại của một danh sách product — một câu SELECT duy nhất dùng `ANY($1)`.
+ * Dùng cho `getStockSufficiency` của `stock.public.ts` (R2, R9, SC-007).
+ */
+export async function readStockQuantities(
+  queryable: StockUnitOfWork,
+  productIds: readonly number[],
+): Promise<Map<number, number>> {
+  if (productIds.length === 0) {
+    return new Map();
+  }
+  const result = await queryable.query<{ product_id: number; quantity: number }>(
+    'SELECT product_id, quantity FROM stock WHERE product_id = ANY($1)',
+    [productIds],
+  );
+  const map = new Map<number, number>();
+  for (const row of result.rows) {
+    map.set(row.product_id, row.quantity);
+  }
+  return map;
+}

@@ -13,7 +13,7 @@
 import type { storefront } from 'shared';
 
 import type { StockUnitOfWork } from './stock.contract';
-import { readStockQuantity } from './stock.repository';
+import { readStockQuantities, readStockQuantity } from './stock.repository';
 
 /**
  * Re-export kiểu canonical `StockStatus` (`z.infer<typeof StockStatusSchema>`) từ
@@ -21,6 +21,16 @@ import { readStockQuantity } from './stock.repository';
  * (AD-10). Không khai lại union cục bộ ở đây nữa (fix wave I-2, final whole-branch review).
  */
 export type StockStatus = storefront.StockStatus;
+
+/**
+ * Đánh giá mức độ đáp ứng tồn kho cho một dòng giỏ — KHÔNG chứa số (R2, AD-19).
+ */
+export type StockSufficiency = 'sufficient' | 'insufficient' | 'out_of_stock';
+
+export interface StockSufficiencyLine {
+  readonly productId: number;
+  readonly quantity: number;
+}
 
 /**
  * Suy ra `stockStatus` hiển thị cho khách từ `quantity` tồn kho hiện có — ĐỌC THUẦN, không
@@ -37,4 +47,39 @@ export async function getStockStatus(
 ): Promise<StockStatus> {
   const quantity = await readStockQuantity(queryable, productId);
   return quantity !== undefined && quantity > 0 ? 'in_stock' : 'out_of_stock';
+}
+
+/**
+ * Kiểm tra mức độ đáp ứng tồn kho cho một danh sách dòng giỏ (R2, SC-007).
+ * Con số tồn kho KHÔNG BAO GIỜ rời khỏi module này — chỉ trả Map phân loại enum.
+ *
+ * Quy tắc:
+ *   - S ≥ Q → 'sufficient'
+ *   - 0 < S < Q → 'insufficient'
+ *   - S = 0 hoặc chưa có dòng stock → 'out_of_stock'
+ */
+export async function getStockSufficiency(
+  queryable: StockUnitOfWork,
+  lines: readonly StockSufficiencyLine[],
+): Promise<Map<number, StockSufficiency>> {
+  if (lines.length === 0) {
+    return new Map();
+  }
+  const productIds = Array.from(new Set(lines.map((l) => l.productId)));
+  const quantities = await readStockQuantities(queryable, productIds);
+
+  const result = new Map<number, StockSufficiency>();
+  for (const line of lines) {
+    const s = quantities.get(line.productId);
+    let status: StockSufficiency;
+    if (s === undefined || s === 0) {
+      status = 'out_of_stock';
+    } else if (s >= line.quantity) {
+      status = 'sufficient';
+    } else {
+      status = 'insufficient';
+    }
+    result.set(line.productId, status);
+  }
+  return result;
 }
