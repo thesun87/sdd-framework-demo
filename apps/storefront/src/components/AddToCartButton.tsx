@@ -54,7 +54,6 @@ export function AddToCartButton({ productId, stockStatus }: AddToCartButtonProps
 
       <span
         aria-live="polite"
-        role="status"
         style={{
           position: "absolute",
           width: "1px",
