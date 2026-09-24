@@ -31,6 +31,7 @@ export function CartPage() {
         setCheckError(false);
         const map = new Map<number, storefront.CartLineStatusResponseItem>();
         const notFoundIds: number[] = [];
+        let hasAnyFlags = false;
 
         for (const item of result.data.lines) {
           map.set(item.productId, item);
@@ -40,9 +41,16 @@ export function CartPage() {
           ) {
             notFoundIds.push(item.productId);
           }
+          if (item.lineStatus === "exceeds_stock" || item.lineStatus === "out_of_stock") {
+            hasAnyFlags = true;
+          }
         }
 
         setLineStatuses(map);
+
+        if (hasAnyFlags) {
+          setAnnouncement("Có dòng trong giỏ hàng cần xử lý.");
+        }
 
         // Loại bỏ các sản phẩm không còn tồn tại khỏi giỏ hàng
         if (notFoundIds.length > 0) {
@@ -140,6 +148,27 @@ export function CartPage() {
     }
   }
 
+  const hasFlaggedLines = lines.some((l) => {
+    const s = lineStatuses.get(l.productId);
+    return s?.lineStatus === "exceeds_stock" || s?.lineStatus === "out_of_stock";
+  });
+
+  const checkSucceeded = !checkError && lineStatuses.size > 0;
+  const canPlaceOrder =
+    lines.length > 0 &&
+    checkSucceeded &&
+    !hasFlaggedLines &&
+    lines.every((l) => lineStatuses.get(l.productId)?.lineStatus === "ok");
+
+  let disabledReason: string | null = null;
+  if (checkError) {
+    disabledReason = "Chưa kiểm tra được tình trạng hàng. Bạn thử tải lại trang.";
+  } else if (hasFlaggedLines) {
+    disabledReason = "Bạn sửa các dòng được đánh dấu để đặt đơn.";
+  } else if (lines.length === 0) {
+    disabledReason = "Giỏ hàng của bạn đang trống.";
+  }
+
   const handleQuantityChange = (productId: number, newQty: number, productName: string) => {
     if (newQty <= 0) {
       remove(productId);
@@ -160,12 +189,6 @@ export function CartPage() {
       {liveRegion}
 
       <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>Giỏ hàng</h1>
-
-      {checkError && (
-        <p style={{ color: "#DC2626", marginBottom: "16px" }}>
-          Chưa kiểm tra được tình trạng hàng. Bạn thử tải lại trang.
-        </p>
-      )}
 
       <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
         {lines.map((line) => {
@@ -246,6 +269,33 @@ export function CartPage() {
                     Xoá
                   </button>
                 </div>
+
+                {status?.lineStatus === "exceeds_stock" && (
+                  <p
+                    role="alert"
+                    style={{
+                      color: "#DC2626",
+                      fontSize: "14px",
+                      margin: "8px 0 0",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Số lượng này vượt quá số hàng còn bán được. Bạn giảm số lượng để đặt đơn.
+                  </p>
+                )}
+                {status?.lineStatus === "out_of_stock" && (
+                  <p
+                    role="alert"
+                    style={{
+                      color: "#DC2626",
+                      fontSize: "14px",
+                      margin: "8px 0 0",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Sản phẩm này đang hết hàng.
+                  </p>
+                )}
               </div>
 
               <div style={{ textAlign: "right", minWidth: "120px" }}>
@@ -272,6 +322,63 @@ export function CartPage() {
         <div style={{ fontSize: "20px", fontWeight: "bold", color: "#111827" }}>
           {formatPriceVnd(lineSubtotal)}
         </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: "24px",
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: "16px",
+        }}
+      >
+        {disabledReason && (
+          <span style={{ color: "#DC2626", fontSize: "14px" }}>
+            {disabledReason}
+          </span>
+        )}
+
+        {canPlaceOrder ? (
+          <Link
+            to="/place-order"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: "120px",
+              minHeight: "44px",
+              backgroundColor: "#2563EB",
+              color: "#FFFFFF",
+              borderRadius: "6px",
+              textDecoration: "none",
+              fontWeight: "600",
+              fontSize: "16px",
+              padding: "0 24px",
+            }}
+          >
+            Đặt đơn
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled
+            style={{
+              minWidth: "120px",
+              minHeight: "44px",
+              backgroundColor: "#9CA3AF",
+              color: "#FFFFFF",
+              borderRadius: "6px",
+              border: "none",
+              fontWeight: "600",
+              fontSize: "16px",
+              padding: "0 24px",
+              cursor: "not-allowed",
+            }}
+          >
+            Đặt đơn
+          </button>
+        )}
       </div>
     </main>
   );

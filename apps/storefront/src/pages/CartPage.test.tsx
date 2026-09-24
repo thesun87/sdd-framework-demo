@@ -7,6 +7,8 @@ import * as authClient from "../api/auth-client.js";
 import {
   createCartLineStatusOkFixture,
   createCartLineStatusNotFoundFixture,
+  createCartLineStatusExceedsStockFixture,
+  createCartLineStatusOutOfStockFixture,
 } from "../test/cartFixtures.js";
 
 beforeEach(() => {
@@ -349,5 +351,136 @@ describe("CartPage — chỉnh sửa số lượng và xoá dòng (T008 - US2)",
     expect(cartStore.getSnapshot().lines).toEqual([]);
     // Thông báo xoá
     expect(await screen.findByText("Đã xoá Cà phê sữa đá khỏi giỏ hàng.")).toBeTruthy();
+  });
+});
+
+describe("CartPage — cờ trạng thái dòng và nút Đặt đơn (T009 - US3)", () => {
+  it("hiển thị cờ exceeds_stock, không để lộ số tồn kho, và vô hiệu hoá Đặt đơn kèm lý do", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 5);
+
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockResolvedValue({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusExceedsStockFixture({
+            productId: 1,
+            lineStatus: "exceeds_stock",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByText("Cà phê sữa đá");
+
+    // Thông báo cờ dòng exceeds_stock
+    expect(
+      screen.getByText("Số lượng này vượt quá số hàng còn bán được. Bạn giảm số lượng để đặt đơn."),
+    ).toBeTruthy();
+
+    // Dòng không bị tự động xoá hay tự sửa (FR-009)
+    expect(cartStore.getSnapshot().lines).toEqual([{ productId: 1, quantity: 5 }]);
+
+    // Không để lộ số tồn kho (AD-19, giả định tồn kho là 73 — không xuất hiện trong DOM)
+    expect(document.body.textContent).not.toMatch(/\b73\b/);
+
+    // Nút Đặt đơn bị vô hiệu hoá kèm lý do
+    expect(screen.getByText("Bạn sửa các dòng được đánh dấu để đặt đơn.")).toBeTruthy();
+    const orderBtn = screen.getByRole("button", { name: "Đặt đơn" });
+    expect(orderBtn.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("hiển thị cờ out_of_stock, giữ nguyên dòng và vô hiệu hoá Đặt đơn", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(2, 1);
+
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockResolvedValue({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOutOfStockFixture({
+            productId: 2,
+            lineStatus: "out_of_stock",
+            product: { name: "Bánh mì pate", price: 20000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByText("Bánh mì pate");
+
+    // Thông báo cờ dòng out_of_stock
+    expect(screen.getByText("Sản phẩm này đang hết hàng.")).toBeTruthy();
+
+    // Dòng không bị xoá
+    expect(cartStore.getSnapshot().lines).toEqual([{ productId: 2, quantity: 1 }]);
+
+    // Đặt đơn bị vô hiệu hoá
+    expect(screen.getByText("Bạn sửa các dòng được đánh dấu để đặt đơn.")).toBeTruthy();
+    const orderBtn = screen.getByRole("button", { name: "Đặt đơn" });
+    expect(orderBtn.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("khi mọi dòng đều ok và kiểm tra thành công, nút Đặt đơn bật và dẫn tới /place-order", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockResolvedValue({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOkFixture({
+            productId: 1,
+            lineStatus: "ok",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByText("Cà phê sữa đá");
+
+    // Nút Đặt đơn là một liên kết hợp lệ tới /place-order
+    const orderLink = screen.getByRole("link", { name: "Đặt đơn" });
+    expect(orderLink.getAttribute("href")).toBe("/place-order");
+
+    // Không có thông báo lý do chặn
+    expect(screen.queryByText("Bạn sửa các dòng được đánh dấu để đặt đơn.")).toBeNull();
+    expect(screen.queryByText("Chưa kiểm tra được tình trạng hàng. Bạn thử tải lại trang.")).toBeNull();
+  });
+
+  it("khi kiểm tra API thất bại, Đặt đơn bị vô hiệu hoá và hiện lý do thử tải lại", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockResolvedValue({
+      kind: "error",
+      message: "Network Error",
+    });
+
+    render(<CartPage />);
+
+    expect(
+      await screen.findByText("Chưa kiểm tra được tình trạng hàng. Bạn thử tải lại trang."),
+    ).toBeTruthy();
+
+    const orderBtn = screen.getByRole("button", { name: "Đặt đơn" });
+    expect(orderBtn.hasAttribute("disabled")).toBe(true);
   });
 });
