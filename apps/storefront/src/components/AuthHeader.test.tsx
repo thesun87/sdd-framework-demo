@@ -66,4 +66,46 @@ describe("AuthHeader — trạng thái tài khoản trên storefront", () => {
       expect(screen.queryByText("khach@example.com")).toBeNull();
     });
   });
+
+  it("hiển thị biểu tượng giỏ hàng cho Guest và Customer, nhưng ẩn với Shop owner (US6-2)", async () => {
+    // 1. Guest -> có biểu tượng giỏ hàng
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValueOnce({
+      kind: "ok",
+      data: { account: null },
+    });
+
+    const { unmount: unmountGuest } = render(<AuthHeader />);
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: /giỏ hàng/i })).toBeTruthy();
+    });
+    unmountGuest();
+
+    // 2. Customer -> có biểu tượng giỏ hàng
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        account: { id: 1, email: "khach@example.com", role: "customer" },
+      },
+    });
+
+    const { unmount: unmountCustomer } = render(<AuthHeader />);
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: /giỏ hàng/i })).toBeTruthy();
+    });
+    unmountCustomer();
+
+    // 3. Shop owner -> KHÔNG có biểu tượng giỏ hàng
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        account: { id: 2, email: "owner@example.com", role: "shop_owner" },
+      },
+    });
+
+    render(<AuthHeader />);
+    await waitFor(() => {
+      expect(screen.getByText("owner@example.com")).toBeTruthy();
+      expect(screen.queryByRole("link", { name: /giỏ hàng/i })).toBeNull();
+    });
+  });
 });

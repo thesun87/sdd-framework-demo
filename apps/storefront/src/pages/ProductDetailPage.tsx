@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { StockStatusLabel } from "ui";
 import type { storefront } from "shared";
 import { fetchProductDetail } from "../api/client.js";
+import { AddToCartButton } from "../components/AddToCartButton.js";
 import { formatPriceVnd } from "../formatPrice.js";
 import { Link } from "../router/Link.js";
 
@@ -16,9 +17,8 @@ type ViewState =
   | { status: "error"; message: string };
 
 /**
- * Trang chi tiết Sản phẩm — TỐI GIẢN theo quyết định đã chốt (brief mục 2): tên, mô tả,
- * giá, ảnh, nhãn tồn kho. KHÔNG nút thêm vào giỏ, KHÔNG sản phẩm liên quan, KHÔNG đánh giá —
- * thêm bất kỳ thứ nào trong ba thứ đó là scope creep.
+ * Trang chi tiết Sản phẩm (Feature 003): tên, mô tả, giá, ảnh, nhãn tồn kho, và nút Thêm vào giỏ hàng.
+ * KHÔNG sản phẩm liên quan, KHÔNG đánh giá.
  *
  * Gọi lại API mỗi lần `id` đổi hoặc component được dựng lại — cùng kỷ luật không-cache của
  * `HomePage` (AD-20).
@@ -94,6 +94,7 @@ export function ProductDetailPage({ id }: DetailPageProps) {
       ) : null}
       <p style={{ fontSize: "20px", fontWeight: "bold" }}>{formatPriceVnd(product.price)}</p>
       <StockStatusLabel status={product.stockStatus} />
+      <AddToCartButton productId={product.id} stockStatus={product.stockStatus} />
       <p>{product.description}</p>
     </main>
   );

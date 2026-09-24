@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { storefront } from "shared";
 import { ProductDetailPage } from "./ProductDetailPage.js";
 import * as client from "../api/client.js";
+import * as authClient from "../api/auth-client.js";
 
 afterEach(() => {
   cleanup();
@@ -18,9 +19,13 @@ const DETAIL: storefront.ProductDetail = {
   stockStatus: "in_stock",
 };
 
-describe("ProductDetailPage — FR-003: tối giản, không scope creep", () => {
-  it("hiện tên, mô tả, giá, ảnh, nhãn tồn kho — KHÔNG nút thêm vào giỏ / sản phẩm liên quan / đánh giá", async () => {
+describe("ProductDetailPage — thông tin sản phẩm và nút thêm vào giỏ", () => {
+  it("hiện tên, mô tả, giá, ảnh, nhãn tồn kho, nút thêm vào giỏ — KHÔNG sản phẩm liên quan / đánh giá", async () => {
     vi.spyOn(client, "fetchProductDetail").mockResolvedValue({ kind: "ok", data: DETAIL });
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
 
     render(<ProductDetailPage id="1" />);
 
@@ -30,9 +35,10 @@ describe("ProductDetailPage — FR-003: tối giản, không scope creep", () =>
     expect(screen.getByText("Còn hàng")).toBeTruthy();
     expect(screen.getByRole("img", { name: "Cà phê sữa đá" })).toBeTruthy();
 
-    // Không có bất kỳ nút/khối nào cho ba tính năng bị cấm ở feature 000.
-    expect(screen.queryByRole("button")).toBeNull();
-    expect(screen.queryByText(/thêm vào giỏ/i)).toBeNull();
+    // Nút thêm vào giỏ hàng xuất hiện cho Guest/Customer
+    expect(await screen.findByRole("button", { name: /thêm vào giỏ/i })).toBeTruthy();
+
+    // Không có bất kỳ khối nào cho sản phẩm liên quan hay đánh giá (scope creep)
     expect(screen.queryByText(/sản phẩm liên quan/i)).toBeNull();
     expect(screen.queryByText(/đánh giá/i)).toBeNull();
   });

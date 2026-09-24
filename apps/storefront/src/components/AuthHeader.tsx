@@ -4,6 +4,8 @@ import { getCurrentUser, logout } from "../api/auth-client.js";
 import { navigate } from "../router/router.js";
 import { usePathname } from "../router/usePathname.js";
 
+import { CartIconLink } from "./CartIconLink.js";
+
 export interface AuthHeaderProps {
   onLogout?: () => void;
 }
@@ -63,7 +65,9 @@ export function AuthHeader({ onLogout }: AuthHeaderProps) {
         </a>
       </div>
 
-      <nav aria-label="Tài khoản">
+      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <CartIconLink role={isLoading ? "loading" : account?.role ?? "guest"} />
+        <nav aria-label="Tài khoản">
         {isLoading ? (
           <span style={{ fontSize: "14px", color: "#6b7280" }}>Đang tải...</span>
         ) : account ? (
@@ -131,6 +135,7 @@ export function AuthHeader({ onLogout }: AuthHeaderProps) {
           </div>
         )}
       </nav>
+      </div>
     </header>
   );
 }
