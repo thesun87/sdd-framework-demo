@@ -10,6 +10,7 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 
+import { CartLinesController } from './cart-lines.controller';
 import { CatalogController } from './catalog.controller';
 import { CatalogService } from './catalog.service';
 import { CategoriesController } from './categories.controller';
@@ -23,7 +24,13 @@ import { requestLoggingMiddleware } from './request-logging.middleware';
 @Module({
   // `MetricsController` (T014, Ruling R9) — `/api/internal/metrics`, không liên kết từ
   // storefront, chỉ đo thời lượng (xem metrics.controller.ts).
-  controllers: [CatalogController, CategoriesController, HealthController, MetricsController],
+  controllers: [
+    CatalogController,
+    CategoriesController,
+    HealthController,
+    MetricsController,
+    CartLinesController,
+  ],
   providers: [
     envProvider,
     pgPoolProvider,

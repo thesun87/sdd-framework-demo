@@ -191,3 +191,39 @@ export async function findProductImages(pool: Pool, productId: number): Promise<
   );
   return result.rows;
 }
+
+export interface CartProductRow {
+  readonly id: number;
+  readonly name: string;
+  readonly price: number;
+  readonly imagePath: string | null;
+}
+
+/**
+ * Đọc thông tin các sản phẩm theo danh sách ID — một câu truy vấn duy nhất kèm ảnh đại diện (R9).
+ */
+export async function findProductsByIds(
+  pool: Pool,
+  productIds: readonly number[],
+): Promise<CartProductRow[]> {
+  if (productIds.length === 0) {
+    return [];
+  }
+  const result = await pool.query<CartProductRow>(
+    `SELECT p.id,
+            p.name,
+            p.price,
+            (
+              SELECT pi.path
+                FROM product_image pi
+               WHERE pi.product_id = p.id
+               ORDER BY pi.position ASC
+               LIMIT 1
+            ) AS "imagePath"
+       FROM product p
+      WHERE p.id = ANY($1)
+      ORDER BY p.id ASC`,
+    [productIds],
+  );
+  return result.rows;
+}

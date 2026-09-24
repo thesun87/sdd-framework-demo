@@ -14,12 +14,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
 import type { storefront } from 'shared';
 
-import { getStockStatus } from '../stock/stock.public';
+import { getStockStatus, getStockSufficiency } from '../stock/stock.public';
 import {
   findAllCategories,
   findProductById,
   findProductImages,
   findProductSummaries,
+  findProductsByIds,
+  type CartProductRow,
 } from './catalog.repository';
 import type { ProductListParsedQuery } from './catalog-query';
 import { ENV, type AppEnv } from './env.provider';
@@ -152,5 +154,64 @@ export class CatalogService {
       })),
       stockStatus,
     };
+  }
+
+  /**
+   * Xác định trạng thái các dòng giỏ hàng: giá hiện tại, ảnh đại diện, và trạng thái tồn kho (T004).
+   * Dùng đúng 2 câu truy vấn (R9): 1 cho sản phẩm (findProductsByIds) và 1 cho tồn kho (getStockSufficiency).
+   */
+  async getCartLineStatuses(
+    request: storefront.CartLinesStatusRequest,
+  ): Promise<storefront.CartLinesStatusResponse> {
+    if (request.lines.length === 0) {
+      return { lines: [] };
+    }
+
+    const productIds = Array.from(new Set(request.lines.map((l) => l.productId)));
+
+    const [products, stockSufficiencyMap] = await Promise.all([
+      findProductsByIds(this.pool, productIds),
+      getStockSufficiency(this.pool, request.lines),
+    ]);
+
+    const productMap = new Map<number, CartProductRow>();
+    for (const p of products) {
+      productMap.set(p.id, p);
+    }
+
+    const responseLines: storefront.CartLineStatusResponseItem[] = [];
+    for (const line of request.lines) {
+      const prod = productMap.get(line.productId);
+      if (!prod) {
+        responseLines.push({
+          productId: line.productId,
+          lineStatus: 'not_found',
+          product: null,
+        });
+        continue;
+      }
+
+      const sufficiency = stockSufficiencyMap.get(line.productId) ?? 'out_of_stock';
+      let lineStatus: storefront.CartLineStatus;
+      if (sufficiency === 'sufficient') {
+        lineStatus = 'ok';
+      } else if (sufficiency === 'insufficient') {
+        lineStatus = 'exceeds_stock';
+      } else {
+        lineStatus = 'out_of_stock';
+      }
+
+      responseLines.push({
+        productId: line.productId,
+        lineStatus,
+        product: {
+          name: prod.name,
+          price: prod.price,
+          imagePath: this.toImageUrlOrNull(prod.imagePath),
+        },
+      });
+    }
+
+    return { lines: responseLines };
   }
 }
