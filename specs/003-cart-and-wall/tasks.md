@@ -365,3 +365,14 @@ Wave 7: T014 → T015
 - **Increment 3 = US4 + US5 (+ US6) (T010–T013)**: FR-8 and FR-11 are complete, and the feature-map outcome is met.
 - **Close = T014–T015**: e2e, accessibility, performance, the full verification contract.
 - **If a task proves larger than one brief**, do not split it inside this feature: the ceiling is reached. STOP and ask the human whether to split `003` in `feature-map.md`. The natural cut is `003a` Cart (T001–T009) and `003b` Tường đăng ký (T010–T015).
+
+## Phase 10: Convergence
+
+> Appended by `/speckit-converge` on 2026-09-25 (findings F1–F10). The 15-task ceiling was
+> put to the human: grouping the ten findings into four tasks was approved by Tuan Nguyen
+> (executed_by: agent). F5 wording uses existing glossary terms only — no new term.
+
+- [ ] T016 In `CartPage.tsx`, bind every line-status result to the Cart lines it was computed for and keep **Đặt đơn** disabled with a visible reason while the check for the current lines is pending or has not yet run; announce through the `aria-live` region when flags clear after a successful re-check; add a `CartPage.test.tsx` case where an `exceeds_stock` line is reduced/removed, re-checked as `ok`, and **Đặt đơn** becomes enabled, per FR-008, FR-010, US3-3, US3-4, T009, Constitution II (partial)
+- [ ] T017 Make `cartStore.add` report failure when browser storage is unavailable and have `AddToCartButton` show "Không lưu được giỏ hàng trên trình duyệt này." instead of "Đã thêm vào giỏ hàng."; give `PlaceOrderPage.tsx` the same line-status-check failure message as the Giỏ hàng; on both pages never render a `0 ₫` price or `0 ₫` Tổng tiền hàng for lines without a successful status check, per Edge Case "Browser storage unavailable", Edge Case "Line status check fails", FR-006, FR-019 (partial)
+- [ ] T018 Replace the heading "Tóm tắt đơn hàng" in `PlaceOrderPage.tsx` with "Giỏ hàng" and remove the "Đơn giá" label in `CartPage.tsx` (show the value without a new noun), updating their tests, per Constitution V, glossary *Order*/*Cart*, FR-019 (contradicts)
+- [ ] T019 Tighten the e2e suite: stop the SC-007 `/cart` p95 timer only once all 20 lines show current price and status; in the flags test assert the seeded Stock number is absent from the page text and every `/api/cart-lines/status` body; extend the FR-017 test to every pre-wall route plus `/place-order`, `/login?returnTo=…`, `/register?returnTo=…` with `maxRedirects: 0` and status 200; run the axe WCAG 2.1 AA scan on `/cart` with a flagged line, per SC-007, SC-005, FR-017, T014, T015 (partial)
