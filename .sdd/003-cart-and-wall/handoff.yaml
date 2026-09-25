@@ -1,6 +1,6 @@
 feature_id: 003-cart-and-wall
 track: B
-generated_at: '2026-09-25T21:22:28+07:00'
+generated_at: '2026-09-25T21:48:11+07:00'
 constitution:
   path: .specify/memory/constitution.md
   git_sha: e810319c63d7ceee3e272530e4c6395002b32824
@@ -12,7 +12,7 @@ plan:
   git_sha: 37c439b0cebae30c4cfec9ccd277309030f1341f
 tasks:
   path: specs/003-cart-and-wall/tasks.md
-  git_sha: 37c439b0cebae30c4cfec9ccd277309030f1341f
+  git_sha: 007fe3238190e6db39383e9543d08093f5af311e
 execution:
   engine: superpowers
   mode: subagent-driven-development
