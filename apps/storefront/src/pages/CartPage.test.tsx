@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CartPage } from "./CartPage.js";
 import { cartStore } from "../cart/cartStore.js";
 import * as cartClient from "../api/cart-client.js";
@@ -482,5 +482,294 @@ describe("CartPage — cờ trạng thái dòng và nút Đặt đơn (T009 - US
 
     const orderBtn = screen.getByRole("button", { name: "Đặt đơn" });
     expect(orderBtn.hasAttribute("disabled")).toBe(true);
+  });
+});
+
+describe("CartPage — trạng thái dòng gắn với giỏ hàng hiện tại và gating Đặt đơn (T016 - FR-008/FR-010/US3-3/US3-4)", () => {
+  type StatusFetchResult = Awaited<ReturnType<typeof cartClient.fetchCartLineStatuses>>;
+
+  it("trước khi có phản hồi đầu tiên, Đặt đơn bị vô hiệu hoá với lý do đang kiểm tra", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    let resolveFirst!: (value: StatusFetchResult) => void;
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFirst = resolve;
+        }),
+    );
+
+    render(<CartPage />);
+
+    expect(await screen.findByText("Đang kiểm tra tình trạng hàng.")).toBeTruthy();
+    const orderBtn = screen.getByRole("button", { name: "Đặt đơn" });
+    expect(orderBtn.hasAttribute("disabled")).toBe(true);
+
+    // Dọn dẹp promise treo để không rò rỉ sang test khác
+    await act(async () => {
+      resolveFirst({
+        kind: "ok",
+        data: {
+          lines: [
+            createCartLineStatusOkFixture({
+              productId: 1,
+              lineStatus: "ok",
+              product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+            }),
+          ],
+        },
+      });
+    });
+    await screen.findByRole("link", { name: "Đặt đơn" });
+  });
+
+  it("tăng số lượng dòng đang ok: Đặt đơn bị vô hiệu hoá với lý do đang kiểm tra cho đến khi có phản hồi mới", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    const fetchSpy = vi.spyOn(cartClient, "fetchCartLineStatuses");
+    fetchSpy.mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOkFixture({
+            productId: 1,
+            lineStatus: "ok",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByRole("link", { name: "Đặt đơn" });
+
+    let resolveSecond!: (value: StatusFetchResult) => void;
+    fetchSpy.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSecond = resolve;
+        }),
+    );
+
+    const incBtn = screen.getByRole("button", { name: /Tăng số lượng Cà phê sữa đá/ });
+    fireEvent.click(incBtn);
+
+    // Trong lúc chờ phản hồi cho số lượng mới: Đặt đơn bị vô hiệu hoá, không dùng lại kết quả cũ
+    expect(await screen.findByText("Đang kiểm tra tình trạng hàng.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Đặt đơn" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.queryByRole("link", { name: "Đặt đơn" })).toBeNull();
+
+    await act(async () => {
+      resolveSecond({
+        kind: "ok",
+        data: {
+          lines: [
+            createCartLineStatusOkFixture({
+              productId: 1,
+              lineStatus: "ok",
+              product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+            }),
+          ],
+        },
+      });
+    });
+
+    expect(await screen.findByRole("link", { name: "Đặt đơn" })).toBeTruthy();
+    expect(screen.queryByText("Đang kiểm tra tình trạng hàng.")).toBeNull();
+  });
+
+  it("phản hồi lỗi thời (out-of-order) của lần kiểm tra cũ không ghi đè kết quả của các dòng hiện tại (AD-20)", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    const fetchSpy = vi.spyOn(cartClient, "fetchCartLineStatuses");
+    fetchSpy.mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOkFixture({
+            productId: 1,
+            lineStatus: "ok",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByRole("link", { name: "Đặt đơn" });
+
+    let resolveStale!: (value: StatusFetchResult) => void;
+    let resolveCurrent!: (value: StatusFetchResult) => void;
+    fetchSpy.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveStale = resolve;
+        }),
+    );
+    fetchSpy.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCurrent = resolve;
+        }),
+    );
+
+    const incBtn = screen.getByRole("button", { name: /Tăng số lượng Cà phê sữa đá/ });
+    fireEvent.click(incBtn); // 2 -> 3, kích hoạt lần kiểm tra sẽ trở thành "cũ"
+    fireEvent.click(incBtn); // 3 -> 4, kích hoạt lần kiểm tra "hiện tại"
+
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(3));
+
+    // Lần kiểm tra HIỆN TẠI trả lời trước, thành công (ok)
+    await act(async () => {
+      resolveCurrent({
+        kind: "ok",
+        data: {
+          lines: [
+            createCartLineStatusOkFixture({
+              productId: 1,
+              lineStatus: "ok",
+              product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+            }),
+          ],
+        },
+      });
+    });
+    expect(await screen.findByRole("link", { name: "Đặt đơn" })).toBeTruthy();
+
+    // Lần kiểm tra CŨ trả lời muộn, mang cờ exceeds_stock — phải bị bỏ qua
+    await act(async () => {
+      resolveStale({
+        kind: "ok",
+        data: {
+          lines: [
+            createCartLineStatusExceedsStockFixture({
+              productId: 1,
+              lineStatus: "exceeds_stock",
+              product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+            }),
+          ],
+        },
+      });
+      await Promise.resolve();
+    });
+
+    // Kết quả lỗi thời không được áp dụng: Đặt đơn vẫn bật, không có cờ nào xuất hiện
+    expect(screen.getByRole("link", { name: "Đặt đơn" })).toBeTruthy();
+    expect(screen.queryByText("Bạn sửa các dòng được đánh dấu để đặt đơn.")).toBeNull();
+    expect(
+      screen.queryByText("Số lượng này vượt quá số hàng còn bán được. Bạn giảm số lượng để đặt đơn."),
+    ).toBeNull();
+  });
+
+  it("US3-4: giảm số lượng dòng exceeds_stock xuống mức hợp lệ, cờ biến mất, Đặt đơn bật, và có thông báo aria-live 'đã hợp lệ'", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 5);
+
+    const fetchSpy = vi.spyOn(cartClient, "fetchCartLineStatuses");
+    fetchSpy.mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusExceedsStockFixture({
+            productId: 1,
+            lineStatus: "exceeds_stock",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByText("Bạn sửa các dòng được đánh dấu để đặt đơn.");
+
+    fetchSpy.mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOkFixture({
+            productId: 1,
+            lineStatus: "ok",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    const decBtn = screen.getByRole("button", { name: /Giảm số lượng Cà phê sữa đá/ });
+    fireEvent.click(decBtn); // 5 -> 4
+
+    expect(await screen.findByRole("link", { name: "Đặt đơn" })).toBeTruthy();
+    expect(screen.queryByText("Bạn sửa các dòng được đánh dấu để đặt đơn.")).toBeNull();
+
+    const status = screen.getByRole("status");
+    expect(status.textContent).toBe("Các dòng giỏ hàng đã hợp lệ, bạn có thể đặt đơn.");
+  });
+
+  it("US3-4: xoá dòng exceeds_stock khỏi giỏ hàng, cờ biến mất, Đặt đơn bật, và có thông báo aria-live 'đã hợp lệ'", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 5);
+    cartStore.add(2, 1);
+
+    const fetchSpy = vi.spyOn(cartClient, "fetchCartLineStatuses");
+    fetchSpy.mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusExceedsStockFixture({
+            productId: 1,
+            lineStatus: "exceeds_stock",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+          createCartLineStatusOkFixture({
+            productId: 2,
+            lineStatus: "ok",
+            product: { name: "Bánh mì pate", price: 20000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByText("Bạn sửa các dòng được đánh dấu để đặt đơn.");
+
+    fetchSpy.mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOkFixture({
+            productId: 2,
+            lineStatus: "ok",
+            product: { name: "Bánh mì pate", price: 20000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    const removeBtn = screen.getByRole("button", { name: /Xoá Cà phê sữa đá khỏi giỏ hàng/i });
+    fireEvent.click(removeBtn);
+
+    expect(await screen.findByRole("link", { name: "Đặt đơn" })).toBeTruthy();
+    expect(screen.queryByText("Bạn sửa các dòng được đánh dấu để đặt đơn.")).toBeNull();
+
+    const status = screen.getByRole("status");
+    expect(status.textContent).toBe("Các dòng giỏ hàng đã hợp lệ, bạn có thể đặt đơn.");
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { storefront } from "shared";
 import { QuantityStepper } from "ui";
 import { useCart } from "../cart/useCart.js";
@@ -14,7 +14,13 @@ export function CartPage() {
     Map<number, storefront.CartLineStatusResponseItem>
   >(new Map());
   const [checkError, setCheckError] = useState(false);
+  // Đang chờ kết quả kiểm tra cho đúng bộ dòng hiện tại (kể cả lần kiểm tra đầu tiên) —
+  // trong lúc này, không được coi kết quả cũ là còn giá trị (AD-20, FR-008).
+  const [isChecking, setIsChecking] = useState(true);
   const [announcement, setAnnouncement] = useState("");
+  // Nhớ lần kiểm tra thành công gần nhất có từng có dòng bị đánh cờ hay không, để chỉ
+  // phát thông báo "đã hợp lệ" đúng một lần khi cờ vừa biến mất (US3-4).
+  const wasFlaggedRef = useRef(false);
 
   useEffect(() => {
     // Khi đang xác thực tài khoản hoặc là chủ shop thì không kiểm tra giỏ hàng (FR-018)
@@ -22,9 +28,13 @@ export function CartPage() {
     if (lines.length === 0) return;
 
     let cancelled = false;
+    // Mọi kết quả sắp về chỉ tính cho đúng bộ dòng (productId, quantity) tại thời điểm này;
+    // nếu giỏ hàng đổi trước khi có phản hồi, coi như đang kiểm tra lại từ đầu.
+    setIsChecking(true);
 
     async function checkStatuses() {
       const result = await fetchCartLineStatuses(lines);
+      // Phản hồi đến muộn (out-of-order) cho một bộ dòng đã cũ không được áp dụng.
       if (cancelled) return;
 
       if (result.kind === "ok") {
@@ -47,9 +57,15 @@ export function CartPage() {
         }
 
         setLineStatuses(map);
+        setIsChecking(false);
 
         if (hasAnyFlags) {
           setAnnouncement("Có dòng trong giỏ hàng cần xử lý.");
+          wasFlaggedRef.current = true;
+        } else if (wasFlaggedRef.current) {
+          // Cờ vừa biến mất sau khi kiểm tra lại thành công (US3-4)
+          setAnnouncement("Các dòng giỏ hàng đã hợp lệ, bạn có thể đặt đơn.");
+          wasFlaggedRef.current = false;
         }
 
         // Loại bỏ các sản phẩm không còn tồn tại khỏi giỏ hàng
@@ -58,6 +74,7 @@ export function CartPage() {
         }
       } else {
         setCheckError(true);
+        setIsChecking(false);
       }
     }
 
@@ -153,7 +170,7 @@ export function CartPage() {
     return s?.lineStatus === "exceeds_stock" || s?.lineStatus === "out_of_stock";
   });
 
-  const checkSucceeded = !checkError && lineStatuses.size > 0;
+  const checkSucceeded = !isChecking && !checkError && lineStatuses.size > 0;
   const canPlaceOrder =
     lines.length > 0 &&
     checkSucceeded &&
@@ -161,7 +178,11 @@ export function CartPage() {
     lines.every((l) => lineStatuses.get(l.productId)?.lineStatus === "ok");
 
   let disabledReason: string | null = null;
-  if (checkError) {
+  if (isChecking) {
+    // Bao gồm cả lần kiểm tra đầu tiên (ledger Ruling R1) — không bao giờ bật Đặt đơn
+    // trên một kết quả đã tính cho bộ dòng khác (AD-20, FR-008).
+    disabledReason = "Đang kiểm tra tình trạng hàng.";
+  } else if (checkError) {
     disabledReason = "Chưa kiểm tra được tình trạng hàng. Bạn thử tải lại trang.";
   } else if (hasFlaggedLines) {
     disabledReason = "Bạn sửa các dòng được đánh dấu để đặt đơn.";
