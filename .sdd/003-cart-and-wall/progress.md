@@ -45,3 +45,10 @@ Task T016: minor (deferred): setIsChecking(false) duplicated in success/error br
 Task T016: minor (deferred): no test for unmount while a status check is pending
 Task T016: minor (deferred): pre-existing dead `lines.length === 0` branch in disabledReason (CartPage.tsx:189-190)
 Task T016: complete (commits 10543b1..1d7c3ff, review clean)
+Task T017: implementer done 1665067 (BASE 15abcef); review dispatched (flake concern named)
+Ruling R5: T017 allowed scope is extended with `apps/storefront/src/cart/lineSubtotal.ts` + `lineSubtotal.test.ts` so the R2 gate + Tổng tiền hàng computation lives once for CartPage and PlaceOrderPage — the task review's Important finding (verbatim duplicated logic block) cannot be fixed inside the original file list without coupling one page to the other — if wrong, one small helper file to inline back.
+Task T017: minor (deferred): redundant per-line `status?.product` check inside `if (allLinesPriced)` (disappears with the helper)
+Task T017: minor (deferred): pre-existing `resolveFirst` capture in CartPage.test.tsx:491-528 is timing-sensitive; one unreproduced transient failure reported
+Task T017: minor (deferred): PlaceOrderPage failure paragraph has no live region (CartPage's disabledReason has none either)
+Task T017: fix round 1/5 (1 addressed, 0 open — duplicated allLinesPriced/subtotal block → computeLineSubtotal; commits 1665067..38d8361)
+Task T017: complete (commits 15abcef..38d8361, review clean)
