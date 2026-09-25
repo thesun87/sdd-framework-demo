@@ -63,3 +63,8 @@ Task T019: complete (commits ac7c24f..5d59afc, review clean)
 Final review (opus, b1ab9ea..02370fb): With fixes — 1 Important (storage-failure message screen-reader-only), 5 Minor; all 11 deferred minors triaged "can wait".
 Ruling R6: the final fix wave also carries final-review Minors 1, 2 and 4 (status bound to exact lines incl. no stale prices after a failed re-check; FR-017 client-side URL check; distinct storage-failure signal) — Minor 1 is T016 brief req. 1 as literally written plus R2, Minor 2 makes FR-017's test able to fail on the redirect that matters, Minor 4 prevents wrong copy; one wave is the only wave — if wrong, extra churn in a reviewed area.
 Ruling R7: final-review Minor 3 (glossary lists "tình trạng hàng" as a synonym-to-avoid while sanctioned baseline copy uses it) is NOT fixed by an agent — it is a baseline contradiction for the human; Minor 5 (SC-005 limited to status responses) stands as the T019 brief defined it — if wrong, a copy change / an extra e2e listener later.
+Final fix wave: F-1..F-4 fixed (652a2c5); scoped re-review — all addressed, no new Critical/Important.
+Final fix wave: out-of-scope (ledgered): prices/Tổng tiền hàng now blank during every pending re-check (spec-compliant consequence of T016 req.1 + R2, newly visible) — needs product/UX sign-off.
+Final fix wave: reported SC-007 p95 1487ms in one full-suite run; controller re-ran performance spec 3× in isolation: p95 135/126/114ms — no regression (parallel-run noise).
+Controller verification (2026-09-25): glue 30/30, storefront 142/142, shared 69/69, ui 14/14, lint 0, build 0, /sdd-validate 003 PASS; apps/api Jest FAIL (pre-existing, environmental).
+Feature 003 Phase 10: complete (b1ab9ea..652a2c5).
