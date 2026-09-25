@@ -156,12 +156,19 @@ export function CartPage() {
     );
   }
 
+  // Chỉ hiện giá / Tổng tiền hàng khi MỌI dòng đều có trạng thái kiểm tra thành công (có
+  // product hiện tại) — không bao giờ hiện giá 0 ₫ giả cho dòng chưa/không kiểm tra được
+  // (T017, ledger Ruling R2, FR-006).
+  const allLinesPriced = lines.every((l) => Boolean(lineStatuses.get(l.productId)?.product));
+
   // Tính Tổng tiền hàng (Line subtotal) từ giá hiện tại
   let lineSubtotal = 0;
-  for (const line of lines) {
-    const status = lineStatuses.get(line.productId);
-    if (status?.product) {
-      lineSubtotal += status.product.price * line.quantity;
+  if (allLinesPriced) {
+    for (const line of lines) {
+      const status = lineStatuses.get(line.productId);
+      if (status?.product) {
+        lineSubtotal += status.product.price * line.quantity;
+      }
     }
   }
 
@@ -215,8 +222,6 @@ export function CartPage() {
         {lines.map((line) => {
           const status = lineStatuses.get(line.productId);
           const product = status?.product;
-          const currentPrice = product?.price ?? 0;
-          const lineTotal = currentPrice * line.quantity;
           const productName = product?.name ?? `Sản phẩm #${line.productId}`;
 
           return (
@@ -258,9 +263,11 @@ export function CartPage() {
                 <h2 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 4px" }}>
                   {productName}
                 </h2>
-                <div style={{ color: "#4B5563", fontSize: "14px", margin: "0 0 8px" }}>
-                  Đơn giá: {formatPriceVnd(currentPrice)}
-                </div>
+                {product && (
+                  <div style={{ color: "#4B5563", fontSize: "14px", margin: "0 0 8px" }}>
+                    Đơn giá: {formatPriceVnd(product.price)}
+                  </div>
+                )}
 
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px" }}>
                   <QuantityStepper
@@ -320,30 +327,34 @@ export function CartPage() {
               </div>
 
               <div style={{ textAlign: "right", minWidth: "120px" }}>
-                <div style={{ fontWeight: "600", fontSize: "16px" }}>
-                  {formatPriceVnd(lineTotal)}
-                </div>
+                {product && (
+                  <div style={{ fontWeight: "600", fontSize: "16px" }}>
+                    {formatPriceVnd(product.price * line.quantity)}
+                  </div>
+                )}
               </div>
             </li>
           );
         })}
       </ul>
 
-      <div
-        style={{
-          marginTop: "24px",
-          borderTop: "2px solid #E5E7EB",
-          paddingTop: "16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ fontSize: "18px", fontWeight: "bold" }}>Tổng tiền hàng:</div>
-        <div style={{ fontSize: "20px", fontWeight: "bold", color: "#111827" }}>
-          {formatPriceVnd(lineSubtotal)}
+      {allLinesPriced && (
+        <div
+          style={{
+            marginTop: "24px",
+            borderTop: "2px solid #E5E7EB",
+            paddingTop: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ fontSize: "18px", fontWeight: "bold" }}>Tổng tiền hàng:</div>
+          <div style={{ fontSize: "20px", fontWeight: "bold", color: "#111827" }}>
+            {formatPriceVnd(lineSubtotal)}
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         style={{

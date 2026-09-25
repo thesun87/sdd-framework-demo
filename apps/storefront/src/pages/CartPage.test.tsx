@@ -773,3 +773,46 @@ describe("CartPage — trạng thái dòng gắn với giỏ hàng hiện tại 
     expect(status.textContent).toBe("Các dòng giỏ hàng đã hợp lệ, bạn có thể đặt đơn.");
   });
 });
+
+describe("CartPage — không hiện giá giả khi chưa có trạng thái thành công (T017 - FR-006, Ruling R2)", () => {
+  it("trước khi có phản hồi kiểm tra đầu tiên, không hiện 0₫ hay bất kỳ giá nào, và không hiện Tổng tiền hàng", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    // Yêu cầu kiểm tra không bao giờ trả lời (đang chờ)
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    render(<CartPage />);
+
+    expect(await screen.findByText("Sản phẩm #1")).toBeTruthy();
+    expect(screen.queryByText(/₫/)).toBeNull();
+    expect(screen.queryByText(/Tổng tiền hàng/)).toBeNull();
+  });
+
+  it("khi kiểm tra API thất bại (chưa từng có trạng thái thành công), không hiện 0₫ hay Tổng tiền hàng", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockResolvedValue({
+      kind: "error",
+      message: "Network Error",
+    });
+
+    render(<CartPage />);
+
+    expect(
+      await screen.findByText("Chưa kiểm tra được tình trạng hàng. Bạn thử tải lại trang."),
+    ).toBeTruthy();
+    expect(screen.getByText("Sản phẩm #1")).toBeTruthy();
+    expect(screen.queryByText(/₫/)).toBeNull();
+    expect(screen.queryByText(/Tổng tiền hàng/)).toBeNull();
+  });
+});

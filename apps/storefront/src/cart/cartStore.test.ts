@@ -196,4 +196,16 @@ describe("cartStore (T003)", () => {
     cartStore.add(2);
     expect(cartStore.totalQuantity()).toBe(3);
   });
+
+  it("add báo cáo đã ghi được (true) khi ghi thành công, và báo thất bại (false) khi storage không dùng được (T017)", () => {
+    expect(cartStore.add(10)).toBe(true);
+    expect(cartStore.getSnapshot().lines).toEqual([{ productId: 10, quantity: 1 }]);
+
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+
+    expect(cartStore.add(20)).toBe(false);
+    expect(cartStore.getSnapshot().unavailable).toBe(true);
+  });
 });

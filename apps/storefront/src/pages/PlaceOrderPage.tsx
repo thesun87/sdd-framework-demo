@@ -13,6 +13,9 @@ export function PlaceOrderPage() {
   const [lineStatuses, setLineStatuses] = useState<
     Map<number, storefront.CartLineStatusResponseItem>
   >(new Map());
+  // Lần kiểm tra gần nhất thất bại — như Giỏ hàng, không đánh cờ hay bỏ cờ dòng nào trên
+  // dữ liệu cũ/không chắc chắn (ledger Ruling R2, FR-019).
+  const [checkError, setCheckError] = useState(false);
 
   useEffect(() => {
     if (role !== "customer" || lines.length === 0) return;
@@ -21,9 +24,11 @@ export function PlaceOrderPage() {
 
     async function checkStatuses() {
       const result = await fetchCartLineStatuses(lines);
+      // Phản hồi đến muộn (out-of-order) cho một bộ dòng đã cũ không được áp dụng.
       if (cancelled) return;
 
       if (result.kind === "ok") {
+        setCheckError(false);
         const map = new Map<number, storefront.CartLineStatusResponseItem>();
         const notFoundIds: number[] = [];
 
@@ -42,6 +47,9 @@ export function PlaceOrderPage() {
         if (notFoundIds.length > 0) {
           dropUnknown(notFoundIds);
         }
+      } else {
+        // Kiểm tra thất bại: không đánh cờ hay bỏ cờ dòng nào trên dữ liệu không chắc chắn.
+        setCheckError(true);
       }
     }
 
@@ -106,11 +114,18 @@ export function PlaceOrderPage() {
     );
   }
 
+  // Chỉ hiện giá / Tổng tiền hàng khi MỌI dòng đều có trạng thái kiểm tra thành công (có
+  // product hiện tại) — không bao giờ hiện giá 0 ₫ giả cho dòng chưa/không kiểm tra được
+  // (ledger Ruling R2, FR-006).
+  const allLinesPriced = lines.every((line) => Boolean(lineStatuses.get(line.productId)?.product));
+
   let lineSubtotal = 0;
-  for (const line of lines) {
-    const status = lineStatuses.get(line.productId);
-    if (status?.product) {
-      lineSubtotal += status.product.price * line.quantity;
+  if (allLinesPriced) {
+    for (const line of lines) {
+      const status = lineStatuses.get(line.productId);
+      if (status?.product) {
+        lineSubtotal += status.product.price * line.quantity;
+      }
     }
   }
 
@@ -118,6 +133,12 @@ export function PlaceOrderPage() {
     <main style={{ maxWidth: "800px", margin: "0 auto", padding: "24px 16px" }}>
       <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "16px" }}>Đặt đơn</h1>
       <p style={{ margin: "16px 0", color: "#4B5563" }}>Chức năng đặt đơn chưa sẵn sàng.</p>
+
+      {checkError && (
+        <p style={{ margin: "16px 0", color: "#DC2626", fontWeight: 500 }}>
+          Chưa kiểm tra được tình trạng hàng. Bạn thử tải lại trang.
+        </p>
+      )}
 
       <div
         style={{
@@ -136,8 +157,6 @@ export function PlaceOrderPage() {
           {lines.map((line) => {
             const status = lineStatuses.get(line.productId);
             const product = status?.product;
-            const currentPrice = product?.price ?? 0;
-            const lineTotal = currentPrice * line.quantity;
             const productName = product?.name ?? `Sản phẩm #${line.productId}`;
 
             let flagMessage: string | null = null;
@@ -187,10 +206,12 @@ export function PlaceOrderPage() {
                   <div style={{ fontWeight: 600, fontSize: "15px", marginBottom: "4px" }}>
                     {productName}
                   </div>
-                  <div style={{ color: "#6B7280", fontSize: "14px" }}>
-                    {formatPriceVnd(currentPrice)} × {line.quantity} ={" "}
-                    <strong>{formatPriceVnd(lineTotal)}</strong>
-                  </div>
+                  {product && (
+                    <div style={{ color: "#6B7280", fontSize: "14px" }}>
+                      {formatPriceVnd(product.price)} × {line.quantity} ={" "}
+                      <strong>{formatPriceVnd(product.price * line.quantity)}</strong>
+                    </div>
+                  )}
 
                   {flagMessage && (
                     <div
@@ -213,21 +234,23 @@ export function PlaceOrderPage() {
           })}
         </ul>
 
-        <div
-          style={{
-            marginTop: "16px",
-            paddingTop: "16px",
-            borderTop: "1px solid #E5E7EB",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            fontSize: "18px",
-            fontWeight: "bold",
-          }}
-        >
-          <span>Tổng tiền hàng:</span>
-          <span>{formatPriceVnd(lineSubtotal)}</span>
-        </div>
+        {allLinesPriced && (
+          <div
+            style={{
+              marginTop: "16px",
+              paddingTop: "16px",
+              borderTop: "1px solid #E5E7EB",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: "18px",
+              fontWeight: "bold",
+            }}
+          >
+            <span>Tổng tiền hàng:</span>
+            <span>{formatPriceVnd(lineSubtotal)}</span>
+          </div>
+        )}
       </div>
     </main>
   );

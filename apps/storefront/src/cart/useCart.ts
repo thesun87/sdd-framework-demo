@@ -5,7 +5,7 @@ export interface UseCartResult {
   readonly lines: readonly CartLine[];
   readonly unavailable: boolean;
   readonly totalQuantity: number;
-  readonly add: (productId: number, quantity?: number) => void;
+  readonly add: (productId: number, quantity?: number) => boolean;
   readonly setQuantity: (productId: number, quantity: number) => boolean;
   readonly remove: (productId: number) => void;
   readonly dropUnknown: (productIds: readonly number[]) => void;

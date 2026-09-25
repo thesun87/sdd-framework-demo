@@ -20,8 +20,12 @@ export function AddToCartButton({ productId, stockStatus }: AddToCartButtonProps
 
   const handleAdd = () => {
     if (isOutOfStock) return;
-    cartStore.add(productId);
-    setAnnouncement("Đã thêm vào giỏ hàng.");
+    const added = cartStore.add(productId);
+    // Không nói đã thêm khi thực ra không ghi được vào storage (T017, FR-006 tinh thần
+    // "không nói dối") — ví dụ trình duyệt ở chế độ riêng tư chặn localStorage.
+    setAnnouncement(
+      added ? "Đã thêm vào giỏ hàng." : "Không lưu được giỏ hàng trên trình duyệt này.",
+    );
   };
 
   return (

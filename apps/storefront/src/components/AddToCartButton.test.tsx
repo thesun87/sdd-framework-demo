@@ -69,4 +69,24 @@ describe("AddToCartButton (T006)", () => {
     expect(button.disabled).toBe(true);
     expect(screen.getByText("Sản phẩm này đang hết hàng.")).toBeTruthy();
   });
+
+  it("khi cartStore.add không ghi được (storage unavailable), thông báo 'Không lưu được giỏ hàng trên trình duyệt này.' và KHÔNG có 'Đã thêm vào giỏ hàng.' (T017)", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    vi.spyOn(cartStore, "add").mockReturnValue(false);
+
+    render(<AddToCartButton productId={10} stockStatus="in_stock" />);
+
+    const button = await screen.findByRole("button", { name: /thêm vào giỏ/i });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Không lưu được giỏ hàng trên trình duyệt này."),
+      ).toBeTruthy();
+    });
+    expect(screen.queryByText("Đã thêm vào giỏ hàng.")).toBeNull();
+  });
 });

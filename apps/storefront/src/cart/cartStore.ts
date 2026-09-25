@@ -139,12 +139,14 @@ class CartStore {
     return lines.reduce((sum, line) => sum + line.quantity, 0);
   };
 
-  public add = (productId: number, quantity = 1): void => {
-    if (!Number.isInteger(productId) || productId <= 0) return;
-    if (!Number.isInteger(quantity) || quantity <= 0) return;
+  // Trả về true khi đã ghi được vào storage, false khi không (T017) — người gọi (ví dụ
+  // AddToCartButton) dùng giá trị này để không thông báo "Đã thêm..." khi thực ra chưa lưu.
+  public add = (productId: number, quantity = 1): boolean => {
+    if (!Number.isInteger(productId) || productId <= 0) return false;
+    if (!Number.isInteger(quantity) || quantity <= 0) return false;
 
     const current = readFromStorage();
-    if (current.unavailable) return;
+    if (current.unavailable) return false;
 
     const updated = [...current.lines];
     const existingIndex = updated.findIndex((l) => l.productId === productId);
@@ -163,9 +165,11 @@ class CartStore {
 
     if (writeToStorage(updated)) {
       this.notify();
+      return true;
     } else {
       this.snapshot = { unavailable: true, lines: [] };
       for (const listener of this.listeners) listener();
+      return false;
     }
   };
 
