@@ -52,3 +52,6 @@ Task T017: minor (deferred): pre-existing `resolveFirst` capture in CartPage.tes
 Task T017: minor (deferred): PlaceOrderPage failure paragraph has no live region (CartPage's disabledReason has none either)
 Task T017: fix round 1/5 (1 addressed, 0 open — duplicated allLinesPriced/subtotal block → computeLineSubtotal; commits 1665067..38d8361)
 Task T017: complete (commits 15abcef..38d8361, review clean)
+Task T018: minor (deferred): unlabelled per-line price relies on reading order + "₫"; a stricter AA audit may want an aria-label with a glossary term
+Task T018: minor (deferred): RED evidence in task-018-report.md is paraphrased, not raw output
+Task T018: complete (commits 20ad477..d41d3c8, review clean)
