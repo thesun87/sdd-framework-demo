@@ -1,6 +1,6 @@
 feature_id: 003-cart-and-wall
 track: B
-generated_at: '2026-09-23T22:43:14+07:00'
+generated_at: '2026-09-25T21:22:28+07:00'
 constitution:
   path: .specify/memory/constitution.md
   git_sha: e810319c63d7ceee3e272530e4c6395002b32824
@@ -44,6 +44,7 @@ context:
   - relevant_dependencies
   - codebase_context
   - impact_analysis_relevant_sections
+  - referenced_ux_spec_sections
   exclude:
   - full_prd
   - full_architecture_document
@@ -62,6 +63,9 @@ baseline:
     git_sha: 78ba21cb431cd9c871915ba07f43b41a669042c8
   prd:
     path: docs/baseline/prd.md
+    git_sha: 78ba21cb431cd9c871915ba07f43b41a669042c8
+  ux_spec:
+    path: docs/baseline/ux-spec.md
     git_sha: 78ba21cb431cd9c871915ba07f43b41a669042c8
 impact_analysis:
   path: specs/003-cart-and-wall/impact-analysis.md
