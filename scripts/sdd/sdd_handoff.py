@@ -16,8 +16,8 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from sdd_lib import (  # noqa: E402
-    BASELINE, BOOTSTRAP_TDD_REASON, CONSTITUTION, ROOT, SDD, SPECS,
-    active_feature, git_sha, is_bootstrap, read,
+    BASELINE, BOOTSTRAP_TDD_REASON, CONSTITUTION, ROOT, SDD, SPECS, UX_SPEC,
+    active_feature, depends_on_ux_spec, git_sha, is_bootstrap, read,
 )
 
 
@@ -118,6 +118,12 @@ def build(feature: str, track: str) -> dict:
         h["context"]["include"] += ["codebase_context",
                                     "impact_analysis_relevant_sections"]
         h["context"]["exclude"] += ["full_repository", "unrelated_modules"]
+
+    # Pinned like the rest of the baseline; sections only, never the whole
+    # document, as with referenced_architecture_sections.
+    if depends_on_ux_spec(read(fdir / "spec.md")):
+        h["baseline"]["ux_spec"] = ref(UX_SPEC)
+        h["context"]["include"].append("referenced_ux_spec_sections")
 
     return h
 

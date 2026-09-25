@@ -1,0 +1,144 @@
+change_id: 2026-09-25-SDD-004
+track: C
+type: bugfix
+ticket: SDD-004
+severity: high
+created_at: '2026-09-25T20:52:57+07:00'
+constitution:
+  path: .specify/memory/constitution.md
+  git_sha: e810319c63d7ceee3e272530e4c6395002b32824
+defect:
+  observed: >-
+    specs/001-catalog-browse, 002-accounts and 003-cart-and-wall each declare a
+    dependency on docs/baseline/ux-spec.md in their spec.md baseline
+    references, yet every generated handoff.yaml pins only prd, architecture
+    and glossary under `baseline:` and lists no UX context under
+    `context.include`. /sdd-validate passes those handoffs. Consequence seen in
+    the product: task execution never received the visual contract (ux-spec.md
+    Part 1 design tokens, layout, linked mockups); packages/ui/src/tokens.ts
+    carries an invented palette (#1A1A1A, #1E4620, #7A271A) instead of the
+    baseline tokens (#0070CE, #F4F5F6, …) and the storefront does not match
+    the mockups. A later change to ux-spec.md would also not mark any handoff
+    STALE.
+  expected: >-
+    When spec.md depends on ux-spec.md, the handoff pins it
+    (baseline.ux_spec: path + git_sha) and context.include names
+    referenced_ux_spec_sections — sharded sections, never the whole document,
+    matching referenced_architecture_sections. /sdd-validate FAILs HV013 when
+    such a handoff has no captured ux_spec SHA, and HV013b when the pinned SHA
+    no longer matches ux-spec.md (STALE). A spec that does not cite
+    ux-spec.md is unaffected.
+  documented_behaviour_ref: >-
+    docs/agentic-sdd-protocol-v2.md:1831 ("Every handoff records path +
+    version + git_sha for each artifact it depends on"), :1833-1845 (staleness
+    detection on any changed artifact SHA), §7 HV013 ("artifact versions and
+    git SHAs are captured"); docs/baseline/baseline-freeze.yaml artifacts.ux_spec
+    (ux-spec.md is a frozen baseline artifact).
+  reproduction: >-
+    tests/sdd_handoff.test.mjs — "Track A handoff pins ux_spec when spec.md
+    depends on it", "Track B handoff pins ux_spec when spec.md depends on it"
+    (red before the fix); "handoff does not pin ux_spec when spec.md does not
+    cite it" (guard, green throughout). tests/sdd_validate.test.mjs — "HV013
+    blocks a handoff missing ux_spec for a spec that depends on it", "HV013b
+    blocks a STALE handoff when ux-spec.md changes afterwards" (red before the
+    fix); after review: "HV013 tells the operator to commit ux-spec.md when the
+    pinned node has no SHA", "HV013b checks the canonical ux-spec.md, not
+    whatever path the handoff names" (red before the review fix); "a handoff
+    pinning ux_spec for a spec that depends on it passes" (guard).
+entry_criteria:
+  CV001_defect_against_documented_behaviour: true
+  CV002_no_business_rule_change: true
+  CV003_no_contract_change: true
+  CV004_no_schema_change: true
+  CV005_no_authz_change: true
+  CV006_no_acceptance_criteria_change: CONTESTED
+  CV007_no_nfr_impact: true
+  CV008_no_new_dependency: true
+  CV009_reproducible_by_test: true
+  CV010_single_module_scope: true
+entry_criteria_notes: >-
+  CV001 — the handoff examples in protocol A15/B8 omit ux_spec, so the
+  generator matches the example but not the rule the protocol states (:1831,
+  HV013). The rule wins over an illustrative example.
+
+  CV006 — HV013/HV013b are handoff gates, not feature acceptance criteria, but
+  extending them to ux_spec changes when a handoff passes. Mitigated as in
+  SDD-003: the gate only gets stronger, no new rule id is introduced, and tests
+  pin both directions (a spec without a ux-spec dependency still passes).
+  Existing handoffs for 001–003 will FAIL if revalidated; that is the defect
+  surfacing, and regenerating them is out of scope here.
+
+  CV010 — three source files in the glue layer (sdd_lib.py holds the one
+  "depends on ux-spec" predicate both consumers share; sdd_handoff.py,
+  sdd_validate.py) plus their two test files, on the precedent of SDD-002 and
+  SDD-003.
+
+  The CONTESTED CV006 was put to the human (Tuan Nguyen, 2026-09-25) before
+  any code was written, together with the option of escalating to Track B, and
+  Track C was chosen.
+
+  Out of scope, raised to the human instead: adding a UX_REFS field to the
+  task-brief contract (protocol §2) is a protocol change, not a defect fix.
+root_cause: >-
+  Two faults, both present since the bootstrap commit d7424d8.
+
+  (1) scripts/sdd/sdd_handoff.py:97-113 hardcodes the `baseline:` block for
+  both tracks to exactly prd, architecture, glossary — a transcription of the
+  illustrative handoffs in protocol A15/B8. No code path asks which baseline
+  artifacts the spec actually depends on, so ux-spec.md (a frozen artifact per
+  baseline-freeze.yaml) is never pinned, and context.include never names its
+  sections. Task briefs built from that context carry no visual contract.
+
+  (2) scripts/sdd/sdd_validate.py:104-111 applies HV013/HV013b only to
+  ("spec", "plan", "tasks"). A dependency the handoff forgot to capture is
+  invisible to the validator, and a captured baseline artifact would never be
+  checked for staleness either. So the omission in (1) passes /sdd-validate.
+
+  The fix: the generator pins baseline.ux_spec and adds
+  referenced_ux_spec_sections whenever spec.md cites ux-spec.md; the
+  validator extends HV013/HV013b to ux_spec under the same condition.
+
+  Known remaining gap, NOT fixed here: fault (2) also means the pinned prd,
+  architecture and glossary nodes get no HV013b staleness check. Out of this
+  change unit's expected behaviour; recorded as a follow-up.
+scope:
+  allowed:
+  - scripts/sdd/sdd_lib.py
+  - scripts/sdd/sdd_handoff.py
+  - scripts/sdd/sdd_validate.py
+  - tests/sdd_handoff.test.mjs
+  - tests/sdd_validate.test.mjs
+  - .sdd/direct/2026-09-25-SDD-004/**
+  forbidden:
+  - specs/**
+  - .sdd/*/handoff.yaml
+  - docs/agentic-sdd-protocol-v2.md
+  - apps/**
+  - packages/**
+  - .specify/templates/**
+  - migrations/**
+  - '**/openapi.yaml'
+  - '**/*.proto'
+  - docs/baseline/**
+  - .specify/memory/constitution.md
+policy:
+  require_regression_test: true
+  require_tdd: true
+  require_code_quality_review: true
+  require_full_verification: true
+  require_spec_review: false
+  require_convergence: false
+  max_files_changed: 8
+verification:
+  commands:
+    test: npm test
+    lint: npm run lint
+escalation:
+  triggers:
+  - contract_change_required
+  - schema_change_required
+  - business_rule_ambiguity
+  - fix_requires_forbidden_scope
+  - root_cause_not_found
+  action: STOP_AND_ESCALATE_TO_TRACK_B
+status: done

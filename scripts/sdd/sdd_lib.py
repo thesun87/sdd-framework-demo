@@ -50,6 +50,22 @@ def is_bootstrap(feature: str | None) -> bool:
     return feature == BOOTSTRAP_FEATURE
 
 
+# ---------------------------------------------------------------------------
+# Protocol :1831 — "Every handoff records path + version + git_sha for each
+# artifact it depends on". A spec depends on the frozen UX baseline when it
+# cites it; the generator pins it and the validator enforces HV013/HV013b on
+# it under this one predicate, so the two can never disagree. SDD-004.
+# ---------------------------------------------------------------------------
+UX_SPEC = BASELINE / "ux-spec.md"
+
+
+def depends_on_ux_spec(spec_txt: str) -> bool:
+    """Any citation of ux-spec.md counts as a dependency. Deliberately loose:
+    over-matching only over-pins (at worst a spurious STALE), while matching
+    only the full path would miss a spec that cites `ux-spec.md` bare."""
+    return UX_SPEC.name in spec_txt
+
+
 def git_sha(path: Path) -> str | None:
     """Last commit SHA that touched `path`. None if untracked/uncommitted."""
     try:
