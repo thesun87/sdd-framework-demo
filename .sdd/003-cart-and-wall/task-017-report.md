@@ -215,3 +215,117 @@ Test Files  19 passed (19)
   ledger's minor-findings convention.
 - No other concerns. All allowed-scope verification commands pass; no forbidden paths
   were touched.
+
+## Fix round 1 (review finding — verbatim duplicated logic, ledger Ruling R5)
+
+**Finding**: `CartPage.tsx` and `PlaceOrderPage.tsx` each contained an identical
+`allLinesPriced` gate + Tổng tiền hàng loop (modulo the loop variable name). A future
+change to the Ruling R2 condition could silently diverge between the two pages.
+
+**Fix**: extracted the one pure helper `computeLineSubtotal(lines, lineStatuses)` into
+the new file `apps/storefront/src/cart/lineSubtotal.ts` (scope extended for this fix by
+ledger Ruling R5), returning `{ allLinesPriced, lineSubtotal }`. Both pages now call this
+single function instead of each computing the gate/subtotal inline. The helper folds the
+per-line "does this line have a product" check and the subtotal accumulation into one
+pass with an early return on the first unpriced line — removing the redundant nested
+`if (status?.product)` check that used to sit inside the `if (allLinesPriced)` branch
+(noted as a minor finding in the ledger).
+
+### Changes
+
+- **New** `apps/storefront/src/cart/lineSubtotal.ts` — `computeLineSubtotal(lines,
+  lineStatuses)`: single loop over `lines`; returns `{ allLinesPriced: false,
+  lineSubtotal: 0 }` on the first line whose `lineStatuses.get(productId)?.product` is
+  missing (covers pending, failed-check, and `not_found` lines identically — `product` is
+  null iff `lineStatus === "not_found"`, per `CartLineStatusResponseItemSchema`), else
+  accumulates `product.price * line.quantity` and returns `{ allLinesPriced: true,
+  lineSubtotal }`.
+- **New** `apps/storefront/src/cart/lineSubtotal.test.ts` — 5 tests: all lines priced
+  (correct sum, incl. a flagged `exceeds_stock` line contributing to the subtotal, matching
+  prior page behaviour); a line missing from the status map (pending); a `not_found` line
+  (`product: null`); an empty status map (simulates a failed first check); and the
+  vacuous empty-`lines` case.
+- `apps/storefront/src/pages/CartPage.tsx` — replaced the inline `allLinesPriced`/
+  `lineSubtotal` block with `const { allLinesPriced, lineSubtotal } =
+  computeLineSubtotal(lines, lineStatuses);`; added the import. No other logic touched —
+  T016's `isChecking`/`checkError`/`wasFlaggedRef`/`canPlaceOrder`/`disabledReason` and all
+  per-line JSX (`{product && (...)}` guards) are unchanged.
+- `apps/storefront/src/pages/PlaceOrderPage.tsx` — identical replacement + import; the
+  `checkError` state/branch and the per-line/`allLinesPriced` JSX guards from the original
+  T017 implementation are unchanged.
+
+### Tests and results
+
+Command (as specified by the reviewer):
+```
+cd apps/storefront && npx vitest run src/cart/lineSubtotal.test.ts src/pages/CartPage.test.tsx src/pages/PlaceOrderPage.test.tsx
+```
+Result:
+```
+Test Files  3 passed (3)
+     Tests  32 passed (32)
+```
+
+TDD evidence for the new helper:
+
+RED — command `cd apps/storefront && npx vitest run src/cart/lineSubtotal.test.ts` before
+creating `lineSubtotal.ts`:
+```
+FAIL  src/cart/lineSubtotal.test.ts [ src/cart/lineSubtotal.test.ts ]
+Error: Failed to resolve import "./lineSubtotal.js" from "src/cart/lineSubtotal.test.ts".
+```
+(module did not exist yet — expected failure).
+
+GREEN — same command after adding `lineSubtotal.ts`:
+```
+Test Files  1 passed (1)
+     Tests  5 passed (5)
+```
+
+Full storefront suite:
+```
+cd apps/storefront && npm run --silent test
+Test Files  20 passed (20)
+     Tests  137 passed (137)
+```
+(132 previous + 5 new `lineSubtotal.test.ts` tests; no regressions, and the previously
+noted transient `resolveFirst` flake did not recur in this run.)
+
+Root-level, as required:
+```
+npm run lint   → PASS (glue, apps/api, apps/storefront, packages/shared, packages/ui, e2e)
+npm run build  → PASS (apps/api, apps/storefront, packages/shared, packages/ui)
+```
+
+### Files changed (this fix round)
+
+- `apps/storefront/src/cart/lineSubtotal.ts` — new.
+- `apps/storefront/src/cart/lineSubtotal.test.ts` — new.
+- `apps/storefront/src/pages/CartPage.tsx` — inline gate/subtotal replaced by
+  `computeLineSubtotal` call + import.
+- `apps/storefront/src/pages/PlaceOrderPage.tsx` — same.
+- `.sdd/003-cart-and-wall/task-017-report.md` — this fix-round section.
+
+`.sdd/003-cart-and-wall/progress.md` (Ruling R5, task status) was written by the
+controller, not by me, and was left untouched.
+
+### Self-review
+
+- Both pages now share exactly one implementation of the R2 gate/subtotal; a future
+  change to that rule needs one edit, not two.
+- The helper is a pure function (no React, no I/O) — straightforward to unit test in
+  isolation, and its test file exercises the not_found/pending/failed/empty cases that
+  the pages' own tests only exercise indirectly.
+- Confirmed `product` is non-null iff `lineStatus !== "not_found"` via
+  `CartLineStatusResponseItemSchema` in `packages/shared/src/storefront/cart.ts`, so the
+  helper's single `product` check correctly subsumes the not_found case without a
+  separate branch.
+- No changes outside the Ruling R5-extended scope (`apps/storefront/src/cart/
+  lineSubtotal.ts`, `lineSubtotal.test.ts`) plus the two page files already in the
+  original T017 scope.
+
+### Issues or concerns
+
+- None new. The `apps/api` Jest environmental failure and the previously-noted transient
+  flake remain as described above (the flake did not reproduce in this round's full-suite
+  run).

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { storefront } from "shared";
 import { useCurrentAccount } from "../api/useCurrentAccount.js";
 import { useCart } from "../cart/useCart.js";
+import { computeLineSubtotal } from "../cart/lineSubtotal.js";
 import { fetchCartLineStatuses } from "../api/cart-client.js";
 import { RegistrationWall } from "../components/RegistrationWall.js";
 import { formatPriceVnd } from "../formatPrice.js";
@@ -116,18 +117,8 @@ export function PlaceOrderPage() {
 
   // Chỉ hiện giá / Tổng tiền hàng khi MỌI dòng đều có trạng thái kiểm tra thành công (có
   // product hiện tại) — không bao giờ hiện giá 0 ₫ giả cho dòng chưa/không kiểm tra được
-  // (ledger Ruling R2, FR-006).
-  const allLinesPriced = lines.every((line) => Boolean(lineStatuses.get(line.productId)?.product));
-
-  let lineSubtotal = 0;
-  if (allLinesPriced) {
-    for (const line of lines) {
-      const status = lineStatuses.get(line.productId);
-      if (status?.product) {
-        lineSubtotal += status.product.price * line.quantity;
-      }
-    }
-  }
+  // (ledger Ruling R2/R5, FR-006). Logic dùng chung với CartPage.tsx.
+  const { allLinesPriced, lineSubtotal } = computeLineSubtotal(lines, lineStatuses);
 
   return (
     <main style={{ maxWidth: "800px", margin: "0 auto", padding: "24px 16px" }}>

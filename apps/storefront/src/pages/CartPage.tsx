@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { storefront } from "shared";
 import { QuantityStepper } from "ui";
 import { useCart } from "../cart/useCart.js";
+import { computeLineSubtotal } from "../cart/lineSubtotal.js";
 import { useCurrentAccount } from "../api/useCurrentAccount.js";
 import { fetchCartLineStatuses } from "../api/cart-client.js";
 import { formatPriceVnd } from "../formatPrice.js";
@@ -158,19 +159,8 @@ export function CartPage() {
 
   // Chỉ hiện giá / Tổng tiền hàng khi MỌI dòng đều có trạng thái kiểm tra thành công (có
   // product hiện tại) — không bao giờ hiện giá 0 ₫ giả cho dòng chưa/không kiểm tra được
-  // (T017, ledger Ruling R2, FR-006).
-  const allLinesPriced = lines.every((l) => Boolean(lineStatuses.get(l.productId)?.product));
-
-  // Tính Tổng tiền hàng (Line subtotal) từ giá hiện tại
-  let lineSubtotal = 0;
-  if (allLinesPriced) {
-    for (const line of lines) {
-      const status = lineStatuses.get(line.productId);
-      if (status?.product) {
-        lineSubtotal += status.product.price * line.quantity;
-      }
-    }
-  }
+  // (T017, ledger Ruling R2/R5, FR-006). Logic dùng chung với PlaceOrderPage.tsx.
+  const { allLinesPriced, lineSubtotal } = computeLineSubtotal(lines, lineStatuses);
 
   const hasFlaggedLines = lines.some((l) => {
     const s = lineStatuses.get(l.productId);
