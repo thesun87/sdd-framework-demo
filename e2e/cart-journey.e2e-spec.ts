@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import pg from "pg";
+const { Pool } = pg;
 
 function newAxeBuilder(page: Page): AxeBuilder {
   return new AxeBuilder({ page: page as unknown as ConstructorParameters<typeof AxeBuilder>[0]["page"] });
@@ -270,7 +272,7 @@ test.describe("E2E Cart Journey (T010, T014)", () => {
     await expect(page).toHaveURL("/");
   });
 
-  test("Flags & Tồn kho (US1-3, US3-1, US3-3, SC-005): Hết hàng disabled, vượt quá tồn kho gắn cờ, không lộ số tồn", async ({
+  test("Flags & Tồn kho (US1-3, US3-1, US3-3, SC-005): Hết hàng disabled, vượt quá tồn kho gắn cờ, không lộ số tồn (DOM + mọi response)", async ({
     page,
   }) => {
     // 1. Sản phẩm hết hàng từ seed: 'Bình giữ nhiệt Mini 350ml'
@@ -282,41 +284,127 @@ test.describe("E2E Cart Journey (T010, T014)", () => {
     await expect(addBtn).toBeDisabled();
     await expect(page.getByText("Sản phẩm này đang hết hàng.")).toBeVisible();
 
-    // 2. Sản phẩm còn hàng: 'Cà phê sữa đá'
-    await page.goto("/");
-    await page.getByRole("link", { name: "Cà phê sữa đá" }).click();
-    await page.getByRole("button", { name: "Thêm vào giỏ hàng" }).click();
+    // 2. SC-005 (T019, convergence finding F3): bài test cũ chỉ so khớp TÊN TRƯỜNG JSON
+    // ("stockQuantity", "quantity\":") trên MỘT response bắt được qua page.waitForResponse —
+    // schema packages/shared đã .strict() nên tên trường đó không bao giờ xuất hiện dù có
+    // lộ số tồn hay không (khẳng định cũ luôn đúng một cách vô nghĩa). Ở đây dựng một sản
+    // phẩm fixture RIÊNG với một giá trị Stock đã biết trước, rồi khẳng định ĐÚNG GIÁ TRỊ
+    // SỐ đó — không phải tên trường — không xuất hiện ở bất kỳ đâu: cả text hiển thị (DOM)
+    // lẫn MỌI response /api/cart-lines/status quan sát được trong suốt test (không chỉ một
+    // lần reload).
+    const databaseUrl = process.env.DATABASE_URL ?? "postgres://app:app@localhost:5432/shop";
+    const pool = new Pool({ connectionString: databaseUrl });
 
-    await page.goto("/cart");
-    await expect(page.getByText("Cà phê sữa đá")).toBeVisible();
+    // Lựa chọn các giá trị để KHÔNG THỂ trùng với bất kỳ số nào khác xuất hiện trên trang:
+    //   - SEEDED_STOCK=9187: 4 chữ số "lạ" (không phải một mốc tròn như 50/100/9999 hay
+    //     bằng bất kỳ price/id nào của dữ liệu seed — xem db/seed.ts, giá 25 000–189 000 và
+    //     tồn kho 0/15/20/35/50).
+    //   - PRICE=137 000: khác hoàn toàn SEEDED_STOCK về chữ số, không phải bội số của nó.
+    //   - EXCEEDING_QTY=SEEDED_STOCK+1=9188: đúng bằng 1 đơn vị trên tồn kho (chắc chắn kích
+    //     hoạt "exceeds_stock") và vẫn ≤ trần kỹ thuật 9999 của CartLineSchema (packages/
+    //     shared/src/storefront/cart.ts) — không thể set quantity lớn hơn để "cho chắc".
+    //   - id sản phẩm mới do CSDL tự sinh (identity, bắt đầu từ nhỏ, xem migration) — không
+    //     thể trùng một số 4 chữ số "lạ" như 9187 (khẳng định lại bằng runtime check bên
+    //     dưới, không chỉ suy luận suông).
+    //   - Tổng tiền dòng = 137 000 × 9188 = 1 258 756 000 — đã kiểm bằng tay (task-019-report)
+    //     rằng chuỗi "9187" không phải là dãy con của bất kỳ số nào ở trên.
+    const SEEDED_STOCK = 9187;
+    const PRICE = 137000;
+    const EXCEEDING_QTY = SEEDED_STOCK + 1;
+    const seededStockStr = String(SEEDED_STOCK);
 
-    // Đặt số lượng 9999
-    const qtyInput = page.getByRole("spinbutton");
-    await qtyInput.fill("9999");
-    await qtyInput.press("Enter");
+    let fixtureProductId: number | undefined;
+    try {
+      const productName = `Fixture SC005 ${Date.now()}`;
+      const insertRes = await pool.query<{ id: string | number }>(
+        `INSERT INTO product (name, name_normalized, description, price)
+         VALUES ($1, $1, '', $2)
+         RETURNING id`,
+        [productName, PRICE],
+      );
+      fixtureProductId = Number(insertRes.rows[0].id);
+      await pool.query(
+        `INSERT INTO stock (product_id, quantity, updated_at) VALUES ($1, $2, now())`,
+        [fixtureProductId, SEEDED_STOCK],
+      );
 
-    // Cờ vượt quá tồn kho xuất hiện
-    await expect(
-      page.getByText("Số lượng này vượt quá số hàng còn bán được. Bạn giảm số lượng để đặt đơn."),
-    ).toBeVisible();
+      // Không suy luận suông — khẳng định thật rằng id vừa sinh không trùng giá trị Stock đã
+      // chọn (nếu một ngày id chạy tới 9187, test này BÁO LỖI RÕ RÀNG thay vì âm thầm sai).
+      expect(
+        String(fixtureProductId),
+        "id sản phẩm fixture trùng SEEDED_STOCK — đổi SEEDED_STOCK sang giá trị khác",
+      ).not.toBe(seededStockStr);
 
-    // Nút Đặt đơn bị vô hiệu hoá và hiện lý do
-    const placeOrderBtn = page.getByRole("button", { name: "Đặt đơn" });
-    await expect(placeOrderBtn).toBeDisabled();
-    await expect(page.getByText("Bạn sửa các dòng được đánh dấu để đặt đơn.")).toBeVisible();
+      // Bắt TOÀN BỘ response /api/cart-lines/status trong suốt test (không chỉ một lần) —
+      // đăng ký listener TRƯỚC lần điều hướng đầu tiên để không bỏ lỡ lần kiểm tra khi mount.
+      const statusResponseBodies: string[] = [];
+      page.on("response", (res) => {
+        if (res.url().includes("/api/cart-lines/status")) {
+          void res
+            .text()
+            .then((body) => statusResponseBodies.push(body))
+            .catch(() => {
+              // Response bị huỷ (điều hướng tiếp theo) — bỏ qua, không phải lỗi cần test này bắt.
+            });
+        }
+      });
 
-    // SC-005: Kiểm tra toàn bộ text trên trang không chứa số lượng tồn kho bí mật
-    // Bắt phản hồi API /api/cart-lines/status
-    const [response] = await Promise.all([
-      page.waitForResponse((res) => res.url().includes("/api/cart-lines/status")),
-      page.reload(),
-    ]);
+      await page.goto("/");
+      await page.evaluate(
+        (payload) => localStorage.setItem("shop_cart", JSON.stringify(payload)),
+        { v: 1, lines: [{ productId: fixtureProductId, quantity: 1 }] },
+      );
+      await page.goto("/cart");
+      await expect(page.getByText(productName)).toBeVisible();
 
-    const resJson = await response.json();
-    const bodyStr = JSON.stringify(resJson);
-    expect(bodyStr).not.toContain("availableQuantity");
-    expect(bodyStr).not.toContain("stockQuantity");
-    expect(bodyStr).not.toContain("quantity\":"); // Response không được chứa trường quantity của stock
+      // Đặt số lượng vượt đúng 1 đơn vị so với Stock đã seed
+      const qtyInput = page.getByRole("spinbutton");
+      await qtyInput.fill(String(EXCEEDING_QTY));
+      await qtyInput.press("Enter");
+
+      // Cờ vượt quá tồn kho xuất hiện
+      await expect(
+        page.getByText("Số lượng này vượt quá số hàng còn bán được. Bạn giảm số lượng để đặt đơn."),
+      ).toBeVisible();
+
+      // Nút Đặt đơn bị vô hiệu hoá và hiện lý do
+      const placeOrderBtn = page.getByRole("button", { name: "Đặt đơn" });
+      await expect(placeOrderBtn).toBeDisabled();
+      await expect(page.getByText("Bạn sửa các dòng được đánh dấu để đặt đơn.")).toBeVisible();
+
+      // Một reload nữa để có thêm ít nhất một response /api/cart-lines/status (lần mount đầu
+      // + lần reload này) trong tập hợp quan sát được.
+      await page.reload();
+      await expect(
+        page.getByText("Số lượng này vượt quá số hàng còn bán được. Bạn giảm số lượng để đặt đơn."),
+      ).toBeVisible();
+
+      await expect
+        .poll(() => statusResponseBodies.length, {
+          message: "phải bắt được ít nhất một response /api/cart-lines/status",
+        })
+        .toBeGreaterThan(0);
+
+      // SC-005 — khẳng định chính: giá trị Stock đã seed KHÔNG xuất hiện trong BẤT KỲ
+      // response /api/cart-lines/status nào quan sát được (không phải chỉ tên trường).
+      for (const body of statusResponseBodies) {
+        expect(body).not.toContain(seededStockStr);
+        // Giữ lại các khẳng định tên trường cũ — vẫn có giá trị nếu một bản vá sau này thêm
+        // hẳn một trường mới mang tên đó (dù giá trị số có trùng SEEDED_STOCK hay không).
+        expect(body).not.toContain("availableQuantity");
+        expect(body).not.toContain("stockQuantity");
+      }
+
+      // SC-005 — giá trị Stock đã seed cũng KHÔNG xuất hiện trong text hiển thị của trang.
+      const pageText = await page.locator("body").innerText();
+      expect(pageText).not.toContain(seededStockStr);
+    } finally {
+      if (fixtureProductId !== undefined) {
+        await pool.query(`DELETE FROM stock WHERE product_id = $1`, [fixtureProductId]);
+        await pool.query(`DELETE FROM product WHERE id = $1`, [fixtureProductId]);
+      }
+      await pool.end();
+    }
   });
 
   test("Đồng bộ giỏ hàng đa tab (FR-021)", async ({ context }) => {
@@ -408,17 +496,40 @@ test.describe("E2E Cart Journey (T010, T014)", () => {
     await expect(page.getByText("Giỏ hàng của bạn đang trống.")).toBeVisible();
   });
 
-  test("Mọi route trước tường đều trả về HTTP 200 không redirect khi chưa đăng nhập (FR-017)", async ({
+  test("Mọi route trước Tường đăng ký trả về HTTP 200, không redirect, khi chưa đăng nhập (FR-017)", async ({
     page,
+    request,
   }) => {
-    const resHome = await page.request.get("/");
-    expect(resHome.status()).toBe(200);
+    // FR-017 liệt kê: home, Category, search, Product detail, Giỏ hàng — cộng thêm
+    // /place-order, /login?returnTo=..., /register?returnTo=... vì các trang này cũng PHẢI
+    // vào được không cần phiên (Tường đăng ký/đăng nhập tự nó không được redirect ra ngoài
+    // đường tới nó). Bài test cũ chỉ kiểm 3 route và dùng `page.request.get` — mặc định của
+    // Playwright là TỰ ĐỘNG follow redirect rồi báo status của đích cuối, nên "không
+    // redirect" (yêu cầu #3 của brief) CHƯA TỪNG thực sự được khẳng định.
+    const productsRes = await request.get("/api/products");
+    expect(productsRes.status()).toBe(200);
+    const productsBody = (await productsRes.json()) as { items: Array<{ id: number }> };
+    expect(productsBody.items.length).toBeGreaterThan(0);
+    const firstProductId = productsBody.items[0].id;
 
-    const resCart = await page.request.get("/cart");
-    expect(resCart.status()).toBe(200);
+    const preWallPaths = [
+      "/", // home
+      "/?categoryId=1", // Category
+      "/?q=binh%20giu%20nhiet", // search
+      `/products/${firstProductId}`, // Product detail
+      "/cart", // Giỏ hàng
+      "/place-order",
+      "/login?returnTo=/place-order",
+      "/register?returnTo=/place-order",
+    ];
 
-    const resProduct = await page.request.get("/products/1");
-    expect(resProduct.status()).toBe(200);
+    for (const path of preWallPaths) {
+      // `maxRedirects: 0` — nếu có một redirect (3xx) tới bất kỳ đâu (vd /login), request
+      // này KHÔNG được tự động theo nó; `res.status()` phải là chính status của `path`, không
+      // phải status của đích redirect.
+      const res = await page.request.get(path, { maxRedirects: 0 });
+      expect(res.status(), `route ${path} phải trả 200, không redirect`).toBe(200);
+    }
   });
 
   test("Accessibility: /cart và /place-order đạt chuẩn WCAG 2.1 AA (zero violations)", async ({
@@ -436,6 +547,34 @@ test.describe("E2E Cart Journey (T010, T014)", () => {
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();
     expect(cartAxe.violations, JSON.stringify(cartAxe.violations, null, 2)).toEqual([]);
+
+    // 1b. T014/T015 (plan.md) yêu cầu quét /cart khi CÓ ÍT NHẤT MỘT dòng bị đánh cờ và Đặt
+    // đơn bị vô hiệu hoá — bài test cũ chỉ quét trạng thái "mọi thứ ổn"; trạng thái cảnh báo
+    // đỏ (role="alert") + nút disabled là một cây DOM khác, có nguy cơ vi phạm AA riêng
+    // (tên accessible của nút disabled, ngữ cảnh của vùng cảnh báo) mà lần quét trên không
+    // chạm tới.
+    const qtyInput = page.getByRole("spinbutton");
+    await qtyInput.fill("9999");
+    await qtyInput.press("Enter");
+    await expect(
+      page.getByText("Số lượng này vượt quá số hàng còn bán được. Bạn giảm số lượng để đặt đơn."),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Đặt đơn" })).toBeDisabled();
+
+    const cartFlaggedAxe = await newAxeBuilder(page)
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    expect(cartFlaggedAxe.violations, JSON.stringify(cartFlaggedAxe.violations, null, 2)).toEqual(
+      [],
+    );
+
+    // Trả giỏ hàng về trạng thái không bị đánh cờ, không ảnh hưởng các bước quét /place-order
+    // bên dưới (độc lập với dòng bị đánh cờ ở trên).
+    await qtyInput.fill("1");
+    await qtyInput.press("Enter");
+    await expect(
+      page.getByText("Số lượng này vượt quá số hàng còn bán được. Bạn giảm số lượng để đặt đơn."),
+    ).not.toBeVisible();
 
     // 2. Quét /place-order khi là Guest (Tường đăng ký)
     await page.goto("/place-order");
@@ -457,6 +596,9 @@ test.describe("E2E Cart Journey (T010, T014)", () => {
 
     await expect(page).toHaveURL("/place-order");
     await expect(page.getByRole("heading", { level: 1, name: "Đặt đơn" })).toBeVisible();
+    // T018: tiêu đề mục giỏ hàng trên trang Đặt đơn là "Giỏ hàng" (glossary-true), không còn
+    // "Tóm tắt đơn hàng" — khoá lại đúng copy hiện tại để một hồi quy đổi copy bị bắt ở đây.
+    await expect(page.getByRole("heading", { level: 2, name: "Giỏ hàng" })).toBeVisible();
     await expect(page.getByText("Cà phê sữa đá")).toBeVisible();
 
     const orderAxe = await newAxeBuilder(page)

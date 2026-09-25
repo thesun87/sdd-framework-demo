@@ -208,7 +208,7 @@ test.describe.serial("SC-007 — hiệu năng giỏ hàng 20 dòng (PRD §8, SC-
     await pool.end();
   });
 
-  test("30 lần điều hướng tới /cart với giỏ hàng 20 dòng đạt p95 ≤ 1500ms", async ({
+  test("30 lần điều hướng tới /cart với giỏ hàng 20 dòng đạt p95 ≤ 1500ms (dừng đồng hồ khi CẢ 20 dòng đã có giá + trạng thái, không dừng sớm ở <h1>)", async ({
     page,
   }) => {
     test.setTimeout(120_000);
@@ -223,25 +223,58 @@ test.describe.serial("SC-007 — hiệu năng giỏ hàng 20 dòng (PRD §8, SC-
       cartPayload,
     );
 
+    // SC-007 (T019, convergence finding F2): "hiển thị xong" nghĩa là CẢ 20 dòng đều có
+    // giá hiện tại VÀ trạng thái kiểm tra — tức mọi dòng "ok" và Đặt đơn được bật. Trước
+    // bản sửa này, đồng hồ dừng ngay khi <h1>"Giỏ hàng" hiện ra — <h1> render ở lần vẽ đầu
+    // tiên của CartPage.tsx, TRƯỚC KHI POST /api/cart-lines/status trả lời (xem
+    // CartPage.tsx: `isChecking` mặc định `true`, <h1> nằm ngoài điều kiện đó) — nên phép đo
+    // cũ đo xong navigation, không đo xong 20 dòng.
+    //
+    // Nút Đặt đơn chỉ là <a role="link"> (thay vì <button role="button" disabled>) khi
+    // CartPage.tsx tính `canPlaceOrder === true`, tức mọi dòng có `lineStatus === "ok"`
+    // (xem CartPage.tsx `canPlaceOrder`). Chờ đúng phần tử role="link" này = chờ đủ 20 dòng
+    // có giá và trạng thái — một khẳng định DOM duy nhất thay cho việc đếm 20 dòng giá.
+    const h1DurationsMs: number[] = [];
     const durationsMs: number[] = [];
     for (let i = 0; i < 30; i += 1) {
       const startedAt = Date.now();
-      const response = await page.goto("/cart", { waitUntil: "load" });
-      durationsMs.push(Date.now() - startedAt);
-      expect(response?.status()).toBe(200);
-      await expect(page.getByRole("heading", { level: 1, name: "Giỏ hàng" })).toBeVisible();
+      // `domcontentloaded` (không phải `load`) — không để sự kiện `load` của trình duyệt
+      // (chờ mọi ảnh/tài nguyên) làm chậm hoặc che giấu mốc thời gian thật của việc render
+      // dữ liệu; mốc dừng đồng hồ giờ do chính điều kiện DOM bên dưới quyết định.
+      const response = await page.goto("/cart", { waitUntil: "domcontentloaded" });
+      expect(response?.status(), `lần lặp #${i}: page.goto("/cart") không trả 200`).toBe(200);
+
+      await page.getByRole("heading", { level: 1, name: "Giỏ hàng" }).waitFor({ state: "visible" });
+      const h1AtMs = Date.now() - startedAt;
+      h1DurationsMs.push(h1AtMs);
+
+      await page.getByRole("link", { name: "Đặt đơn" }).waitFor({ state: "visible" });
+      const fullRenderAtMs = Date.now() - startedAt;
+      durationsMs.push(fullRenderAtMs);
+
+      // Bằng chứng khoảng cách giữa hai mốc (evidence, không chỉ pass/fail): <h1> luôn xuất
+      // hiện KHÔNG MUỘN HƠN thời điểm cả 20 dòng có giá + trạng thái. Khẳng định này ghi
+      // lại đúng lỗ hổng phép đo cũ đã xác minh (task-019-report.md) — nếu một thay đổi sau
+      // này khiến hai mốc đảo ngược thứ tự, đó là dấu hiệu bất thường đáng điều tra riêng.
+      expect(
+        h1AtMs,
+        `lần lặp #${i}: <h1> xuất hiện lúc ${h1AtMs}ms, muộn hơn cả mốc đủ 20 dòng ${fullRenderAtMs}ms`,
+      ).toBeLessThanOrEqual(fullRenderAtMs);
     }
 
     const measuredP95 = p95(durationsMs);
+    const h1P95 = p95(h1DurationsMs);
     // eslint-disable-next-line no-console
     console.log(
-      `[SC-007][trang giỏ hàng 20 dòng] n=${durationsMs.length} p95=${measuredP95.toFixed(1)}ms ` +
+      `[SC-007][trang giỏ hàng 20 dòng] n=${durationsMs.length} ` +
+        `p95(đủ 20 dòng, phép đo MỚI)=${measuredP95.toFixed(1)}ms ` +
+        `p95(chỉ <h1>, phép đo CŨ)=${h1P95.toFixed(1)}ms ` +
         `min=${Math.min(...durationsMs).toFixed(1)}ms max=${Math.max(...durationsMs).toFixed(1)}ms`,
     );
 
     expect(
       measuredP95,
-      `p95 giỏ hàng 20 dòng đo được ${measuredP95.toFixed(1)}ms, vượt ngưỡng 1500ms`,
+      `p95 giỏ hàng 20 dòng (đủ 20 dòng có giá + trạng thái) đo được ${measuredP95.toFixed(1)}ms, vượt ngưỡng 1500ms`,
     ).toBeLessThanOrEqual(1500);
   });
 
