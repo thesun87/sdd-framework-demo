@@ -38,3 +38,10 @@ Ruling R2: A line with no successful status check shows its name placeholder but
 Ruling R3: Execution order T016 → T017 → T018 → T019, strictly sequential — shared files — costs only wall-clock.
 
 ---
+Ruling R4: T019 runs e2e against a throwaway Caddy container (`e2e-proxy-003conv`, port 8080, network `shop-online_default`) serving this worktree's `apps/storefront/dist`; the user's `shop-online_*` stack is never stopped or recreated — the running proxy bind-mounts the main checkout's dist, so testing through it would test `main`, and restarting it is a side effect outside the worktree — if wrong, e2e evidence came from a side proxy that differs from `ops/compose.yaml`, re-run through compose after merge.
+
+Task T016: implementer done 1d7c3ff (BASE 10543b1); review dispatched
+Task T016: minor (deferred): setIsChecking(false) duplicated in success/error branches (CartPage.tsx:60,77)
+Task T016: minor (deferred): no test for unmount while a status check is pending
+Task T016: minor (deferred): pre-existing dead `lines.length === 0` branch in disabledReason (CartPage.tsx:189-190)
+Task T016: complete (commits 10543b1..1d7c3ff, review clean)
