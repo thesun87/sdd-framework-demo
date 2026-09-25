@@ -55,3 +55,8 @@ Task T017: complete (commits 15abcef..38d8361, review clean)
 Task T018: minor (deferred): unlabelled per-line price relies on reading order + "₫"; a stricter AA audit may want an aria-label with a glossary term
 Task T018: minor (deferred): RED evidence in task-018-report.md is paraphrased, not raw output
 Task T018: complete (commits 20ad477..d41d3c8, review clean)
+Task T019: implementer done 5d59afc (BASE ac7c24f); e2e 33/33 via e2e-proxy-003conv (stopped); review dispatched
+Task T019: minor (deferred): third vacuous SC-005 field-name check (`quantity":`) dropped without mention in report
+Task T019: minor (deferred): response-body capture awaits ≥1 body, not all pending `.text()` promises — theoretical race
+Task T019: minor (deferred): FR-017 uses hardcoded categoryId=1 / search term (existing convention)
+Task T019: complete (commits ac7c24f..5d59afc, review clean)
