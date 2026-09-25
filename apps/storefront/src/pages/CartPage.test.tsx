@@ -111,6 +111,10 @@ describe("CartPage (T007 - US1)", () => {
     // Kiểm tra thông tin các dòng
     expect(await screen.findByText("Cà phê sữa đá")).toBeTruthy();
     expect(screen.getByText("Bánh mì pate")).toBeTruthy();
+
+    // T018: Label "Đơn giá:" must be absent, but the price is still shown
+    expect(screen.queryByText(/Đơn giá:/)).toBeNull();
+    // Prices are still displayed per line
     expect(screen.getByText(/25\.000₫/)).toBeTruthy();
     expect(screen.getAllByText(/20\.000₫/).length).toBeGreaterThanOrEqual(1);
 

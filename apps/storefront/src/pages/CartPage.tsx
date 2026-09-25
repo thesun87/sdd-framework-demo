@@ -255,7 +255,7 @@ export function CartPage() {
                 </h2>
                 {product && (
                   <div style={{ color: "#4B5563", fontSize: "14px", margin: "0 0 8px" }}>
-                    Đơn giá: {formatPriceVnd(product.price)}
+                    {formatPriceVnd(product.price)}
                   </div>
                 )}
 

@@ -95,6 +95,11 @@ describe("PlaceOrderPage (T013 - US5, US6)", () => {
       expect(screen.getByText("Bình giữ nhiệt")).toBeTruthy();
     });
 
+    // Section heading "Giỏ hàng" present (T018)
+    expect(screen.getByRole("heading", { level: 2, name: "Giỏ hàng" })).toBeTruthy();
+    // Old heading "Tóm tắt đơn hàng" is absent (T018)
+    expect(screen.queryByText("Tóm tắt đơn hàng")).toBeNull();
+
     // Cờ báo vượt quá tồn kho (không lộ số lượng tồn kho)
     expect(
       screen.getByText(

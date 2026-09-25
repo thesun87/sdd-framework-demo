@@ -141,7 +141,7 @@ export function PlaceOrderPage() {
         }}
       >
         <h2 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "16px" }}>
-          Tóm tắt đơn hàng
+          Giỏ hàng
         </h2>
 
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
