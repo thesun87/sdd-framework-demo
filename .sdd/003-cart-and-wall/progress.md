@@ -60,3 +60,6 @@ Task T019: minor (deferred): third vacuous SC-005 field-name check (`quantity":`
 Task T019: minor (deferred): response-body capture awaits ≥1 body, not all pending `.text()` promises — theoretical race
 Task T019: minor (deferred): FR-017 uses hardcoded categoryId=1 / search term (existing convention)
 Task T019: complete (commits ac7c24f..5d59afc, review clean)
+Final review (opus, b1ab9ea..02370fb): With fixes — 1 Important (storage-failure message screen-reader-only), 5 Minor; all 11 deferred minors triaged "can wait".
+Ruling R6: the final fix wave also carries final-review Minors 1, 2 and 4 (status bound to exact lines incl. no stale prices after a failed re-check; FR-017 client-side URL check; distinct storage-failure signal) — Minor 1 is T016 brief req. 1 as literally written plus R2, Minor 2 makes FR-017's test able to fail on the redirect that matters, Minor 4 prevents wrong copy; one wave is the only wave — if wrong, extra churn in a reviewed area.
+Ruling R7: final-review Minor 3 (glossary lists "tình trạng hàng" as a synonym-to-avoid while sanctioned baseline copy uses it) is NOT fixed by an agent — it is a baseline contradiction for the human; Minor 5 (SC-005 limited to status responses) stands as the T019 brief defined it — if wrong, a copy change / an extra e2e listener later.
