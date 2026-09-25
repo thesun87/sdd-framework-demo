@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { makeSandbox, seedFeature, runGlue } from "./helpers.mjs";
 
 /**
@@ -329,5 +330,102 @@ test("HV006 is not satisfied by a prose id colliding inside a longer id", () => 
     assert.match(r.stdout, /FAIL\s+HV006/,
       `the plan cites no requirement of this spec, only FR-14, which "FR-1" ` +
       `merely happens to be a prefix of:\n${r.stdout}${r.stderr}`);
+  } finally { sb.cleanup(); }
+});
+
+/* ------------------------------------------------------------------ *
+ * HV013 / HV013b on ux_spec — a spec that cites docs/baseline/ux-spec.md
+ * depends on it, so the handoff must capture its SHA and go STALE when it
+ * changes (protocol :1831, §7 HV013). SDD-004.
+ * ------------------------------------------------------------------ */
+
+/** Seeded Track B feature whose spec cites ux-spec.md; handoff generated + committed. */
+function seedUxFeature(sb) {
+  const { feature, fdir } = seedFeature(sb);
+  seedTrackBExtras(sb, feature);
+  writeFileSync(join(sb.dir, "docs/baseline/ux-spec.md"),
+    "# UX Spec\n\n## Design token\n\nbrand-primary: #0070CE\n");
+  writeFileSync(join(fdir, "spec.md"), readFileSync(join(fdir, "spec.md"), "utf8") +
+    "\n## Baseline references\n- `docs/baseline/ux-spec.md`: product grid.\n");
+  sb.git("add", "-A"); sb.git("commit", "-q", "-m", "track B inputs + ux dependency");
+  const hp = handoffFor(sb, feature);
+  sb.git("add", "-A"); sb.git("commit", "-q", "-m", "handoff");
+  return { feature, hp };
+}
+
+test("a handoff pinning ux_spec for a spec that depends on it passes", () => {
+  const sb = makeSandbox();
+  try {
+    const { feature } = seedUxFeature(sb);
+    const r = runGlue("sdd_validate.py", ["--feature", feature], sb.dir);
+    assert.equal(r.status, 0, `expected PASS, got:\n${r.stdout}${r.stderr}`);
+  } finally { sb.cleanup(); }
+});
+
+test("HV013 blocks a handoff missing ux_spec for a spec that depends on it", () => {
+  const sb = makeSandbox();
+  try {
+    const { feature, hp } = seedUxFeature(sb);
+    // the shape every handoff for 001–003 has today: no baseline.ux_spec
+    execFileSync("python3", ["-c",
+      "import sys,yaml;p=sys.argv[1];h=yaml.safe_load(open(p));" +
+      "h.get('baseline',{}).pop('ux_spec',None);" +
+      "yaml.safe_dump(h,open(p,'w'),sort_keys=False)", hp]);
+    sb.git("add", "-A"); sb.git("commit", "-q", "-m", "handoff without ux_spec");
+
+    const r = runGlue("sdd_validate.py", ["--feature", feature], sb.dir);
+    assert.equal(r.status, 1, `expected BLOCKED, got:\n${r.stdout}`);
+    assert.match(r.stdout, /FAIL {2}HV013 .*ux_spec/);
+  } finally { sb.cleanup(); }
+});
+
+test("HV013b blocks a STALE handoff when ux-spec.md changes afterwards", () => {
+  const sb = makeSandbox();
+  try {
+    const { feature } = seedUxFeature(sb);
+    writeFileSync(join(sb.dir, "docs/baseline/ux-spec.md"),
+      "# UX Spec\n\n## Design token\n\nbrand-primary: #FF0000\n");
+    sb.git("add", "-A"); sb.git("commit", "-q", "-m", "ux-spec edited after handoff");
+
+    const r = runGlue("sdd_validate.py", ["--feature", feature], sb.dir);
+    assert.equal(r.status, 1, `expected BLOCKED, got:\n${r.stdout}`);
+    assert.match(r.stdout, /FAIL {2}HV013b .*ux_spec.*STALE/);
+  } finally { sb.cleanup(); }
+});
+
+test("HV013 tells the operator to commit ux-spec.md when the pinned node has no SHA", () => {
+  const sb = makeSandbox();
+  try {
+    const { feature, hp } = seedUxFeature(sb);
+    // what the generator emits while ux-spec.md is missing or uncommitted
+    execFileSync("python3", ["-c",
+      "import sys,yaml;p=sys.argv[1];h=yaml.safe_load(open(p));" +
+      "h['baseline']['ux_spec']=None;" +
+      "yaml.safe_dump(h,open(p,'w'),sort_keys=False)", hp]);
+    sb.git("add", "-A"); sb.git("commit", "-q", "-m", "handoff with null ux_spec");
+
+    const r = runGlue("sdd_validate.py", ["--feature", feature], sb.dir);
+    assert.equal(r.status, 1, `expected BLOCKED, got:\n${r.stdout}`);
+    assert.match(r.stdout, /FAIL {2}HV013 .*ux_spec.*commit docs\/baseline\/ux-spec\.md/);
+  } finally { sb.cleanup(); }
+});
+
+test("HV013b checks the canonical ux-spec.md, not whatever path the handoff names", () => {
+  const sb = makeSandbox();
+  try {
+    const { feature, hp } = seedUxFeature(sb);
+    // point the pin at another committed file with that file's own SHA
+    execFileSync("python3", ["-c",
+      "import sys,yaml,subprocess;p=sys.argv[1];h=yaml.safe_load(open(p));" +
+      "sha=subprocess.check_output(['git','log','-n','1','--format=%H','--','docs/baseline/glossary.md'],cwd=sys.argv[2],text=True).strip();" +
+      "h['baseline']['ux_spec']={'path':'docs/baseline/glossary.md','git_sha':sha};" +
+      "yaml.safe_dump(h,open(p,'w'),sort_keys=False)", hp, sb.dir]);
+    sb.git("add", "-A"); sb.git("commit", "-q", "-m", "handoff pins the wrong file");
+    writeFileSync(join(sb.dir, "docs/baseline/ux-spec.md"), "# UX Spec\n\nchanged\n");
+    sb.git("add", "-A"); sb.git("commit", "-q", "-m", "ux-spec edited after handoff");
+
+    const r = runGlue("sdd_validate.py", ["--feature", feature], sb.dir);
+    assert.equal(r.status, 1, `expected BLOCKED, got:\n${r.stdout}`);
+    assert.match(r.stdout, /FAIL {2}HV013b .*ux_spec/);
   } finally { sb.cleanup(); }
 });

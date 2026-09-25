@@ -16,8 +16,8 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from sdd_lib import (  # noqa: E402
-    BASELINE, CONSTITUTION, ROOT, SDD, SPECS,
-    active_feature, declared_requirements, find_ids, git_sha,
+    BASELINE, CONSTITUTION, ROOT, SDD, SPECS, UX_SPEC,
+    active_feature, declared_requirements, depends_on_ux_spec, find_ids, git_sha,
     has_unresolved_clarifications, is_bootstrap, read, working_tree_clean,
 )
 
@@ -108,6 +108,24 @@ def validate(feature: str) -> Result:
         if p and node.get("git_sha"):
             r.check("HV013b", git_sha(p) == node["git_sha"],
                     f"{key} changed since the handoff was generated — STALE")
+
+    # A dependency the handoff forgot is as uncaptured as an uncommitted one.
+    # Staleness is checked against the canonical file, never the handoff's own
+    # path claim.
+    if depends_on_ux_spec(spec_txt):
+        baseline = h.get("baseline") or {}
+        node = baseline.get("ux_spec") or {}
+        if "ux_spec" not in baseline:
+            r.check("HV013", False,
+                    "ux_spec: not captured — spec.md depends on "
+                    "docs/baseline/ux-spec.md; regenerate the handoff")
+        else:
+            r.check("HV013", bool(node.get("git_sha")),
+                    "ux_spec: git_sha not captured — commit "
+                    "docs/baseline/ux-spec.md first, then regenerate the handoff")
+        if node.get("git_sha"):
+            r.check("HV013b", git_sha(UX_SPEC) == node["git_sha"],
+                    "ux_spec changed since the handoff was generated — STALE")
 
     r.check("HV014", working_tree_clean(),
             "working tree is dirty — commit or stash before execution")
