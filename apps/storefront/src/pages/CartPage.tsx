@@ -1,20 +1,53 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { storefront } from "shared";
 import { QuantityStepper } from "ui";
 import { useCart } from "../cart/useCart.js";
+import { computeLineSubtotal } from "../cart/lineSubtotal.js";
 import { useCurrentAccount } from "../api/useCurrentAccount.js";
 import { fetchCartLineStatuses } from "../api/cart-client.js";
 import { formatPriceVnd } from "../formatPrice.js";
 import { Link } from "../router/Link.js";
 
+// Khoá xác định "đúng bộ dòng" mà một kết quả kiểm tra được tính cho — gồm cả quantity, vì
+// một kết quả cho (productId, quantity) này KHÔNG được coi là còn hiệu lực cho cùng
+// productId với quantity khác (F-2, T016 brief yêu cầu 1, ledger Ruling R2). Thứ tự các
+// dòng cũng tính vào khoá — đủ để phân biệt "cùng những productId/quantity đó" một cách ổn
+// định giữa các lần render liên tiếp của cùng một danh sách lines.
+function computeLinesKey(lines: readonly storefront.CartLine[]): string {
+  return lines.map((l) => `${l.productId}:${l.quantity}`).join(",");
+}
+
+type CheckResult =
+  | { forKey: string; kind: "pending" }
+  | { forKey: string; kind: "ok"; map: Map<number, storefront.CartLineStatusResponseItem> }
+  | { forKey: string; kind: "error" };
+
+const EMPTY_LINE_STATUSES: ReadonlyMap<number, storefront.CartLineStatusResponseItem> =
+  new Map();
+
 export function CartPage() {
   const role = useCurrentAccount();
   const { lines, unavailable, dropUnknown, setQuantity, remove } = useCart();
-  const [lineStatuses, setLineStatuses] = useState<
-    Map<number, storefront.CartLineStatusResponseItem>
-  >(new Map());
-  const [checkError, setCheckError] = useState(false);
+  const [checkResult, setCheckResult] = useState<CheckResult>({ forKey: "", kind: "pending" });
   const [announcement, setAnnouncement] = useState("");
+  // Nhớ lần kiểm tra thành công gần nhất có từng có dòng bị đánh cờ hay không, để chỉ
+  // phát thông báo "đã hợp lệ" đúng một lần khi cờ vừa biến mất (US3-4).
+  const wasFlaggedRef = useRef(false);
+
+  const currentKey = computeLinesKey(lines);
+  // "Đang kiểm tra" được SUY RA ngay trong lúc render (không đợi một effect chạy xong mới
+  // set cờ) — vì vậy một thay đổi lines đến từ BÊN NGOÀI React (sự kiện storage cross-tab,
+  // FR-021) cũng khiến Đặt đơn bị vô hiệu hoá ngay từ lần render đầu tiên sau khi lines đổi;
+  // không còn khung hình nào commit Đặt đơn bật trên một kết quả đã tính cho bộ dòng khác
+  // (F-2). Đây cũng loại bỏ việc phải gọi setIsChecking(false) lặp lại ở cả hai nhánh
+  // thành công/thất bại của effect bên dưới.
+  const isChecking = checkResult.forKey !== currentKey;
+  const checkError = !isChecking && checkResult.kind === "error";
+  // Một kết quả kiểm tra thất bại (hoặc chưa xong) cho bộ dòng hiện tại nghĩa là KHÔNG dòng
+  // nào có trạng thái thành công — không được dùng lại map của lần kiểm tra thành công
+  // trước đó (Ruling R2: không có giá cho một dòng không có trạng thái thành công).
+  const lineStatuses =
+    !isChecking && checkResult.kind === "ok" ? checkResult.map : EMPTY_LINE_STATUSES;
 
   useEffect(() => {
     // Khi đang xác thực tài khoản hoặc là chủ shop thì không kiểm tra giỏ hàng (FR-018)
@@ -22,13 +55,17 @@ export function CartPage() {
     if (lines.length === 0) return;
 
     let cancelled = false;
+    // Bộ dòng (kèm quantity) tại thời điểm effect này chạy — kết quả sắp về chỉ được áp
+    // dụng nếu nó vẫn còn là bộ dòng hiện tại khi phản hồi tới (so khớp qua currentKey ở
+    // trên, được suy ra lại mỗi lần render — không lưu trong closure này).
+    const keyForThisRun = computeLinesKey(lines);
 
     async function checkStatuses() {
       const result = await fetchCartLineStatuses(lines);
+      // Phản hồi đến muộn (out-of-order) cho một bộ dòng đã cũ không được áp dụng.
       if (cancelled) return;
 
       if (result.kind === "ok") {
-        setCheckError(false);
         const map = new Map<number, storefront.CartLineStatusResponseItem>();
         const notFoundIds: number[] = [];
         let hasAnyFlags = false;
@@ -46,10 +83,15 @@ export function CartPage() {
           }
         }
 
-        setLineStatuses(map);
+        setCheckResult({ forKey: keyForThisRun, kind: "ok", map });
 
         if (hasAnyFlags) {
           setAnnouncement("Có dòng trong giỏ hàng cần xử lý.");
+          wasFlaggedRef.current = true;
+        } else if (wasFlaggedRef.current) {
+          // Cờ vừa biến mất sau khi kiểm tra lại thành công (US3-4)
+          setAnnouncement("Các dòng giỏ hàng đã hợp lệ, bạn có thể đặt đơn.");
+          wasFlaggedRef.current = false;
         }
 
         // Loại bỏ các sản phẩm không còn tồn tại khỏi giỏ hàng
@@ -57,7 +99,7 @@ export function CartPage() {
           dropUnknown(notFoundIds);
         }
       } else {
-        setCheckError(true);
+        setCheckResult({ forKey: keyForThisRun, kind: "error" });
       }
     }
 
@@ -139,21 +181,17 @@ export function CartPage() {
     );
   }
 
-  // Tính Tổng tiền hàng (Line subtotal) từ giá hiện tại
-  let lineSubtotal = 0;
-  for (const line of lines) {
-    const status = lineStatuses.get(line.productId);
-    if (status?.product) {
-      lineSubtotal += status.product.price * line.quantity;
-    }
-  }
+  // Chỉ hiện giá / Tổng tiền hàng khi MỌI dòng đều có trạng thái kiểm tra thành công (có
+  // product hiện tại) — không bao giờ hiện giá 0 ₫ giả cho dòng chưa/không kiểm tra được
+  // (T017, ledger Ruling R2/R5, FR-006). Logic dùng chung với PlaceOrderPage.tsx.
+  const { allLinesPriced, lineSubtotal } = computeLineSubtotal(lines, lineStatuses);
 
   const hasFlaggedLines = lines.some((l) => {
     const s = lineStatuses.get(l.productId);
     return s?.lineStatus === "exceeds_stock" || s?.lineStatus === "out_of_stock";
   });
 
-  const checkSucceeded = !checkError && lineStatuses.size > 0;
+  const checkSucceeded = !isChecking && !checkError && lineStatuses.size > 0;
   const canPlaceOrder =
     lines.length > 0 &&
     checkSucceeded &&
@@ -161,7 +199,11 @@ export function CartPage() {
     lines.every((l) => lineStatuses.get(l.productId)?.lineStatus === "ok");
 
   let disabledReason: string | null = null;
-  if (checkError) {
+  if (isChecking) {
+    // Bao gồm cả lần kiểm tra đầu tiên (ledger Ruling R1) — không bao giờ bật Đặt đơn
+    // trên một kết quả đã tính cho bộ dòng khác (AD-20, FR-008).
+    disabledReason = "Đang kiểm tra tình trạng hàng.";
+  } else if (checkError) {
     disabledReason = "Chưa kiểm tra được tình trạng hàng. Bạn thử tải lại trang.";
   } else if (hasFlaggedLines) {
     disabledReason = "Bạn sửa các dòng được đánh dấu để đặt đơn.";
@@ -194,8 +236,6 @@ export function CartPage() {
         {lines.map((line) => {
           const status = lineStatuses.get(line.productId);
           const product = status?.product;
-          const currentPrice = product?.price ?? 0;
-          const lineTotal = currentPrice * line.quantity;
           const productName = product?.name ?? `Sản phẩm #${line.productId}`;
 
           return (
@@ -237,9 +277,11 @@ export function CartPage() {
                 <h2 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 4px" }}>
                   {productName}
                 </h2>
-                <div style={{ color: "#4B5563", fontSize: "14px", margin: "0 0 8px" }}>
-                  Đơn giá: {formatPriceVnd(currentPrice)}
-                </div>
+                {product && (
+                  <div style={{ color: "#4B5563", fontSize: "14px", margin: "0 0 8px" }}>
+                    {formatPriceVnd(product.price)}
+                  </div>
+                )}
 
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px" }}>
                   <QuantityStepper
@@ -299,30 +341,34 @@ export function CartPage() {
               </div>
 
               <div style={{ textAlign: "right", minWidth: "120px" }}>
-                <div style={{ fontWeight: "600", fontSize: "16px" }}>
-                  {formatPriceVnd(lineTotal)}
-                </div>
+                {product && (
+                  <div style={{ fontWeight: "600", fontSize: "16px" }}>
+                    {formatPriceVnd(product.price * line.quantity)}
+                  </div>
+                )}
               </div>
             </li>
           );
         })}
       </ul>
 
-      <div
-        style={{
-          marginTop: "24px",
-          borderTop: "2px solid #E5E7EB",
-          paddingTop: "16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ fontSize: "18px", fontWeight: "bold" }}>Tổng tiền hàng:</div>
-        <div style={{ fontSize: "20px", fontWeight: "bold", color: "#111827" }}>
-          {formatPriceVnd(lineSubtotal)}
+      {allLinesPriced && (
+        <div
+          style={{
+            marginTop: "24px",
+            borderTop: "2px solid #E5E7EB",
+            paddingTop: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ fontSize: "18px", fontWeight: "bold" }}>Tổng tiền hàng:</div>
+          <div style={{ fontSize: "20px", fontWeight: "bold", color: "#111827" }}>
+            {formatPriceVnd(lineSubtotal)}
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         style={{

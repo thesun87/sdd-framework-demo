@@ -196,4 +196,27 @@ describe("cartStore (T003)", () => {
     cartStore.add(2);
     expect(cartStore.totalQuantity()).toBe(3);
   });
+
+  it("add báo cáo 'added' khi ghi thành công, và 'unavailable' khi storage không dùng được (T017)", () => {
+    expect(cartStore.add(10)).toBe("added");
+    expect(cartStore.getSnapshot().lines).toEqual([{ productId: 10, quantity: 1 }]);
+
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+
+    expect(cartStore.add(20)).toBe("unavailable");
+    expect(cartStore.getSnapshot().unavailable).toBe(true);
+  });
+
+  it("add báo cáo 'invalid' cho productId/quantity không hợp lệ — KHÔNG lẫn với 'unavailable' (F-4)", () => {
+    expect(cartStore.add(-1)).toBe("invalid");
+    expect(cartStore.add(1.5)).toBe("invalid");
+    expect(cartStore.add(1, 0)).toBe("invalid");
+    expect(cartStore.add(1, -2)).toBe("invalid");
+    expect(cartStore.add(1, 1.5)).toBe("invalid");
+    // Không ghi gì vào giỏ, và không chuyển sang trạng thái unavailable
+    expect(cartStore.getSnapshot().lines).toEqual([]);
+    expect(cartStore.getSnapshot().unavailable).toBe(false);
+  });
 });

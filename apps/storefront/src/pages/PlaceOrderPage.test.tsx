@@ -95,6 +95,11 @@ describe("PlaceOrderPage (T013 - US5, US6)", () => {
       expect(screen.getByText("Bình giữ nhiệt")).toBeTruthy();
     });
 
+    // Section heading "Giỏ hàng" present (T018)
+    expect(screen.getByRole("heading", { level: 2, name: "Giỏ hàng" })).toBeTruthy();
+    // Old heading "Tóm tắt đơn hàng" is absent (T018)
+    expect(screen.queryByText("Tóm tắt đơn hàng")).toBeNull();
+
     // Cờ báo vượt quá tồn kho (không lộ số lượng tồn kho)
     expect(
       screen.getByText(
@@ -109,5 +114,41 @@ describe("PlaceOrderPage (T013 - US5, US6)", () => {
     expect(container.querySelectorAll("form").length).toBe(0);
     expect(container.querySelectorAll("input").length).toBe(0);
     expect(screen.queryByRole("button", { name: /đặt hàng|thanh toán/i })).toBeNull();
+  });
+
+  it("khi kiểm tra tình trạng hàng thất bại, hiện lý do thử tải lại và không đánh cờ dòng nào (T017 - Ruling R2)", async () => {
+    vi.spyOn(useCurrentAccountModule, "useCurrentAccount").mockReturnValue("customer");
+    cartStore.add(1, 2);
+
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockResolvedValue({
+      kind: "error",
+      message: "Network Error",
+    });
+
+    render(<PlaceOrderPage />);
+
+    expect(
+      await screen.findByText("Chưa kiểm tra được tình trạng hàng. Bạn thử tải lại trang."),
+    ).toBeTruthy();
+
+    // Dòng vẫn hiện tên (placeholder) nhưng không có giá giả, không có Tổng tiền hàng
+    expect(screen.getByText("Sản phẩm #1")).toBeTruthy();
+    expect(screen.queryByText(/₫/)).toBeNull();
+    expect(screen.queryByText(/Tổng tiền hàng/)).toBeNull();
+  });
+
+  it("trước khi có phản hồi kiểm tra đầu tiên, không hiện 0₫ hay Tổng tiền hàng (T017 - Ruling R2)", async () => {
+    vi.spyOn(useCurrentAccountModule, "useCurrentAccount").mockReturnValue("customer");
+    cartStore.add(1, 2);
+
+    vi.spyOn(cartClient, "fetchCartLineStatuses").mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    render(<PlaceOrderPage />);
+
+    expect(await screen.findByText("Sản phẩm #1")).toBeTruthy();
+    expect(screen.queryByText(/₫/)).toBeNull();
+    expect(screen.queryByText(/Tổng tiền hàng/)).toBeNull();
   });
 });

@@ -69,4 +69,70 @@ describe("AddToCartButton (T006)", () => {
     expect(button.disabled).toBe(true);
     expect(screen.getByText("Sản phẩm này đang hết hàng.")).toBeTruthy();
   });
+
+  it("khi cartStore.add không ghi được (storage unavailable), thông báo 'Không lưu được giỏ hàng trên trình duyệt này.' và KHÔNG có 'Đã thêm vào giỏ hàng.' (T017)", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    vi.spyOn(cartStore, "add").mockReturnValue("unavailable");
+
+    render(<AddToCartButton productId={10} stockStatus="in_stock" />);
+
+    const button = await screen.findByRole("button", { name: /thêm vào giỏ/i });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      // F-1: thông báo này giờ xuất hiện ở CẢ vùng hiển thị lẫn vùng aria-live ẩn — dùng
+      // getAllByText để không vỡ vì "tìm thấy nhiều phần tử" (xem test F-1 riêng bên dưới
+      // để khẳng định rõ có một bản hiển thị được).
+      expect(
+        screen.getAllByText("Không lưu được giỏ hàng trên trình duyệt này.").length,
+      ).toBeGreaterThanOrEqual(1);
+    });
+    expect(screen.queryByText("Đã thêm vào giỏ hàng.")).toBeNull();
+  });
+
+  it("thông báo lưu-thất-bại được hiển thị ở một phần tử NHÌN THẤY ĐƯỢC, không chỉ trong vùng aria-live ẩn (F-1)", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    vi.spyOn(cartStore, "add").mockReturnValue("unavailable");
+
+    render(<AddToCartButton productId={10} stockStatus="in_stock" />);
+
+    const button = await screen.findByRole("button", { name: /thêm vào giỏ/i });
+    fireEvent.click(button);
+
+    const matches = await waitFor(() =>
+      screen.getAllByText("Không lưu được giỏ hàng trên trình duyệt này."),
+    );
+    // getByText/getAllByText khớp cả text bị clip (sr-only) — phải có ít nhất một phần tử
+    // KHÔNG bị định vị theo kiểu ẩn (position: absolute + clip) của vùng aria-live.
+    const visibleMatch = matches.find((el) => el.style.position !== "absolute");
+    expect(visibleMatch).toBeTruthy();
+  });
+
+  it("khi productId không hợp lệ, cartStore.add không ghi vào giỏ và KHÔNG hiển thị thông báo lưu-thất-bại hay thông báo thành công (F-4)", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+
+    render(<AddToCartButton productId={-1} stockStatus="in_stock" />);
+
+    const button = await screen.findByRole("button", { name: /thêm vào giỏ/i });
+    fireEvent.click(button);
+
+    // Dữ liệu đầu vào không hợp lệ không phải là lỗi storage — không được báo nhầm.
+    await waitFor(() => {
+      expect(cartStore.getSnapshot().unavailable).toBe(false);
+    });
+    expect(cartStore.getSnapshot().lines).toEqual([]);
+    expect(
+      screen.queryByText("Không lưu được giỏ hàng trên trình duyệt này."),
+    ).toBeNull();
+    expect(screen.queryByText("Đã thêm vào giỏ hàng.")).toBeNull();
+  });
 });
