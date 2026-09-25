@@ -778,6 +778,111 @@ describe("CartPage — trạng thái dòng gắn với giỏ hàng hiện tại 
   });
 });
 
+describe("CartPage — kết quả kiểm tra gắn chặt với đúng bộ dòng hiện tại (F-2, ledger Ruling R2)", () => {
+  it("một thay đổi giỏ hàng đến từ BÊN NGOÀI React (sự kiện storage cross-tab, FR-021, cùng productId khác quantity) không bao giờ để Đặt đơn bật dựa trên kết quả đã tính cho số lượng cũ, kể cả khi lần kiểm tra mới không bao giờ trả lời", async () => {
+    // Ghi chú kỹ thuật: đã thử buộc quan sát ĐÚNG khung hình React commit lines mới nhưng
+    // effect (setIsChecking cũ / so khớp key mới) CHƯA kịp chạy — không tái tạo được trong
+    // jsdom/RTL (dispatchEvent thô: không render nào chạy cho tới khi có ít nhất 1 tác vụ vĩ
+    // mô; act()/setTimeout(0): React luôn flush effect CÙNG lúc với commit). Bài test dưới
+    // đây khẳng định trạng thái ổn định (eventually-consistent, dùng waitFor như các bài test
+    // khác trong file) và — quan trọng hơn — rằng nó không BAO GIỜ dựa vào map cũ (khoá theo
+    // productId, bỏ qua quantity): lần kiểm tra mới ở đây cố tình không bao giờ trả lời, nên
+    // nếu gating còn đọc trạng thái "ok" cũ của productId 1 (bất kể quantity), Đặt đơn sẽ bật
+    // sai; với gating suy ra từ khoá (productId:quantity) như F-2 yêu cầu, nó phải luôn tắt.
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    const fetchSpy = vi.spyOn(cartClient, "fetchCartLineStatuses").mockResolvedValue({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOkFixture({
+            productId: 1,
+            lineStatus: "ok",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByRole("link", { name: "Đặt đơn" });
+
+    // Lần kiểm tra tiếp theo (cho số lượng mới) sẽ không bao giờ trả lời trong test này.
+    fetchSpy.mockImplementation(() => new Promise(() => {}));
+
+    // Một tab khác đổi số lượng dòng 1 từ 2 -> 50 thẳng trong localStorage rồi bắn sự kiện
+    // storage — đây KHÔNG phải một cập nhật đến từ act()/sự kiện React nào của trang này,
+    // mô phỏng đúng tình huống FR-021 mà finding F-2 mô tả.
+    localStorage.setItem(
+      "shop_cart",
+      JSON.stringify({ v: 1, lines: [{ productId: 1, quantity: 50 }] }),
+    );
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "shop_cart",
+        newValue: JSON.stringify({ v: 1, lines: [{ productId: 1, quantity: 50 }] }),
+      }),
+    );
+
+    // Trạng thái ổn định sau khi cập nhật cross-tab được xử lý: Đặt đơn vô hiệu hoá với lý do
+    // đang kiểm tra, KHÔNG phải link — cho dù kết quả kiểm tra thành công gần nhất (cho
+    // quantity=2) vẫn nằm trong bộ nhớ.
+    await waitFor(() => {
+      expect(screen.getByText("Đang kiểm tra tình trạng hàng.")).toBeTruthy();
+    });
+    expect(screen.queryByRole("link", { name: "Đặt đơn" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Đặt đơn" }).hasAttribute("disabled")).toBe(true);
+    // Không hiện giá cũ (của quantity=2) trong lúc chờ kết quả cho quantity=50 (Ruling R2).
+    expect(screen.queryByText(/₫/)).toBeNull();
+  });
+
+  it("kiểm tra lại thất bại sau một lần kiểm tra thành công trước đó: không còn hiện giá cũ hay Tổng tiền hàng (Ruling R2)", async () => {
+    vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({
+      kind: "ok",
+      data: { account: null },
+    });
+    cartStore.add(1, 2);
+
+    const fetchSpy = vi.spyOn(cartClient, "fetchCartLineStatuses");
+    fetchSpy.mockResolvedValueOnce({
+      kind: "ok",
+      data: {
+        lines: [
+          createCartLineStatusOkFixture({
+            productId: 1,
+            lineStatus: "ok",
+            product: { name: "Cà phê sữa đá", price: 25000, imagePath: null },
+          }),
+        ],
+      },
+    });
+
+    render(<CartPage />);
+    await screen.findByText("Cà phê sữa đá");
+    expect(screen.getByText(/Tổng tiền hàng/)).toBeTruthy();
+    expect(screen.getAllByText(/₫/).length).toBeGreaterThan(0);
+
+    // Lần kiểm tra lại (kích hoạt bởi tăng số lượng) thất bại.
+    fetchSpy.mockResolvedValueOnce({ kind: "error", message: "Network Error" });
+    const incBtn = screen.getByRole("button", { name: /Tăng số lượng Cà phê sữa đá/ });
+    fireEvent.click(incBtn);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Chưa kiểm tra được tình trạng hàng. Bạn thử tải lại trang."),
+      ).toBeTruthy();
+    });
+    // Giá / Tổng tiền hàng của lần kiểm tra CŨ (đã thành công) không được còn sót lại trên
+    // màn hình — kiểm tra hiện tại thất bại nghĩa là KHÔNG dòng nào có trạng thái thành công.
+    expect(screen.queryByText(/₫/)).toBeNull();
+    expect(screen.queryByText(/Tổng tiền hàng/)).toBeNull();
+  });
+});
+
 describe("CartPage — không hiện giá giả khi chưa có trạng thái thành công (T017 - FR-006, Ruling R2)", () => {
   it("trước khi có phản hồi kiểm tra đầu tiên, không hiện 0₫ hay bất kỳ giá nào, và không hiện Tổng tiền hàng", async () => {
     vi.spyOn(authClient, "getCurrentUser").mockResolvedValue({

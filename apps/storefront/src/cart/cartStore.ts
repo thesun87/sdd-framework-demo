@@ -8,6 +8,9 @@ export interface CartSnapshot {
   readonly lines: readonly CartLine[];
 }
 
+// F-4: kết quả rõ ràng của add() — xem chú thích tại định nghĩa add() bên dưới.
+export type AddResult = "added" | "invalid" | "unavailable";
+
 const STORAGE_KEY = "shop_cart";
 
 function readFromStorage(): CartSnapshot {
@@ -139,14 +142,17 @@ class CartStore {
     return lines.reduce((sum, line) => sum + line.quantity, 0);
   };
 
-  // Trả về true khi đã ghi được vào storage, false khi không (T017) — người gọi (ví dụ
-  // AddToCartButton) dùng giá trị này để không thông báo "Đã thêm..." khi thực ra chưa lưu.
-  public add = (productId: number, quantity = 1): boolean => {
-    if (!Number.isInteger(productId) || productId <= 0) return false;
-    if (!Number.isInteger(quantity) || quantity <= 0) return false;
+  // Kết quả của add(): "added" khi đã ghi được vào storage, "unavailable" khi storage
+  // không dùng được (ghi thất bại), "invalid" khi productId/quantity không hợp lệ — KHÔNG
+  // được gộp chung với "unavailable" (F-4): đây là lỗi dữ liệu đầu vào phía người gọi, không
+  // phải tình trạng storage của trình duyệt, nên người gọi (ví dụ AddToCartButton) không được
+  // hiển thị thông báo "Không lưu được giỏ hàng trên trình duyệt này." cho trường hợp này.
+  public add = (productId: number, quantity = 1): AddResult => {
+    if (!Number.isInteger(productId) || productId <= 0) return "invalid";
+    if (!Number.isInteger(quantity) || quantity <= 0) return "invalid";
 
     const current = readFromStorage();
-    if (current.unavailable) return false;
+    if (current.unavailable) return "unavailable";
 
     const updated = [...current.lines];
     const existingIndex = updated.findIndex((l) => l.productId === productId);
@@ -165,11 +171,11 @@ class CartStore {
 
     if (writeToStorage(updated)) {
       this.notify();
-      return true;
+      return "added";
     } else {
       this.snapshot = { unavailable: true, lines: [] };
       for (const listener of this.listeners) listener();
-      return false;
+      return "unavailable";
     }
   };
 

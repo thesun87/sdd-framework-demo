@@ -11,6 +11,10 @@ export interface AddToCartButtonProps {
 export function AddToCartButton({ productId, stockStatus }: AddToCartButtonProps) {
   const accountRole = useCurrentAccount();
   const [announcement, setAnnouncement] = useState<string>("");
+  // Cờ điều khiển thông báo lưu-thất-bại NHÌN THẤY ĐƯỢC (F-1) — trước đây thông báo này chỉ
+  // nằm trong vùng aria-live ẩn (sr-only), không đáp ứng Edge Case "Browser storage
+  // unavailable" của spec: người dùng (không chỉ trình đọc màn hình) phải được báo.
+  const [storageUnavailable, setStorageUnavailable] = useState(false);
 
   if (accountRole === "loading" || accountRole === "shop_owner") {
     return null;
@@ -20,12 +24,20 @@ export function AddToCartButton({ productId, stockStatus }: AddToCartButtonProps
 
   const handleAdd = () => {
     if (isOutOfStock) return;
-    const added = cartStore.add(productId);
+    const result = cartStore.add(productId);
+    if (result === "invalid") {
+      // Lỗi dữ liệu đầu vào (productId/quantity không hợp lệ) không phải là "không lưu được
+      // vào storage" — không được báo nhầm thành lỗi storage (F-4); đây không phải điều
+      // người dùng gây ra nên không có gì để thông báo cho họ.
+      return;
+    }
+    const added = result === "added";
     // Không nói đã thêm khi thực ra không ghi được vào storage (T017, FR-006 tinh thần
     // "không nói dối") — ví dụ trình duyệt ở chế độ riêng tư chặn localStorage.
     setAnnouncement(
       added ? "Đã thêm vào giỏ hàng." : "Không lưu được giỏ hàng trên trình duyệt này.",
     );
+    setStorageUnavailable(!added);
   };
 
   return (
@@ -53,6 +65,12 @@ export function AddToCartButton({ productId, stockStatus }: AddToCartButtonProps
       {isOutOfStock && (
         <span style={{ fontSize: "14px", color: "#dc2626", fontWeight: 500 }}>
           Sản phẩm này đang hết hàng.
+        </span>
+      )}
+
+      {storageUnavailable && (
+        <span style={{ fontSize: "14px", color: "#dc2626", fontWeight: 500 }}>
+          Không lưu được giỏ hàng trên trình duyệt này.
         </span>
       )}
 

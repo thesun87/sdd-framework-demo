@@ -1,11 +1,11 @@
 import { useSyncExternalStore } from "react";
-import { cartStore, type CartSnapshot, type CartLine } from "./cartStore.js";
+import { cartStore, type CartSnapshot, type CartLine, type AddResult } from "./cartStore.js";
 
 export interface UseCartResult {
   readonly lines: readonly CartLine[];
   readonly unavailable: boolean;
   readonly totalQuantity: number;
-  readonly add: (productId: number, quantity?: number) => boolean;
+  readonly add: (productId: number, quantity?: number) => AddResult;
   readonly setQuantity: (productId: number, quantity: number) => boolean;
   readonly remove: (productId: number) => void;
   readonly dropUnknown: (productIds: readonly number[]) => void;

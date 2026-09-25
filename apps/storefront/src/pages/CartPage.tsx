@@ -8,20 +8,46 @@ import { fetchCartLineStatuses } from "../api/cart-client.js";
 import { formatPriceVnd } from "../formatPrice.js";
 import { Link } from "../router/Link.js";
 
+// Khoá xác định "đúng bộ dòng" mà một kết quả kiểm tra được tính cho — gồm cả quantity, vì
+// một kết quả cho (productId, quantity) này KHÔNG được coi là còn hiệu lực cho cùng
+// productId với quantity khác (F-2, T016 brief yêu cầu 1, ledger Ruling R2). Thứ tự các
+// dòng cũng tính vào khoá — đủ để phân biệt "cùng những productId/quantity đó" một cách ổn
+// định giữa các lần render liên tiếp của cùng một danh sách lines.
+function computeLinesKey(lines: readonly storefront.CartLine[]): string {
+  return lines.map((l) => `${l.productId}:${l.quantity}`).join(",");
+}
+
+type CheckResult =
+  | { forKey: string; kind: "pending" }
+  | { forKey: string; kind: "ok"; map: Map<number, storefront.CartLineStatusResponseItem> }
+  | { forKey: string; kind: "error" };
+
+const EMPTY_LINE_STATUSES: ReadonlyMap<number, storefront.CartLineStatusResponseItem> =
+  new Map();
+
 export function CartPage() {
   const role = useCurrentAccount();
   const { lines, unavailable, dropUnknown, setQuantity, remove } = useCart();
-  const [lineStatuses, setLineStatuses] = useState<
-    Map<number, storefront.CartLineStatusResponseItem>
-  >(new Map());
-  const [checkError, setCheckError] = useState(false);
-  // Đang chờ kết quả kiểm tra cho đúng bộ dòng hiện tại (kể cả lần kiểm tra đầu tiên) —
-  // trong lúc này, không được coi kết quả cũ là còn giá trị (AD-20, FR-008).
-  const [isChecking, setIsChecking] = useState(true);
+  const [checkResult, setCheckResult] = useState<CheckResult>({ forKey: "", kind: "pending" });
   const [announcement, setAnnouncement] = useState("");
   // Nhớ lần kiểm tra thành công gần nhất có từng có dòng bị đánh cờ hay không, để chỉ
   // phát thông báo "đã hợp lệ" đúng một lần khi cờ vừa biến mất (US3-4).
   const wasFlaggedRef = useRef(false);
+
+  const currentKey = computeLinesKey(lines);
+  // "Đang kiểm tra" được SUY RA ngay trong lúc render (không đợi một effect chạy xong mới
+  // set cờ) — vì vậy một thay đổi lines đến từ BÊN NGOÀI React (sự kiện storage cross-tab,
+  // FR-021) cũng khiến Đặt đơn bị vô hiệu hoá ngay từ lần render đầu tiên sau khi lines đổi;
+  // không còn khung hình nào commit Đặt đơn bật trên một kết quả đã tính cho bộ dòng khác
+  // (F-2). Đây cũng loại bỏ việc phải gọi setIsChecking(false) lặp lại ở cả hai nhánh
+  // thành công/thất bại của effect bên dưới.
+  const isChecking = checkResult.forKey !== currentKey;
+  const checkError = !isChecking && checkResult.kind === "error";
+  // Một kết quả kiểm tra thất bại (hoặc chưa xong) cho bộ dòng hiện tại nghĩa là KHÔNG dòng
+  // nào có trạng thái thành công — không được dùng lại map của lần kiểm tra thành công
+  // trước đó (Ruling R2: không có giá cho một dòng không có trạng thái thành công).
+  const lineStatuses =
+    !isChecking && checkResult.kind === "ok" ? checkResult.map : EMPTY_LINE_STATUSES;
 
   useEffect(() => {
     // Khi đang xác thực tài khoản hoặc là chủ shop thì không kiểm tra giỏ hàng (FR-018)
@@ -29,9 +55,10 @@ export function CartPage() {
     if (lines.length === 0) return;
 
     let cancelled = false;
-    // Mọi kết quả sắp về chỉ tính cho đúng bộ dòng (productId, quantity) tại thời điểm này;
-    // nếu giỏ hàng đổi trước khi có phản hồi, coi như đang kiểm tra lại từ đầu.
-    setIsChecking(true);
+    // Bộ dòng (kèm quantity) tại thời điểm effect này chạy — kết quả sắp về chỉ được áp
+    // dụng nếu nó vẫn còn là bộ dòng hiện tại khi phản hồi tới (so khớp qua currentKey ở
+    // trên, được suy ra lại mỗi lần render — không lưu trong closure này).
+    const keyForThisRun = computeLinesKey(lines);
 
     async function checkStatuses() {
       const result = await fetchCartLineStatuses(lines);
@@ -39,7 +66,6 @@ export function CartPage() {
       if (cancelled) return;
 
       if (result.kind === "ok") {
-        setCheckError(false);
         const map = new Map<number, storefront.CartLineStatusResponseItem>();
         const notFoundIds: number[] = [];
         let hasAnyFlags = false;
@@ -57,8 +83,7 @@ export function CartPage() {
           }
         }
 
-        setLineStatuses(map);
-        setIsChecking(false);
+        setCheckResult({ forKey: keyForThisRun, kind: "ok", map });
 
         if (hasAnyFlags) {
           setAnnouncement("Có dòng trong giỏ hàng cần xử lý.");
@@ -74,8 +99,7 @@ export function CartPage() {
           dropUnknown(notFoundIds);
         }
       } else {
-        setCheckError(true);
-        setIsChecking(false);
+        setCheckResult({ forKey: keyForThisRun, kind: "error" });
       }
     }
 

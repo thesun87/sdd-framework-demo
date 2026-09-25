@@ -530,6 +530,20 @@ test.describe("E2E Cart Journey (T010, T014)", () => {
       const res = await page.request.get(path, { maxRedirects: 0 });
       expect(res.status(), `route ${path} phải trả 200, không redirect`).toBe(200);
     }
+
+    // F-3: `maxRedirects: 0` ở trên chỉ chứng minh SERVER không trả 3xx cho request thô — nó
+    // KHÔNG bắt được một redirect PHÍA CLIENT (JS điều hướng sang nơi khác sau khi trang SPA
+    // đã tải, ví dụ Tường đăng ký/router tự ý push sang /login). `page` của chính bài test
+    // này chưa từng đăng nhập ở bất kỳ bước nào phía trên — mở thật từng route bằng
+    // page.goto trong đúng ngữ cảnh không phiên đó, và khẳng định URL cuối cùng của trình
+    // duyệt đúng bằng route đã gọi, không bị điều hướng sang nơi khác.
+    for (const path of preWallPaths) {
+      await page.goto(path);
+      await expect(
+        page,
+        `route ${path} không được điều hướng (client-side) sang URL khác`,
+      ).toHaveURL(path);
+    }
   });
 
   test("Accessibility: /cart và /place-order đạt chuẩn WCAG 2.1 AA (zero violations)", async ({
